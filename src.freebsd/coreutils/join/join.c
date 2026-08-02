@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <locale.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -372,7 +373,7 @@ mbssep(char **stringp, const wchar_t *delim)
 				if (c == 0)
 					s = NULL;
 				else
-					s[-n] = '\0';
+					s[-(ptrdiff_t)n] = '\0';
 				*stringp = s;
 				return (tok);
 			}
