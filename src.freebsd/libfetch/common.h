@@ -31,6 +31,8 @@
 #ifndef _COMMON_H_INCLUDED
 #define _COMMON_H_INCLUDED
 
+#include <sys/cdefs.h>
+
 #define FTP_DEFAULT_PORT	21
 #define HTTP_DEFAULT_PORT	80
 #define FTP_DEFAULT_PROXY_PORT	21
@@ -52,8 +54,8 @@
 typedef struct fetchconn conn_t;
 struct fetchconn {
 	int		 sd;		/* socket descriptor */
-	char		*buf;		/* buffer */
 	size_t		 bufsize;	/* buffer size */
+	char		*buf __cu_counted_by(bufsize); /* buffer */
 	size_t		 buflen;	/* length of buffer contents */
 	int		 err;		/* last protocol reply code */
 #ifdef WITH_SSL

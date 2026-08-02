@@ -54,4 +54,14 @@
 #define __unused __attribute__((unused))
 #define __unreachable() __builtin_unreachable()
 
+/* counted_by (clang 18+, gcc 15+); empty on older compilers */
+#if defined(__has_attribute)
+#if __has_attribute(counted_by)
+#define __cu_counted_by(x) __attribute__((counted_by(x)))
+#endif
+#endif
+#ifndef __cu_counted_by
+#define __cu_counted_by(x)
+#endif
+
 #endif

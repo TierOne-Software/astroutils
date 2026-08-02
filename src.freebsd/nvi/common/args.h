@@ -17,9 +17,11 @@
  * structure or to walk the array until an ARGS structure with a length of 0
  * is found.
  */
+#include <sys/cdefs.h>
+
 typedef struct _args {
-	CHAR_T	*bp;		/* Argument. */
 	size_t	 blen;		/* Buffer length. */
+	CHAR_T	*bp __cu_counted_by(blen); /* Argument. */
 	size_t	 len;		/* Argument length. */
 
 #define	A_ALLOCATED	0x01	/* If allocated space. */
