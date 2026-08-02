@@ -97,6 +97,43 @@ re_patch(void)
 }
 
 /*
+ * Reset parser state and free any hunk lines parsed so far.  Normally the
+ * cleanup at the top of another_hunk() does this; it is needed separately
+ * by fuzz harnesses that longjmp out of fatal().
+ */
+void
+pch_reset(void)
+{
+	/*
+	 * Do NOT free p_line[] entries here: fatal() can fire with p_end
+	 * pointing at slots that are stale, already freed, or never
+	 * initialized (the fill/backtracking logic moves p_end around),
+	 * and there is no reliable way to tell which. Reusing the slots
+	 * just overwrites them; the leaked hunk lines are bounded by the
+	 * input size and only affect fuzz-style reentrant use — in the
+	 * real tool fatal() exits the process anyway.
+	 */
+	p_efake = -1;
+	free(bestguess);
+	bestguess = NULL;
+	close_patch_file();
+	re_patch();
+}
+
+/*
+ * Close the patch file.  The real tool never needs this (it exits), but
+ * reentrant users (fuzz harnesses) leak the descriptor otherwise.
+ */
+void
+close_patch_file(void)
+{
+	if (pfp != NULL) {
+		fclose(pfp);
+		pfp = NULL;
+	}
+}
+
+/*
  * Open the patch file at the beginning of time.
  */
 void
@@ -135,7 +172,7 @@ void
 set_hunkmax(void)
 {
 	if (p_line == NULL)
-		p_line = malloc(hunkmax * sizeof(char *));
+		p_line = calloc(hunkmax, sizeof(char *));
 	if (p_len == NULL)
 		p_len = malloc(hunkmax * sizeof(size_t));
 	if (p_char == NULL)
@@ -158,6 +195,8 @@ grow_hunkmax(void)
 	p_char = reallocf(p_char, new_hunkmax * sizeof(char));
 
 	if (p_line != NULL && p_len != NULL && p_char != NULL) {
+		/* zero the new half so cleanup paths never see garbage */
+		memset(p_line + hunkmax, 0, hunkmax * sizeof(char *));
 		hunkmax = new_hunkmax;
 		return;
 	}
@@ -553,8 +592,10 @@ another_hunk(void)
 	while (p_end >= 0) {
 		if (p_end == p_efake)
 			p_end = p_bfake;	/* don't free twice */
-		else
+		else {
 			free(p_line[p_end]);
+			p_line[p_end] = NULL;
+		}
 		p_end--;
 	}
 	p_efake = -1;
@@ -652,6 +693,9 @@ another_hunk(void)
 
 				/* we need this much at least */
 				p_max = p_ptrn_lines + 6;
+				if (p_max > MAXHUNKSIZE)
+					fatal("hunk too large (%ld lines) at line %ld: %s",
+					    p_max, p_input_line, buf);
 				while (p_max >= hunkmax)
 					grow_hunkmax();
 				p_max = hunkmax;
@@ -660,7 +704,7 @@ another_hunk(void)
 				if (buf[1] == '-') {
 					if (repl_beginning ||
 					    (p_end != p_ptrn_lines + 1 +
-					    (p_char[p_end - 1] == '\n'))) {
+					    (p_end > 0 && p_char[p_end - 1] == '\n'))) {
 						if (p_end == 1) {
 							/*
 							 * `old' lines were omitted;
@@ -756,10 +800,10 @@ another_hunk(void)
 				}
 				if (p_end == p_ptrn_lines) {
 					if (remove_special_line()) {
-						int	l;
+						size_t	l = strlen(p_line[p_end]);
 
-						l = strlen(p_line[p_end]) - 1;
-						(p_line[p_end])[l] = 0;
+						if (l > 0)
+							(p_line[p_end])[l - 1] = 0;
 					}
 				}
 				break;
@@ -892,7 +936,7 @@ hunk_done:
 				malformed();
 		}
 		if (p_line[p_end] != NULL) {
-			if (remove_special_line()) {
+			if (remove_special_line() && p_len[p_end] > 0) {
 				p_len[p_end] -= 1;
 				(p_line[p_end])[p_len[p_end]] = 0;
 			}
@@ -937,6 +981,9 @@ hunk_done:
 		if (!p_ptrn_lines)
 			p_first++;	/* do append rather than insert */
 		p_max = p_ptrn_lines + p_repl_lines + 1;
+		if (p_max > MAXHUNKSIZE)
+			fatal("hunk too large (%ld lines) at line %ld: %s",
+			    p_max, p_input_line, buf);
 		while (p_max >= hunkmax)
 			grow_hunkmax();
 		fillold = 1;
@@ -949,6 +996,7 @@ hunk_done:
 			p_end = -1;
 			return false;
 		}
+		p_len[0] = strlen(p_line[0]);
 		p_char[0] = '*';
 		snprintf(buf, buf_size, "--- %ld,%ld ----\n", p_newfirst,
 		    p_newfirst + p_repl_lines - 1);
@@ -997,7 +1045,7 @@ hunk_done:
 				p_line[fillold] = s;
 				p_len[fillold++] = strlen(s);
 				if (fillold > p_ptrn_lines) {
-					if (remove_special_line()) {
+					if (remove_special_line() && p_len[fillold - 1] > 0) {
 						p_len[fillold - 1] -= 1;
 						s[p_len[fillold - 1]] = 0;
 					}
@@ -1026,7 +1074,7 @@ hunk_done:
 					return false;
 				}
 				if (fillold > p_ptrn_lines) {
-					if (remove_special_line()) {
+					if (remove_special_line() && p_len[fillold - 1] > 0) {
 						p_len[fillold - 1] -= 1;
 						s[p_len[fillold - 1]] = 0;
 					}
@@ -1044,7 +1092,7 @@ hunk_done:
 				p_line[fillnew] = s;
 				p_len[fillnew++] = strlen(s);
 				if (fillold > p_ptrn_lines) {
-					if (remove_special_line()) {
+					if (remove_special_line() && p_len[fillnew - 1] > 0) {
 						p_len[fillnew - 1] -= 1;
 						s[p_len[fillnew - 1]] = 0;
 					}
@@ -1110,6 +1158,7 @@ hunk_done:
 			p_end = -1;
 			return false;
 		}
+		p_len[0] = strlen(p_line[0]);
 		p_char[0] = '*';
 		for (i = 1; i <= p_ptrn_lines; i++) {
 			len = pgets(true);
@@ -1129,7 +1178,7 @@ hunk_done:
 			p_char[i] = '-';
 		}
 
-		if (remove_special_line()) {
+		if (i > 0 && remove_special_line() && p_len[i - 1] > 0) {
 			p_len[i - 1] -= 1;
 			(p_line[i - 1])[p_len[i - 1]] = 0;
 		}
@@ -1149,6 +1198,7 @@ hunk_done:
 			p_end = i - 1;
 			return false;
 		}
+		p_len[i] = strlen(p_line[i]);
 		p_char[i] = '=';
 		for (i++; i <= p_end; i++) {
 			len = pgets(true);
@@ -1173,7 +1223,7 @@ hunk_done:
 			p_char[i] = '+';
 		}
 
-		if (remove_special_line()) {
+		if (i > 0 && remove_special_line() && p_len[i - 1] > 0) {
 			p_len[i - 1] -= 1;
 			(p_line[i - 1])[p_len[i - 1]] = 0;
 		}

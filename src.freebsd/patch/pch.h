@@ -39,6 +39,8 @@ struct file_name {
 extern char	*source_file;
 
 void		re_patch(void);
+void		pch_reset(void);
+void		close_patch_file(void);
 void		open_patch_file(const char *);
 void		set_hunkmax(void);
 bool		there_is_another_patch(void);

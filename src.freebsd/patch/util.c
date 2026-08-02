@@ -413,11 +413,14 @@ version(void)
 void
 my_exit(int status)
 {
-	unlink(TMPINNAME);
-	if (!toutkeep)
+	/* temp names may be unallocated when exiting early (e.g. fatal()) */
+	if (TMPINNAME != NULL)
+		unlink(TMPINNAME);
+	if (!toutkeep && TMPOUTNAME != NULL)
 		unlink(TMPOUTNAME);
-	if (!trejkeep)
+	if (!trejkeep && TMPREJNAME != NULL)
 		unlink(TMPREJNAME);
-	unlink(TMPPATNAME);
+	if (TMPPATNAME != NULL)
+		unlink(TMPPATNAME);
 	exit(status);
 }
