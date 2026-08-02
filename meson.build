@@ -26,6 +26,18 @@ cpp = meson.get_compiler('cpp')
 # FreeBSD code sometimes ignores things
 add_global_arguments(['-Wno-unused-result'], language: ['c', 'cpp'])
 
+# Hardening flags (where supported)
+foreach f: [
+    '-fstack-protector-strong',
+    '-fstack-clash-protection',
+    '-ftrivial-auto-var-init=zero',
+    '-D_FORTIFY_SOURCE=3',
+]
+    if cc.has_argument(f)
+        add_global_arguments(f, language: ['c', 'cpp'])
+    endif
+endforeach
+
 # Avoid a pointless warning in some programs
 if cc.has_argument('-Wstring-plus-int')
     add_global_arguments(['-Wno-string-plus-int'], language: ['c'])
