@@ -193,11 +193,9 @@ main(int argc, char **argv)
 		    argv[4]);
 		break;
 	}
-	getformat();
-
 	if (prec == -1)
 		prec = 0;
-
+	getformat();
 	while (mask)	/* 4 bit mask has 1's where last 4 args were given */
 		switch (mask) {	/* fill in the 0's by default or computation */
 		case HAVE_STEP:
