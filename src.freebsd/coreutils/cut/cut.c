@@ -450,7 +450,7 @@ f_cut(FILE *fp, const char *fname)
 				}
 				if (*pos)
 					for (i = 0; i < (int)clen; i++)
-						putchar(p[i - clen]);
+						putchar(p[i - (int)clen]);
 			}
 			if (ch == '\n')
 				break;
