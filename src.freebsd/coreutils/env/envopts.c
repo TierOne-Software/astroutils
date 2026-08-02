@@ -178,6 +178,8 @@ split_spaces(const char *str, int *origind, int *origc, char ***origv)
 	if (*str == '\0')
 		return;
 	newstr = malloc(strlen(str) + 1);
+	if (newstr == NULL)
+		err(1, "malloc");
 
 	/*
 	 * Allocate plenty of space for the new array of arg-pointers,
@@ -185,6 +187,8 @@ split_spaces(const char *str, int *origind, int *origc, char ***origv)
 	 * array.
 	 */
 	newargv = malloc((*origc + (strlen(str) / 2) + 2) * sizeof(char *));
+	if (newargv == NULL)
+		err(1, "malloc");
 	nextarg = newargv;
 	*nextarg++ = **origv;
 
