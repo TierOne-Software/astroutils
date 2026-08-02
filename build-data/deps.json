@@ -1,0 +1,16 @@
+{
+ "ncurses": "ncursesw",
+ "tinfo": "tinfo",
+ "acl": true,
+ "xo": true,
+ "crypto": true,
+ "ssl": true,
+ "edit": true,
+ "z": true,
+ "bz2": true,
+ "lzma": true,
+ "zstd": true,
+ "selinux": true,
+ "byacc": true,
+ "flex": true
+}

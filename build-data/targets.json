@@ -1,0 +1,2582 @@
+{
+ "targets": [
+  {
+   "name": "basename",
+   "dir": "src.freebsd/coreutils/basename",
+   "type": "executable",
+   "sources": [
+    "basename.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "cat",
+   "dir": "src.freebsd/coreutils/cat",
+   "type": "executable",
+   "sources": [
+    "cat.c"
+   ],
+   "c_args": [
+    "-DNO_UDOM_SUPPORT"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "chmod",
+   "dir": "src.freebsd/coreutils/chmod",
+   "type": "executable",
+   "sources": [
+    "chmod.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "chown",
+   "dir": "src.freebsd/coreutils/chown",
+   "type": "executable",
+   "sources": [
+    "chown.c"
+   ],
+   "c_args": [
+    "-DUID_MAX=INT_MAX",
+    "-DGID_MAX=INT_MAX"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "enabled_by_default": true,
+   "sys_deps": []
+  },
+  {
+   "name": "chroot",
+   "dir": "src.freebsd/coreutils/chroot",
+   "type": "executable",
+   "sources": [
+    "chroot.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "cksum",
+   "dir": "src.freebsd/coreutils/cksum",
+   "type": "executable",
+   "sources": [
+    "cksum.c",
+    "crc.c",
+    "print.c",
+    "sum1.c",
+    "sum2.c",
+    "crc32.c"
+   ],
+   "c_args": [
+    "-Duint32_t=u_int32_t"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "comm",
+   "dir": "src.freebsd/coreutils/comm",
+   "type": "executable",
+   "sources": [
+    "comm.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "cp",
+   "dir": "src.freebsd/coreutils/cp",
+   "type": "executable",
+   "sources": [
+    "cp.c",
+    "utils.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "acl"
+   ],
+   "enabled_by_default": true,
+   "c_args": []
+  },
+  {
+   "name": "csplit",
+   "dir": "src.freebsd/coreutils/csplit",
+   "type": "executable",
+   "sources": [
+    "csplit.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "cut",
+   "dir": "src.freebsd/coreutils/cut",
+   "type": "executable",
+   "sources": [
+    "cut.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "date",
+   "dir": "src.freebsd/coreutils/date",
+   "type": "executable",
+   "sources": [
+    "date.c",
+    "vary.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "dd",
+   "dir": "src.freebsd/coreutils/dd",
+   "type": "executable",
+   "sources": [
+    "args.c",
+    "conv.c",
+    "conv_tab.c",
+    "dd.c",
+    "misc.c",
+    "position.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "df",
+   "dir": "src.freebsd/coreutils/df",
+   "type": "executable",
+   "sources": [
+    "df.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "xo"
+   ],
+   "enabled_by_default": true,
+   "c_args": []
+  },
+  {
+   "name": "dirname",
+   "dir": "src.freebsd/coreutils/dirname",
+   "type": "executable",
+   "sources": [
+    "dirname.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "du",
+   "dir": "src.freebsd/coreutils/du",
+   "type": "executable",
+   "sources": [
+    "du.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "xo"
+   ],
+   "enabled_by_default": true,
+   "c_args": []
+  },
+  {
+   "name": "echo",
+   "dir": "src.freebsd/coreutils/echo",
+   "type": "executable",
+   "sources": [
+    "echo.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "env",
+   "dir": "src.freebsd/coreutils/env",
+   "type": "executable",
+   "sources": [
+    "env.c",
+    "envopts.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "expand",
+   "dir": "src.freebsd/coreutils/expand",
+   "type": "executable",
+   "sources": [
+    "expand.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "expr",
+   "dir": "src.freebsd/coreutils/expr",
+   "type": "executable",
+   "enabled_by_default": true,
+   "sources": [],
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "factor",
+   "dir": "src.freebsd/coreutils/factor",
+   "type": "executable",
+   "sources": [
+    "factor.c",
+    "pr_tbl.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "false",
+   "dir": "src.freebsd/coreutils/false",
+   "type": "executable",
+   "sources": [
+    "false.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "fmt",
+   "dir": "src.freebsd/coreutils/fmt",
+   "type": "executable",
+   "sources": [
+    "fmt.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "fold",
+   "dir": "src.freebsd/coreutils/fold",
+   "type": "executable",
+   "sources": [
+    "fold.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "head",
+   "dir": "src.freebsd/coreutils/head",
+   "type": "executable",
+   "sources": [
+    "head.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "hostname",
+   "dir": "src.freebsd/coreutils/hostname",
+   "type": "executable",
+   "sources": [
+    "hostname.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "id",
+   "dir": "src.freebsd/coreutils/id",
+   "type": "executable",
+   "sources": [
+    "id.c"
+   ],
+   "sys_deps": [
+    "selinux"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "join",
+   "dir": "src.freebsd/coreutils/join",
+   "type": "executable",
+   "sources": [
+    "join.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ln",
+   "dir": "src.freebsd/coreutils/ln",
+   "type": "executable",
+   "sources": [
+    "ln.cc"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "logname",
+   "dir": "src.freebsd/coreutils/logname",
+   "type": "executable",
+   "sources": [
+    "logname.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ls",
+   "dir": "src.freebsd/coreutils/ls",
+   "type": "executable",
+   "sources": [
+    "cmp.c",
+    "ls.c",
+    "print.c",
+    "util.c"
+   ],
+   "c_args": [
+    "-DCOLORLS"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "acl",
+    "tinfo",
+    "selinux"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "ls.tiny",
+   "dir": "src.freebsd/coreutils/ls",
+   "type": "executable",
+   "sources": [
+    "cmp.c",
+    "ls.c",
+    "print.c",
+    "util.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "acl"
+   ],
+   "enabled_by_default": false,
+   "condition": "tiny.enabled() and get_option('color_ls')",
+   "c_args": []
+  },
+  {
+   "name": "mkdir",
+   "dir": "src.freebsd/coreutils/mkdir",
+   "type": "executable",
+   "sources": [
+    "mkdir.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mkfifo",
+   "dir": "src.freebsd/coreutils/mkfifo",
+   "type": "executable",
+   "sources": [
+    "mkfifo.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mknod",
+   "dir": "src.freebsd/coreutils/mknod",
+   "type": "executable",
+   "sources": [
+    "mknod.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mktemp",
+   "dir": "src.freebsd/coreutils/mktemp",
+   "type": "executable",
+   "sources": [
+    "mktemp.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mv",
+   "dir": "src.freebsd/coreutils/mv",
+   "type": "executable",
+   "sources": [
+    "mv.c"
+   ],
+   "c_args": [
+    "-D_PATH_CP=\"/bin/cp\"",
+    "-D_PATH_RM=\"/bin/rm\""
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "acl"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "nice",
+   "dir": "src.freebsd/coreutils/nice",
+   "type": "executable",
+   "sources": [
+    "nice.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "nl",
+   "dir": "src.freebsd/coreutils/nl",
+   "type": "executable",
+   "sources": [
+    "nl.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "nohup",
+   "dir": "src.freebsd/coreutils/nohup",
+   "type": "executable",
+   "sources": [
+    "nohup.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "nproc",
+   "dir": "src.freebsd/coreutils/nproc",
+   "type": "executable",
+   "sources": [
+    "nproc.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "paste",
+   "dir": "src.freebsd/coreutils/paste",
+   "type": "executable",
+   "sources": [
+    "paste.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "pathchk",
+   "dir": "src.freebsd/coreutils/pathchk",
+   "type": "executable",
+   "sources": [
+    "pathchk.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "pr",
+   "dir": "src.freebsd/coreutils/pr",
+   "type": "executable",
+   "sources": [
+    "egetopt.c",
+    "pr.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "printenv",
+   "dir": "src.freebsd/coreutils/printenv",
+   "type": "executable",
+   "sources": [
+    "printenv.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "printf",
+   "dir": "src.freebsd/coreutils/printf",
+   "type": "executable",
+   "sources": [
+    "printf.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "pwd",
+   "dir": "src.freebsd/coreutils/pwd",
+   "type": "executable",
+   "sources": [
+    "pwd.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "rm",
+   "dir": "src.freebsd/coreutils/rm",
+   "type": "executable",
+   "sources": [
+    "rm.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "rmdir",
+   "dir": "src.freebsd/coreutils/rmdir",
+   "type": "executable",
+   "sources": [
+    "rmdir.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "seq",
+   "dir": "src.freebsd/coreutils/seq",
+   "type": "executable",
+   "sources": [
+    "seq.c"
+   ],
+   "sys_deps": [
+    "m"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "sleep",
+   "dir": "src.freebsd/coreutils/sleep",
+   "type": "executable",
+   "sources": [
+    "sleep.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "sort",
+   "dir": "src.freebsd/coreutils/sort",
+   "type": "executable",
+   "sources": [
+    "bwstring.c",
+    "coll.c",
+    "file.c",
+    "mem.c",
+    "radixsort.c",
+    "sort.c",
+    "vsort.c"
+   ],
+   "c_args": [
+    "-DWITHOUT_NLS",
+    "-DSORT_THREADS"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "crypto",
+    "pthread"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "sort.tiny",
+   "dir": "src.freebsd/coreutils/sort",
+   "type": "executable",
+   "sources": [
+    "bwstring.c",
+    "coll.c",
+    "file.c",
+    "mem.c",
+    "radixsort.c",
+    "sort.c",
+    "vsort.c"
+   ],
+   "c_args": [
+    "-DWITHOUT_NLS",
+    "-DWITHOUT_LIBCRYPTO"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": false,
+   "condition": "tiny.enabled() and libcrypto.found()",
+   "sys_deps": []
+  },
+  {
+   "name": "split",
+   "dir": "src.freebsd/coreutils/split",
+   "type": "executable",
+   "sources": [
+    "split.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "stat",
+   "dir": "src.freebsd/coreutils/stat",
+   "type": "executable",
+   "sources": [
+    "stat.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "stdbuf",
+   "dir": "src.freebsd/coreutils/stdbuf",
+   "type": "executable",
+   "sources": [
+    "stdbuf.c"
+   ],
+   "c_args": [
+    "-DLIBSTDBUF=\"<prefix>/<libdir>/libstdbuf.so\""
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "stty",
+   "dir": "src.freebsd/coreutils/stty",
+   "type": "executable",
+   "sources": [
+    "cchar.c",
+    "gfmt.c",
+    "key.c",
+    "modes.c",
+    "print.c",
+    "stty.c",
+    "util.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "sync",
+   "dir": "src.freebsd/coreutils/sync",
+   "type": "executable",
+   "sources": [
+    "sync.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "tail",
+   "dir": "src.freebsd/coreutils/tail",
+   "type": "executable",
+   "sources": [
+    "forward.c",
+    "misc.c",
+    "read.c",
+    "reverse.c",
+    "tail.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "tee",
+   "dir": "src.freebsd/coreutils/tee",
+   "type": "executable",
+   "sources": [
+    "tee.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "xtest",
+   "dir": "src.freebsd/coreutils/test",
+   "type": "executable",
+   "sources": [
+    "test.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "timeout",
+   "dir": "src.freebsd/coreutils/timeout",
+   "type": "executable",
+   "sources": [
+    "timeout.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "touch",
+   "dir": "src.freebsd/coreutils/touch",
+   "type": "executable",
+   "sources": [
+    "touch.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "tr",
+   "dir": "src.freebsd/coreutils/tr",
+   "type": "executable",
+   "sources": [
+    "tr.c",
+    "cmap.c",
+    "cset.c",
+    "str.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "true",
+   "dir": "src.freebsd/coreutils/true",
+   "type": "executable",
+   "sources": [
+    "true.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "truncate",
+   "dir": "src.freebsd/coreutils/truncate",
+   "type": "executable",
+   "sources": [
+    "truncate.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "tsort",
+   "dir": "src.freebsd/coreutils/tsort",
+   "type": "executable",
+   "sources": [
+    "tsort.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "tty",
+   "dir": "src.freebsd/coreutils/tty",
+   "type": "executable",
+   "sources": [
+    "tty.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "uname",
+   "dir": "src.freebsd/coreutils/uname",
+   "type": "executable",
+   "sources": [
+    "uname.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "unexpand",
+   "dir": "src.freebsd/coreutils/unexpand",
+   "type": "executable",
+   "sources": [
+    "unexpand.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "uniq",
+   "dir": "src.freebsd/coreutils/uniq",
+   "type": "executable",
+   "sources": [
+    "uniq.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "users",
+   "dir": "src.freebsd/coreutils/users",
+   "type": "executable",
+   "sources": [
+    "users.cc"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "wc",
+   "dir": "src.freebsd/coreutils/wc",
+   "type": "executable",
+   "sources": [
+    "wc.c"
+   ],
+   "sys_deps": [
+    "xo"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "who",
+   "dir": "src.freebsd/coreutils/who",
+   "type": "executable",
+   "sources": [
+    "who.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "yes",
+   "dir": "src.freebsd/coreutils/yes",
+   "type": "executable",
+   "sources": [
+    "yes.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "realpath",
+   "dir": "src.freebsd/coreutils/realpath",
+   "type": "executable",
+   "sources": [
+    "realpath.c"
+   ],
+   "enabled_by_default": true,
+   "condition": "not chimera_realpath.enabled() (chimera_realpath option auto, assumed NOT enabled)",
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "md5",
+   "dir": "src.freebsd/coreutils/md5",
+   "type": "executable",
+   "sources": [
+    "md5.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "crypto"
+   ],
+   "enabled_by_default": true,
+   "condition": "libcrypto.found() (openssl option enabled by default)",
+   "c_args": []
+  },
+  {
+   "name": "xinstall",
+   "dir": "src.freebsd/coreutils/xinstall",
+   "type": "executable",
+   "sources": [
+    "xinstall.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "crypto"
+   ],
+   "enabled_by_default": true,
+   "condition": "libcrypto.found() (openssl option enabled by default)",
+   "c_args": []
+  },
+  {
+   "name": "compat",
+   "dir": "src.freebsd/compat",
+   "type": "static_library",
+   "sources": [
+    "getbsize.c",
+    "heapsort.c",
+    "humanize_number.c",
+    "merge.c",
+    "mktemp.c",
+    "ohash.c",
+    "setmode.c",
+    "strmode.c",
+    "strftime.c",
+    "strptime.c",
+    "stringlist.c",
+    "expand_number.c",
+    "unvis.c",
+    "vis.c",
+    "../../src.compat/b64.c",
+    "../../src.compat/err.c",
+    "../../src.compat/strlfuncs.c",
+    "../../src.compat/signames.c",
+    "../../src.compat/strtonum.c",
+    "../../src.compat/reallocf.c"
+   ],
+   "c_args": [
+    "-DHAVE_NBTOOL_CONFIG_H"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "util_static",
+   "dir": "src.freebsd/util",
+   "type": "static_library",
+   "sources": [
+    "fts.c",
+    "rpmatch.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "chimerautils",
+   "dir": "src.freebsd/util",
+   "type": "shared_library",
+   "link_with": [
+    "util_static"
+   ],
+   "enabled_by_default": true,
+   "sources": [],
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "dbcompat",
+   "dir": "src.freebsd/dbcompat",
+   "type": "static_library",
+   "sources": [
+    "btree/bt_close.c",
+    "btree/bt_conv.c",
+    "btree/bt_debug.c",
+    "btree/bt_delete.c",
+    "btree/bt_get.c",
+    "btree/bt_open.c",
+    "btree/bt_overflow.c",
+    "btree/bt_page.c",
+    "btree/bt_put.c",
+    "btree/bt_search.c",
+    "btree/bt_seq.c",
+    "btree/bt_split.c",
+    "btree/bt_utils.c",
+    "recno/rec_close.c",
+    "recno/rec_delete.c",
+    "recno/rec_get.c",
+    "recno/rec_open.c",
+    "recno/rec_put.c",
+    "recno/rec_search.c",
+    "recno/rec_seq.c",
+    "recno/rec_utils.c",
+    "db.c",
+    "mpool.c"
+   ],
+   "c_args": [
+    "-D__DBINTERFACE_PRIVATE"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "libmp",
+   "dir": "src.freebsd/libmp",
+   "type": "static_library",
+   "sources": [
+    "mpasbn.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "stdbuf",
+   "dir": "src.freebsd/libstdbuf",
+   "type": "shared_module",
+   "sources": [
+    "stdbuf.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "bltins_lib",
+   "dir": "src.freebsd/sh",
+   "type": "static_library",
+   "sources": [
+    "bltin/echo.c",
+    "../miscutils/kill/kill.c",
+    "../coreutils/printf/printf.c",
+    "../coreutils/test/test.c"
+   ],
+   "c_args": [
+    "-DSHELL"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "libfetch",
+   "dir": "src.freebsd/libfetch",
+   "type": "static_library",
+   "sources": [
+    "fetch.c",
+    "common.c",
+    "ftp.c",
+    "http.c",
+    "file.c"
+   ],
+   "c_args": [
+    "-DFTP_COMBINE_CWDS",
+    "-DINET6",
+    "-DWITH_SSL"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "ssl",
+    "crypto"
+   ],
+   "enabled_by_default": true,
+   "condition": "libcrypto.found() and libssl.found() (option openssl, default enabled)"
+  },
+  {
+   "name": "maketab",
+   "dir": "src.freebsd/awk",
+   "type": "executable",
+   "sources": [
+    "maketab.c"
+   ],
+   "c_args": [
+    "-D_GNU_SOURCE"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "awk",
+   "dir": "src.freebsd/awk",
+   "type": "executable",
+   "sources": [
+    "b.c",
+    "lex.c",
+    "lib.c",
+    "main.c",
+    "parse.c",
+    "run.c",
+    "tran.c"
+   ],
+   "sys_deps": [
+    "m"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "apply",
+   "dir": "src.freebsd/apply",
+   "type": "executable",
+   "sources": [
+    "apply.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "compress",
+   "dir": "src.freebsd/compress",
+   "type": "executable",
+   "sources": [
+    "compress.c",
+    "zopen.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ed",
+   "dir": "src.freebsd/ed",
+   "type": "executable",
+   "sources": [
+    "buf.c",
+    "glbl.c",
+    "io.c",
+    "main.c",
+    "re.c",
+    "sub.c",
+    "undo.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "gencat",
+   "dir": "src.freebsd/gencat",
+   "type": "executable",
+   "sources": [
+    "gencat.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "grep",
+   "dir": "src.freebsd/grep",
+   "type": "executable",
+   "sources": [
+    "grep.c",
+    "file.c",
+    "queue.c",
+    "util.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "jot",
+   "dir": "src.freebsd/jot",
+   "type": "executable",
+   "sources": [
+    "jot.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "m4",
+   "dir": "src.freebsd/m4",
+   "type": "executable",
+   "sources": [
+    "eval.c",
+    "expr.c",
+    "look.c",
+    "main.c",
+    "misc.c",
+    "gnum4.c",
+    "trace.c"
+   ],
+   "c_args": [
+    "-DEXTENDED"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "m"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "nc",
+   "dir": "src.freebsd/netcat",
+   "type": "executable",
+   "sources": [
+    "netcat.c",
+    "atomicio.c",
+    "socks.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "patch",
+   "dir": "src.freebsd/patch",
+   "type": "executable",
+   "sources": [
+    "patch.c",
+    "backupfile.c",
+    "inp.c",
+    "mkpath.c",
+    "pch.c",
+    "util.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "sed",
+   "dir": "src.freebsd/sed",
+   "type": "executable",
+   "sources": [
+    "compile.c",
+    "main.c",
+    "misc.c",
+    "process.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mknodes",
+   "dir": "src.freebsd/sh",
+   "type": "executable",
+   "sources": [
+    "mknodes.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mksyntax",
+   "dir": "src.freebsd/sh",
+   "type": "executable",
+   "sources": [
+    "mksyntax.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "sh",
+   "dir": "src.freebsd/sh",
+   "type": "executable",
+   "sources": [
+    "alias.c",
+    "arith_yacc.c",
+    "arith_yylex.c",
+    "cd.c",
+    "error.c",
+    "eval.c",
+    "exec.c",
+    "expand.c",
+    "histedit.c",
+    "input.c",
+    "jobs.c",
+    "mail.c",
+    "main.c",
+    "memalloc.c",
+    "miscbltin.c",
+    "mystring.c",
+    "options.c",
+    "output.c",
+    "parser.c",
+    "redir.c",
+    "show.c",
+    "trap.c",
+    "var.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "edit"
+   ],
+   "enabled_by_default": true,
+   "c_args": []
+  },
+  {
+   "name": "sh.tiny",
+   "dir": "src.freebsd/sh",
+   "type": "executable",
+   "sources": [
+    "alias.c",
+    "arith_yacc.c",
+    "arith_yylex.c",
+    "cd.c",
+    "error.c",
+    "eval.c",
+    "exec.c",
+    "expand.c",
+    "histedit.c",
+    "input.c",
+    "jobs.c",
+    "mail.c",
+    "main.c",
+    "memalloc.c",
+    "miscbltin.c",
+    "mystring.c",
+    "options.c",
+    "output.c",
+    "parser.c",
+    "redir.c",
+    "show.c",
+    "trap.c",
+    "var.c"
+   ],
+   "c_args": [
+    "-DNO_HISTORY"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": false,
+   "condition": "tiny.enabled() and libedit.found() (option tiny default disabled)",
+   "sys_deps": []
+  },
+  {
+   "name": "tip",
+   "dir": "src.freebsd/tip",
+   "type": "executable",
+   "sources": [
+    "tip/acu.c",
+    "tip/acutab.c",
+    "tip/cmds.c",
+    "tip/cmdtab.c",
+    "tip/cu.c",
+    "tip/hunt.c",
+    "tip/log.c",
+    "tip/partab.c",
+    "tip/remote.c",
+    "tip/tip.c",
+    "tip/tipout.c",
+    "tip/uucplock.c",
+    "tip/value.c",
+    "tip/vars.c",
+    "libacu/biz22.c",
+    "libacu/courier.c",
+    "libacu/df.c",
+    "libacu/dn11.c",
+    "libacu/hayes.c",
+    "libacu/t3000.c",
+    "libacu/v3451.c",
+    "libacu/v831.c",
+    "libacu/ventel.c",
+    "getcap.c"
+   ],
+   "c_args": [
+    "-DDEFBR=9600",
+    "-DDEFFS=BUFSIZ",
+    "-DCONNECT",
+    "-DACULOG",
+    "-DPRISTINE",
+    "-DV831",
+    "-DVENTEL",
+    "-DHAYES",
+    "-DCOURIER",
+    "-DT3000"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "sys_deps": []
+  },
+  {
+   "name": "unvis",
+   "dir": "src.freebsd/unvis",
+   "type": "executable",
+   "sources": [
+    "unvis.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "bintrans",
+   "dir": "src.freebsd/bintrans",
+   "type": "executable",
+   "sources": [
+    "bintrans.c",
+    "uuencode.c",
+    "uudecode.c",
+    "qp.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "vis",
+   "dir": "src.freebsd/vis",
+   "type": "executable",
+   "sources": [
+    "vis.c",
+    "foldit.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "which",
+   "dir": "src.freebsd/which",
+   "type": "executable",
+   "sources": [
+    "which.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "su",
+   "dir": "src.freebsd/su",
+   "type": "executable",
+   "sources": [
+    "su.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "pam",
+    "pam_misc"
+   ],
+   "enabled_by_default": false,
+   "condition": "not get_option('pam').disabled() and pam.found() (option pam default disabled)",
+   "c_args": []
+  },
+  {
+   "name": "gzip",
+   "dir": "src.freebsd/gzip",
+   "type": "executable",
+   "sources": [
+    "gzip.c"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "z",
+    "bz2",
+    "lzma",
+    "zstd"
+   ],
+   "enabled_by_default": true,
+   "condition": "not get_option('zlib').disabled() and zlib.found() (option zlib default enabled)",
+   "c_args": []
+  },
+  {
+   "name": "ee",
+   "dir": "src.freebsd/ee",
+   "type": "executable",
+   "sources": [
+    "ee.c"
+   ],
+   "c_args": [
+    "-DNO_CATGETS",
+    "-DHAS_NCURSES",
+    "-DHAS_UNISTD",
+    "-DHAS_STDARG",
+    "-DHAS_STDLIB",
+    "-DHAS_SYS_WAIT"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "ncurses"
+   ],
+   "enabled_by_default": true,
+   "condition": "ncurses.found() (ncurses assumed found)"
+  },
+  {
+   "name": "vi",
+   "dir": "src.freebsd/nvi",
+   "type": "executable",
+   "sources": [
+    "cl/cl_funcs.c",
+    "cl/cl_main.c",
+    "cl/cl_read.c",
+    "cl/cl_screen.c",
+    "cl/cl_term.c",
+    "ex/ex.c",
+    "ex/ex_abbrev.c",
+    "ex/ex_append.c",
+    "ex/ex_args.c",
+    "ex/ex_argv.c",
+    "ex/ex_at.c",
+    "ex/ex_bang.c",
+    "ex/ex_cd.c",
+    "ex/ex_cmd.c",
+    "ex/ex_cscope.c",
+    "ex/ex_delete.c",
+    "ex/ex_display.c",
+    "ex/ex_edit.c",
+    "ex/ex_equal.c",
+    "ex/ex_file.c",
+    "ex/ex_filter.c",
+    "ex/ex_global.c",
+    "ex/ex_init.c",
+    "ex/ex_join.c",
+    "ex/ex_map.c",
+    "ex/ex_mark.c",
+    "ex/ex_mkexrc.c",
+    "ex/ex_move.c",
+    "ex/ex_open.c",
+    "ex/ex_preserve.c",
+    "ex/ex_print.c",
+    "ex/ex_put.c",
+    "ex/ex_quit.c",
+    "ex/ex_read.c",
+    "ex/ex_screen.c",
+    "ex/ex_script.c",
+    "ex/ex_set.c",
+    "ex/ex_shell.c",
+    "ex/ex_shift.c",
+    "ex/ex_source.c",
+    "ex/ex_stop.c",
+    "ex/ex_subst.c",
+    "ex/ex_tag.c",
+    "ex/ex_txt.c",
+    "ex/ex_undo.c",
+    "ex/ex_usage.c",
+    "ex/ex_util.c",
+    "ex/ex_version.c",
+    "ex/ex_visual.c",
+    "ex/ex_write.c",
+    "ex/ex_yank.c",
+    "ex/ex_z.c",
+    "vi/vi.c",
+    "vi/getc.c",
+    "vi/v_at.c",
+    "vi/v_ch.c",
+    "vi/v_cmd.c",
+    "vi/v_delete.c",
+    "vi/v_ex.c",
+    "vi/v_increment.c",
+    "vi/v_init.c",
+    "vi/v_itxt.c",
+    "vi/v_left.c",
+    "vi/v_mark.c",
+    "vi/v_match.c",
+    "vi/v_paragraph.c",
+    "vi/v_put.c",
+    "vi/v_redraw.c",
+    "vi/v_replace.c",
+    "vi/v_right.c",
+    "vi/v_screen.c",
+    "vi/v_scroll.c",
+    "vi/v_search.c",
+    "vi/v_section.c",
+    "vi/v_sentence.c",
+    "vi/v_status.c",
+    "vi/v_txt.c",
+    "vi/v_ulcase.c",
+    "vi/v_undo.c",
+    "vi/v_util.c",
+    "vi/v_word.c",
+    "vi/v_xchar.c",
+    "vi/v_yank.c",
+    "vi/v_z.c",
+    "vi/v_zexit.c",
+    "vi/vs_line.c",
+    "vi/vs_msg.c",
+    "vi/vs_refresh.c",
+    "vi/vs_relative.c",
+    "vi/vs_smap.c",
+    "vi/vs_split.c",
+    "common/conv.c",
+    "common/cut.c",
+    "common/delete.c",
+    "common/encoding.c",
+    "common/exf.c",
+    "common/key.c",
+    "common/line.c",
+    "common/log.c",
+    "common/main.c",
+    "common/mark.c",
+    "common/msg.c",
+    "common/options.c",
+    "common/options_f.c",
+    "common/put.c",
+    "common/recover.c",
+    "common/screen.c",
+    "common/search.c",
+    "common/seq.c",
+    "common/util.c",
+    "regex/regcomp.c",
+    "regex/regerror.c",
+    "regex/regexec.c",
+    "regex/regfree.c"
+   ],
+   "c_args": [
+    "-D__REGEX_PRIVATE",
+    "-D_XOPEN_SOURCE=600"
+   ],
+   "link_with": [
+    "compat",
+    "dbcompat"
+   ],
+   "sys_deps": [
+    "ncurses"
+   ],
+   "enabled_by_default": true,
+   "condition": "ncurses.found() (ncurses assumed found)"
+  },
+  {
+   "name": "telnet",
+   "dir": "src.freebsd/telnet",
+   "type": "executable",
+   "sources": [
+    "telnet/commands.c",
+    "telnet/main.c",
+    "telnet/network.c",
+    "telnet/ring.c",
+    "telnet/sys_bsd.c",
+    "telnet/telnet.c",
+    "telnet/terminal.c",
+    "telnet/utilities.c",
+    "telnet/authenc.c",
+    "libtelnet/genget.c",
+    "libtelnet/misc.c",
+    "libtelnet/encrypt.c",
+    "libtelnet/auth.c",
+    "libtelnet/enc_des.c",
+    "libtelnet/sra.c",
+    "libtelnet/pk.c"
+   ],
+   "c_args": [
+    "-DUSE_TERMIO",
+    "-DKLUDGELINEMODE",
+    "-DENV_HACK",
+    "-DINET6",
+    "-DNOPAM",
+    "-DENCRYPTION",
+    "-DAUTHENTICATION",
+    "-DSRA",
+    "-DIPSEC"
+   ],
+   "link_with": [
+    "libmp",
+    "compat"
+   ],
+   "sys_deps": [
+    "ncurses",
+    "crypto"
+   ],
+   "enabled_by_default": true,
+   "condition": "ncurses.found() (ncurses assumed found)"
+  },
+  {
+   "name": "fetch",
+   "dir": "src.freebsd/fetch",
+   "type": "executable",
+   "sources": [
+    "fetch.c"
+   ],
+   "link_with": [
+    "libfetch"
+   ],
+   "enabled_by_default": true,
+   "condition": "libcrypto.found() and libssl.found() (option openssl, default enabled)",
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "cmp",
+   "dir": "src.freebsd/diffutils/cmp",
+   "type": "executable",
+   "sources": [
+    "cmp.c",
+    "link.c",
+    "misc.c",
+    "regular.c",
+    "special.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "diff",
+   "dir": "src.freebsd/diffutils/diff",
+   "type": "executable",
+   "sources": [
+    "diff.c",
+    "diffdir.c",
+    "diffreg.c",
+    "pr.c",
+    "xmalloc.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "m"
+   ],
+   "enabled_by_default": true,
+   "c_args": []
+  },
+  {
+   "name": "diff3",
+   "dir": "src.freebsd/diffutils/diff3",
+   "type": "executable",
+   "sources": [
+    "diff3.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "sdiff",
+   "dir": "src.freebsd/diffutils/sdiff",
+   "type": "executable",
+   "sources": [
+    "sdiff.c",
+    "edit.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "find",
+   "dir": "src.freebsd/findutils/find",
+   "type": "executable",
+   "sources": [
+    "find.c",
+    "function.c",
+    "ls.c",
+    "main.c",
+    "misc.c",
+    "operator.c",
+    "option.c",
+    "printf.c"
+   ],
+   "c_args": [
+    "-DQUAD_MAX=LONG_MAX",
+    "-DMAXLOGNAME=_POSIX_LOGIN_NAME_MAX",
+    "-DACL_TYPE_NFS4"
+   ],
+   "link_with": [
+    "compat",
+    "util_static"
+   ],
+   "sys_deps": [
+    "acl"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "xargs",
+   "dir": "src.freebsd/findutils/xargs",
+   "type": "executable",
+   "sources": [
+    "strnsubst.c",
+    "xargs.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "locate",
+   "dir": "src.freebsd/findutils/locate/locate",
+   "type": "executable",
+   "sources": [
+    "locate.c",
+    "util.c"
+   ],
+   "c_args": [
+    "-DMMAP"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "locate.code",
+   "dir": "src.freebsd/findutils/locate/code",
+   "type": "executable",
+   "sources": [
+    "locate.code.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "locate.bigram",
+   "dir": "src.freebsd/findutils/locate/bigram",
+   "type": "executable",
+   "sources": [
+    "locate.bigram.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "calendar",
+   "dir": "src.freebsd/miscutils/calendar",
+   "type": "executable",
+   "sources": [
+    "calendar.c",
+    "locale.c",
+    "events.c",
+    "dates.c",
+    "parsedata.c",
+    "io.c",
+    "day.c",
+    "ostern.c",
+    "paskha.c",
+    "pom.c",
+    "sunpos.c"
+   ],
+   "c_args": [
+    "-DWITH_ICONV"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "m"
+   ],
+   "enabled_by_default": true
+  },
+  {
+   "name": "col",
+   "dir": "src.freebsd/miscutils/col",
+   "type": "executable",
+   "sources": [
+    "col.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "colrm",
+   "dir": "src.freebsd/miscutils/colrm",
+   "type": "executable",
+   "sources": [
+    "colrm.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "column",
+   "dir": "src.freebsd/miscutils/column",
+   "type": "executable",
+   "sources": [
+    "column.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "getopt",
+   "dir": "src.freebsd/miscutils/getopt",
+   "type": "executable",
+   "sources": [
+    "getopt.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "hexdump",
+   "dir": "src.freebsd/miscutils/hexdump",
+   "type": "executable",
+   "sources": [
+    "conv.c",
+    "display.c",
+    "hexdump.c",
+    "hexsyntax.c",
+    "odsyntax.c",
+    "parse.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "indent",
+   "dir": "src.freebsd/miscutils/indent",
+   "type": "executable",
+   "sources": [
+    "indent.c",
+    "io.c",
+    "lexi.c",
+    "parse.c",
+    "pr_comment.c",
+    "args.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "kill",
+   "dir": "src.freebsd/miscutils/kill",
+   "type": "executable",
+   "sources": [
+    "kill.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "logger",
+   "dir": "src.freebsd/miscutils/logger",
+   "type": "executable",
+   "sources": [
+    "logger.c"
+   ],
+   "c_args": [
+    "-DINET6"
+   ],
+   "enabled_by_default": true,
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "look",
+   "dir": "src.freebsd/miscutils/look",
+   "type": "executable",
+   "sources": [
+    "look.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mesg",
+   "dir": "src.freebsd/miscutils/mesg",
+   "type": "executable",
+   "sources": [
+    "mesg.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ncal",
+   "dir": "src.freebsd/miscutils/ncal",
+   "type": "executable",
+   "sources": [
+    "ncal.c",
+    "calendar.c",
+    "easter.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "sys_deps": [
+    "tinfo"
+   ],
+   "enabled_by_default": true,
+   "condition": "tinfo.found() (tinfo falls back to ncurses when not found standalone; assumed found)",
+   "c_args": []
+  },
+  {
+   "name": "renice",
+   "dir": "src.freebsd/miscutils/renice",
+   "type": "executable",
+   "sources": [
+    "renice.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "rev",
+   "dir": "src.freebsd/miscutils/rev",
+   "type": "executable",
+   "sources": [
+    "rev.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "script",
+   "dir": "src.freebsd/miscutils/script",
+   "type": "executable",
+   "sources": [
+    "script.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "time",
+   "dir": "src.freebsd/miscutils/time",
+   "type": "executable",
+   "sources": [
+    "time.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ul",
+   "dir": "src.freebsd/miscutils/ul",
+   "type": "executable",
+   "sources": [
+    "ul.c"
+   ],
+   "sys_deps": [
+    "tinfo"
+   ],
+   "enabled_by_default": true,
+   "condition": "tinfo.found() (tinfo falls back to ncurses when not found standalone; assumed found)",
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "wall",
+   "dir": "src.freebsd/miscutils/wall",
+   "type": "executable",
+   "sources": [
+    "wall.c",
+    "ttymsg.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "whereis",
+   "dir": "src.freebsd/miscutils/whereis",
+   "type": "executable",
+   "sources": [
+    "whereis.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "write",
+   "dir": "src.freebsd/miscutils/write",
+   "type": "executable",
+   "sources": [
+    "write.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "addpart",
+   "dir": "src.custom/addpart",
+   "type": "executable",
+   "sources": [
+    "addpart.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ctrlaltdel",
+   "dir": "src.custom/ctrlaltdel",
+   "type": "executable",
+   "sources": [
+    "ctrlaltdel.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "delpart",
+   "dir": "src.custom/delpart",
+   "type": "executable",
+   "sources": [
+    "delpart.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "fallocate",
+   "dir": "src.custom/fallocate",
+   "type": "executable",
+   "sources": [
+    "fallocate.c"
+   ],
+   "link_with": [
+    "compat"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "sys_deps": []
+  },
+  {
+   "name": "flock",
+   "dir": "src.custom/flock",
+   "type": "executable",
+   "sources": [
+    "flock.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "fsfreeze",
+   "dir": "src.custom/fsfreeze",
+   "type": "executable",
+   "sources": [
+    "fsfreeze.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "hostid",
+   "dir": "src.custom/hostid",
+   "type": "executable",
+   "sources": [
+    "hostid.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "ionice",
+   "dir": "src.custom/ionice",
+   "type": "executable",
+   "sources": [
+    "ionice.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "isosize",
+   "dir": "src.custom/isosize",
+   "type": "executable",
+   "sources": [
+    "isosize.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "mcookie",
+   "dir": "src.custom/mcookie",
+   "type": "executable",
+   "sources": [
+    "mcookie.c"
+   ],
+   "sys_deps": [
+    "crypto"
+   ],
+   "enabled_by_default": true,
+   "condition": "subdir('mcookie') only entered when libcrypto.found(), i.e. option 'openssl' (feature, default enabled) not disabled and libcrypto present",
+   "c_args": [],
+   "link_with": []
+  },
+  {
+   "name": "pivot_root",
+   "dir": "src.custom/pivot_root",
+   "type": "executable",
+   "sources": [
+    "pivot_root.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "realpath",
+   "dir": "src.custom/realpath",
+   "type": "executable",
+   "sources": [
+    "realpath.cc"
+   ],
+   "enabled_by_default": false,
+   "condition": "subdir('realpath') only entered when chimera_realpath.enabled(); option 'chimera_realpath' is feature/auto, assumed NOT enabled, so this target is OFF by default",
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "resizepart",
+   "dir": "src.custom/resizepart",
+   "type": "executable",
+   "sources": [
+    "resizepart.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "setarch",
+   "dir": "src.custom/setarch",
+   "type": "executable",
+   "sources": [
+    "setarch.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "setsid",
+   "dir": "src.custom/setsid",
+   "type": "executable",
+   "sources": [
+    "setsid.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "switch_root",
+   "dir": "src.custom/switch_root",
+   "type": "executable",
+   "sources": [
+    "switch_root.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  },
+  {
+   "name": "taskset",
+   "dir": "src.custom/taskset",
+   "type": "executable",
+   "sources": [
+    "taskset.c"
+   ],
+   "enabled_by_default": true,
+   "c_args": [],
+   "link_with": [],
+   "sys_deps": []
+  }
+ ]
+}

@@ -1,3 +1,12 @@
 *.orig
 build
 Makefile.bsd
+build-meson/
+build-scan/
+zig-out/
+.zig-cache/
+infer-out/
+scanbuild-out/
+fuzz/bin/
+fuzz/artifacts/
+
