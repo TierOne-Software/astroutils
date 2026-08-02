@@ -39,7 +39,7 @@
 #include <sys/types.h>
 #include <linux/fs.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"freeze",             no_argument, NULL, 'f'},

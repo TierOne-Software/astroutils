@@ -37,7 +37,7 @@
 #include <sys/ioctl.h>
 #include <linux/blkpg.h>
 
-extern char const *__progname;
+extern char *__progname;
 /* 512-byte sectors */
 unsigned long long maxsect = ULLONG_MAX >> 9;
 

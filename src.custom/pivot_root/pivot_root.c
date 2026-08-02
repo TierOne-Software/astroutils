@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 int main(int argc, char **argv) {
     if (argc != 3) {

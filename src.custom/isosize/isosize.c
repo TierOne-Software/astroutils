@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"divisor", required_argument, NULL, 'd'},

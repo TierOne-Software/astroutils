@@ -41,7 +41,7 @@
 #include <sys/statfs.h>
 #include <linux/magic.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static void child(int fd) {
     DIR *dir = fdopendir(fd);

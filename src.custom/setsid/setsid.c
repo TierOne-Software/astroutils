@@ -35,7 +35,7 @@
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"ctty",    no_argument, NULL, 'c'},

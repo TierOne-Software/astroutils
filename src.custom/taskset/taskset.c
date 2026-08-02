@@ -39,7 +39,7 @@
 #include <sched.h>
 #include <sys/syscall.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"all-tasks",   no_argument, NULL, 'a'},

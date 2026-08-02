@@ -41,7 +41,7 @@
 #include <sys/syscall.h>
 #include <linux/ioprio.h>
 
-extern char const *__progname;
+extern char *__progname;
 static int ignore = 0;
 
 static struct option gnuopts[] = {

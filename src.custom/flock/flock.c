@@ -44,7 +44,7 @@
 #include <time.h>
 #include <err.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"shared",      no_argument, NULL, 's'},

@@ -39,7 +39,7 @@
 #include <paths.h>
 #include <err.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 enum {
     LONGOPT_4GB = 256,

@@ -53,7 +53,7 @@ static bool zero = false;
 static bool isrel = false;
 static fs::path relpath{};
 
-extern char const *__progname;
+extern char *__progname;
 
 static void usage_readlink(bool help) {
     std::fprintf(

@@ -37,7 +37,7 @@
 #include <sys/syscall.h>
 #include <linux/reboot.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"help",               no_argument, NULL, 'h'},
