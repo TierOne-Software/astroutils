@@ -1,0 +1,209 @@
+From 5b5bdb8bef3bde1e4c69cb3f1cf4c4c6fa62c0db Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:09:04 -0400
+Subject: [PATCH 10/13] src.custom: fix __progname declaration constness
+
+'extern char const *__progname' conflicts with the non-const
+declaration used by glibc and include/stdlib.h. Declare it non-const.
+---
+ src.custom/addpart/addpart.c         | 2 +-
+ src.custom/ctrlaltdel/ctrlaltdel.c   | 2 +-
+ src.custom/delpart/delpart.c         | 2 +-
+ src.custom/flock/flock.c             | 2 +-
+ src.custom/fsfreeze/fsfreeze.c       | 2 +-
+ src.custom/ionice/ionice.c           | 2 +-
+ src.custom/isosize/isosize.c         | 2 +-
+ src.custom/pivot_root/pivot_root.c   | 2 +-
+ src.custom/realpath/realpath.cc      | 2 +-
+ src.custom/resizepart/resizepart.c   | 2 +-
+ src.custom/setarch/setarch.c         | 2 +-
+ src.custom/setsid/setsid.c           | 2 +-
+ src.custom/switch_root/switch_root.c | 2 +-
+ src.custom/taskset/taskset.c         | 2 +-
+ 14 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/src.custom/addpart/addpart.c b/src.custom/addpart/addpart.c
+index 733fa2ce..7dd8de81 100644
+--- a/src.custom/addpart/addpart.c
++++ b/src.custom/addpart/addpart.c
+@@ -37,7 +37,7 @@
+ #include <sys/ioctl.h>
+ #include <linux/blkpg.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ /* 512-byte sectors */
+ unsigned long long maxsect = ULLONG_MAX >> 9;
+ 
+diff --git a/src.custom/ctrlaltdel/ctrlaltdel.c b/src.custom/ctrlaltdel/ctrlaltdel.c
+index fbb0d676..c109e0d5 100644
+--- a/src.custom/ctrlaltdel/ctrlaltdel.c
++++ b/src.custom/ctrlaltdel/ctrlaltdel.c
+@@ -37,7 +37,7 @@
+ #include <sys/syscall.h>
+ #include <linux/reboot.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"help",               no_argument, NULL, 'h'},
+diff --git a/src.custom/delpart/delpart.c b/src.custom/delpart/delpart.c
+index 00023623..f5047b82 100644
+--- a/src.custom/delpart/delpart.c
++++ b/src.custom/delpart/delpart.c
+@@ -37,7 +37,7 @@
+ #include <sys/ioctl.h>
+ #include <linux/blkpg.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ /* 512-byte sectors */
+ unsigned long long maxsect = ULLONG_MAX >> 9;
+ 
+diff --git a/src.custom/flock/flock.c b/src.custom/flock/flock.c
+index 33bd82b8..476a618c 100644
+--- a/src.custom/flock/flock.c
++++ b/src.custom/flock/flock.c
+@@ -44,7 +44,7 @@
+ #include <time.h>
+ #include <err.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"shared",      no_argument, NULL, 's'},
+diff --git a/src.custom/fsfreeze/fsfreeze.c b/src.custom/fsfreeze/fsfreeze.c
+index 711c4974..70cc82b7 100644
+--- a/src.custom/fsfreeze/fsfreeze.c
++++ b/src.custom/fsfreeze/fsfreeze.c
+@@ -39,7 +39,7 @@
+ #include <sys/types.h>
+ #include <linux/fs.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"freeze",             no_argument, NULL, 'f'},
+diff --git a/src.custom/ionice/ionice.c b/src.custom/ionice/ionice.c
+index 0add2902..625fa00a 100644
+--- a/src.custom/ionice/ionice.c
++++ b/src.custom/ionice/ionice.c
+@@ -41,7 +41,7 @@
+ #include <sys/syscall.h>
+ #include <linux/ioprio.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ static int ignore = 0;
+ 
+ static struct option gnuopts[] = {
+diff --git a/src.custom/isosize/isosize.c b/src.custom/isosize/isosize.c
+index b0f6570d..4b2dd233 100644
+--- a/src.custom/isosize/isosize.c
++++ b/src.custom/isosize/isosize.c
+@@ -38,7 +38,7 @@
+ #include <sys/stat.h>
+ #include <sys/types.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"divisor", required_argument, NULL, 'd'},
+diff --git a/src.custom/pivot_root/pivot_root.c b/src.custom/pivot_root/pivot_root.c
+index 62ff45b7..5d98cc04 100644
+--- a/src.custom/pivot_root/pivot_root.c
++++ b/src.custom/pivot_root/pivot_root.c
+@@ -32,7 +32,7 @@
+ #include <unistd.h>
+ #include <sys/syscall.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ int main(int argc, char **argv) {
+     if (argc != 3) {
+diff --git a/src.custom/realpath/realpath.cc b/src.custom/realpath/realpath.cc
+index c86c0dc1..85ba97a5 100644
+--- a/src.custom/realpath/realpath.cc
++++ b/src.custom/realpath/realpath.cc
+@@ -53,7 +53,7 @@ static bool zero = false;
+ static bool isrel = false;
+ static fs::path relpath{};
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static void usage_readlink(bool help) {
+     std::fprintf(
+diff --git a/src.custom/resizepart/resizepart.c b/src.custom/resizepart/resizepart.c
+index 5d41d17f..ff87b87b 100644
+--- a/src.custom/resizepart/resizepart.c
++++ b/src.custom/resizepart/resizepart.c
+@@ -39,7 +39,7 @@
+ #include <sys/sysmacros.h>
+ #include <linux/blkpg.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ /* 512-byte sectors */
+ unsigned long long maxsect = ULLONG_MAX >> 9;
+ 
+diff --git a/src.custom/setarch/setarch.c b/src.custom/setarch/setarch.c
+index 738f5cea..438afb74 100644
+--- a/src.custom/setarch/setarch.c
++++ b/src.custom/setarch/setarch.c
+@@ -39,7 +39,7 @@
+ #include <paths.h>
+ #include <err.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ enum {
+     LONGOPT_4GB = 256,
+diff --git a/src.custom/setsid/setsid.c b/src.custom/setsid/setsid.c
+index c2f1372c..6b29dc20 100644
+--- a/src.custom/setsid/setsid.c
++++ b/src.custom/setsid/setsid.c
+@@ -35,7 +35,7 @@
+ #include <sys/wait.h>
+ #include <sys/ioctl.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"ctty",    no_argument, NULL, 'c'},
+diff --git a/src.custom/switch_root/switch_root.c b/src.custom/switch_root/switch_root.c
+index 67aa7a38..b609874f 100644
+--- a/src.custom/switch_root/switch_root.c
++++ b/src.custom/switch_root/switch_root.c
+@@ -41,7 +41,7 @@
+ #include <sys/statfs.h>
+ #include <linux/magic.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static void child(int fd) {
+     DIR *dir = fdopendir(fd);
+diff --git a/src.custom/taskset/taskset.c b/src.custom/taskset/taskset.c
+index 5383109f..35642f46 100644
+--- a/src.custom/taskset/taskset.c
++++ b/src.custom/taskset/taskset.c
+@@ -39,7 +39,7 @@
+ #include <sched.h>
+ #include <sys/syscall.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"all-tasks",   no_argument, NULL, 'a'},
+-- 
+2.55.0
+

@@ -1,0 +1,78 @@
+From 34d77daa5356888f7ce30c4b507e0b55cd932f99 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:24 -0400
+Subject: [PATCH 01/13] counted_by: annotate buffer/count pairs in libfetch and
+ nvi
+
+Adds __cu_counted_by (clang 18+/gcc 15+ counted_by attribute, empty on
+older compilers) to include/sys/cdefs.h and applies it to
+fetchconn.buf/bufsize and nvi ARGS.bp/blen, enabling bounds checks via
+-fsanitize=bounds and better __builtin_object_size.
+---
+ include/sys/cdefs.h           | 10 ++++++++++
+ src.freebsd/libfetch/common.h |  4 +++-
+ src.freebsd/nvi/common/args.h |  4 +++-
+ 3 files changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/include/sys/cdefs.h b/include/sys/cdefs.h
+index 487b216c..c6dd06a7 100644
+--- a/include/sys/cdefs.h
++++ b/include/sys/cdefs.h
+@@ -54,4 +54,14 @@
+ #define __unused __attribute__((unused))
+ #define __unreachable() __builtin_unreachable()
+ 
++/* counted_by (clang 18+, gcc 15+); empty on older compilers */
++#if defined(__has_attribute)
++#if __has_attribute(counted_by)
++#define __cu_counted_by(x) __attribute__((counted_by(x)))
++#endif
++#endif
++#ifndef __cu_counted_by
++#define __cu_counted_by(x)
++#endif
++
+ #endif
+diff --git a/src.freebsd/libfetch/common.h b/src.freebsd/libfetch/common.h
+index 1219c261..6815b4b4 100644
+--- a/src.freebsd/libfetch/common.h
++++ b/src.freebsd/libfetch/common.h
+@@ -31,6 +31,8 @@
+ #ifndef _COMMON_H_INCLUDED
+ #define _COMMON_H_INCLUDED
+ 
++#include <sys/cdefs.h>
++
+ #define FTP_DEFAULT_PORT	21
+ #define HTTP_DEFAULT_PORT	80
+ #define FTP_DEFAULT_PROXY_PORT	21
+@@ -52,8 +54,8 @@
+ typedef struct fetchconn conn_t;
+ struct fetchconn {
+ 	int		 sd;		/* socket descriptor */
+-	char		*buf;		/* buffer */
+ 	size_t		 bufsize;	/* buffer size */
++	char		*buf __cu_counted_by(bufsize); /* buffer */
+ 	size_t		 buflen;	/* length of buffer contents */
+ 	int		 err;		/* last protocol reply code */
+ #ifdef WITH_SSL
+diff --git a/src.freebsd/nvi/common/args.h b/src.freebsd/nvi/common/args.h
+index 3f9b43a2..37f64bfe 100644
+--- a/src.freebsd/nvi/common/args.h
++++ b/src.freebsd/nvi/common/args.h
+@@ -17,9 +17,11 @@
+  * structure or to walk the array until an ARGS structure with a length of 0
+  * is found.
+  */
++#include <sys/cdefs.h>
++
+ typedef struct _args {
+-	CHAR_T	*bp;		/* Argument. */
+ 	size_t	 blen;		/* Buffer length. */
++	CHAR_T	*bp __cu_counted_by(blen); /* Argument. */
+ 	size_t	 len;		/* Argument length. */
+ 
+ #define	A_ALLOCATED	0x01	/* If allocated space. */
+-- 
+2.55.0
+

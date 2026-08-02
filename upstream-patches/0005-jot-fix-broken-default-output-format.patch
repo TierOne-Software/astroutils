@@ -1,0 +1,32 @@
+From 66f22b82d71df2d35833c4650210403550819de2 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:45 -0400
+Subject: [PATCH 05/13] jot: fix broken default output format
+
+getformat() ran while prec was still -1 for the single-argument form,
+producing the invalid format %.-1f which glibc echoes as %.0-1f instead
+of printing numbers. Normalize prec before calling getformat().
+---
+ src.freebsd/jot/jot.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/src.freebsd/jot/jot.c b/src.freebsd/jot/jot.c
+index b316a86b..0e1e0bf0 100644
+--- a/src.freebsd/jot/jot.c
++++ b/src.freebsd/jot/jot.c
+@@ -193,11 +193,9 @@ main(int argc, char **argv)
+ 		    argv[4]);
+ 		break;
+ 	}
+-	getformat();
+-
+ 	if (prec == -1)
+ 		prec = 0;
+-
++	getformat();
+ 	while (mask)	/* 4 bit mask has 1's where last 4 args were given */
+ 		switch (mask) {	/* fill in the 0's by default or computation */
+ 		case HAVE_STEP:
+-- 
+2.55.0
+

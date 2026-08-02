@@ -1,0 +1,34 @@
+From 9ce171adb06ccf4585733b0edb1f8549031e79e0 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:44 -0400
+Subject: [PATCH 04/13] join: fix unsigned-wrap subscript UB in mbssep
+
+s[-n] with size_t n wrapped the address space (UB). Use -(ptrdiff_t)n.
+---
+ src.freebsd/coreutils/join/join.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/coreutils/join/join.c b/src.freebsd/coreutils/join/join.c
+index 2c11e851..f9851034 100644
+--- a/src.freebsd/coreutils/join/join.c
++++ b/src.freebsd/coreutils/join/join.c
+@@ -41,6 +41,7 @@
+ #include <errno.h>
+ #include <limits.h>
+ #include <locale.h>
++#include <stddef.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+@@ -372,7 +373,7 @@ mbssep(char **stringp, const wchar_t *delim)
+ 				if (c == 0)
+ 					s = NULL;
+ 				else
+-					s[-n] = '\0';
++					s[-(ptrdiff_t)n] = '\0';
+ 				*stringp = s;
+ 				return (tok);
+ 			}
+-- 
+2.55.0
+

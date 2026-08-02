@@ -1,0 +1,30 @@
+From 0f921906a7cef02b26cbe710a7c4b9e18cc886a9 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:43 -0400
+Subject: [PATCH 02/13] grep: fix UB pointer arithmetic in initqueue with Bflag
+ == 0
+
+qend = qpool + (Bflag - 1) formed a pointer before the allocation when
+no -B context was requested (UB, trapped by zig's safety checks). Clamp
+to qpool when Bflag is 0; the queue is unused on that path.
+---
+ src.freebsd/grep/queue.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/grep/queue.c b/src.freebsd/grep/queue.c
+index 296e19fb..fa952e90 100644
+--- a/src.freebsd/grep/queue.c
++++ b/src.freebsd/grep/queue.c
+@@ -58,7 +58,8 @@ initqueue(void)
+ {
+ 
+ 	qlist = qnext = qpool = grep_calloc(Bflag, sizeof(*qpool));
+-	qend = qpool + (Bflag - 1);
++	/* with Bflag == 0 the queue is unused; avoid forming qpool - 1 (UB) */
++	qend = (Bflag > 0) ? qpool + (Bflag - 1) : qpool;
+ }
+ 
+ static qentry_t *
+-- 
+2.55.0
+

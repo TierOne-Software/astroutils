@@ -1,0 +1,156 @@
+From fc767476dc5ba12e2138f9dcbb859d5df6e038b2 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:09:24 -0400
+Subject: [PATCH 12/13] getdate: fix localtime NULL derefs and signed overflow
+ UB
+
+Fuzzing get_date() found: (1) crashes when localtime() returns NULL for
+out-of-range time_t values derived from huge fuzzed numbers -- guard
+all five call sites; (2) signed-overflow UB in the grammar's date
+arithmetic -- use unsigned arithmetic at the hot accumulation sites and
+compile the file with -fwrapv since the parser pervasively relies on
+wraparound semantics.
+---
+ src.freebsd/findutils/find/getdate.y   | 50 +++++++++++++++++++-------
+ src.freebsd/findutils/find/meson.build |  4 ++-
+ 2 files changed, 40 insertions(+), 14 deletions(-)
+
+diff --git a/src.freebsd/findutils/find/getdate.y b/src.freebsd/findutils/find/getdate.y
+index a1aeaf0c..487a649b 100644
+--- a/src.freebsd/findutils/find/getdate.y
++++ b/src.freebsd/findutils/find/getdate.y
+@@ -268,31 +268,39 @@ rel	: relunit tAGO {
+ 	;
+ 
+ relunit	: tUNUMBER tMINUTE_UNIT {
+-	    yyRelSeconds += $1 * $2 * 60L;
++	    yyRelSeconds = (time_t)((unsigned long)yyRelSeconds +
++		(unsigned long)$1 * (unsigned long)$2 * 60UL);
+ 	}
+ 	| tSNUMBER tMINUTE_UNIT {
+-	    yyRelSeconds += $1 * $2 * 60L;
++	    yyRelSeconds = (time_t)((unsigned long)yyRelSeconds +
++		(unsigned long)$1 * (unsigned long)$2 * 60UL);
+ 	}
+ 	| tMINUTE_UNIT {
+-	    yyRelSeconds += $1 * 60L;
++	    yyRelSeconds = (time_t)((unsigned long)yyRelSeconds +
++		(unsigned long)$1 * 60UL);
+ 	}
+ 	| tSNUMBER tSEC_UNIT {
+-	    yyRelSeconds += $1;
++	    yyRelSeconds = (time_t)((unsigned long)yyRelSeconds +
++		(unsigned long)$1);
+ 	}
+ 	| tUNUMBER tSEC_UNIT {
+-	    yyRelSeconds += $1;
++	    yyRelSeconds = (time_t)((unsigned long)yyRelSeconds +
++		(unsigned long)$1);
+ 	}
+ 	| tSEC_UNIT {
+ 	    yyRelSeconds++;
+ 	}
+ 	| tSNUMBER tMONTH_UNIT {
+-	    yyRelMonth += $1 * $2;
++	    yyRelMonth = (time_t)((unsigned long)yyRelMonth +
++		(unsigned long)$1 * (unsigned long)$2);
+ 	}
+ 	| tUNUMBER tMONTH_UNIT {
+-	    yyRelMonth += $1 * $2;
++	    yyRelMonth = (time_t)((unsigned long)yyRelMonth +
++		(unsigned long)$1 * (unsigned long)$2);
+ 	}
+ 	| tMONTH_UNIT {
+-	    yyRelMonth += $1;
++	    yyRelMonth = (time_t)((unsigned long)yyRelMonth +
++		(unsigned long)$1);
+ 	}
+ 	;
+ 
+@@ -598,9 +606,13 @@ Convert(time_t Month, time_t Day, time_t Year,
+     if ((tod = ToSeconds(Hours, Minutes, Seconds, Meridian)) < 0)
+ 	return -1;
+     Julian += tod;
+-    if (DSTmode == DSTon
+-     || (DSTmode == DSTmaybe && localtime(&Julian)->tm_isdst))
++    if (DSTmode == DSTon)
+ 	Julian -= 60 * 60;
++    else if (DSTmode == DSTmaybe) {
++	struct tm *jtm = localtime(&Julian);
++	if (jtm != NULL && jtm->tm_isdst)
++	    Julian -= 60 * 60;
++    }
+     return Julian;
+ }
+ 
+@@ -611,8 +623,13 @@ DSTcorrect(time_t Start, time_t Future)
+     time_t	StartDay;
+     time_t	FutureDay;
+ 
+-    StartDay = (localtime(&Start)->tm_hour + 1) % 24;
+-    FutureDay = (localtime(&Future)->tm_hour + 1) % 24;
++    struct tm	*stm = localtime(&Start);
++    struct tm	*ftm = localtime(&Future);
++
++    if (stm == NULL || ftm == NULL)
++	return (Future - Start);
++    StartDay = (stm->tm_hour + 1) % 24;
++    FutureDay = (ftm->tm_hour + 1) % 24;
+     return (Future - Start) + (StartDay - FutureDay) * 60L * 60L;
+ }
+ 
+@@ -625,6 +642,8 @@ RelativeDate(time_t Start, time_t DayOrdinal, time_t DayNumber)
+ 
+     now = Start;
+     tm = localtime(&now);
++    if (tm == NULL)
++	return (Start);
+     now += SECSPERDAY * ((DayNumber - tm->tm_wday + 7) % 7);
+     now += 7 * SECSPERDAY * (DayOrdinal <= 0 ? DayOrdinal : DayOrdinal - 1);
+     return DSTcorrect(Start, now);
+@@ -641,6 +660,8 @@ RelativeMonth(time_t Start, time_t RelMonth)
+     if (RelMonth == 0)
+ 	return 0;
+     tm = localtime(&Start);
++    if (tm == NULL)
++	return 0;
+     Month = 12 * (tm->tm_year + 1900) + tm->tm_mon + RelMonth;
+     Year = Month / 12;
+     Month = Month % 12 + 1;
+@@ -780,7 +801,8 @@ yylex(void)
+ 	    else
+ 		sign = 0;
+ 	    for (yylval.Number = 0; isdigit(c = *yyInput++); )
+-		yylval.Number = 10 * yylval.Number + c - '0';
++		yylval.Number = (time_t)(10UL * (unsigned long)yylval.Number +
++		    (unsigned long)(c - '0'));
+ 	    yyInput--;
+ 	    if (sign < 0)
+ 		yylval.Number = -yylval.Number;
+@@ -873,6 +895,8 @@ get_date(char *p)
+ 	tzoff += 60;
+ 
+     tm = localtime(&nowtime);
++    if (tm == NULL)
++	return -1;
+     yyYear = tm->tm_year + 1900;
+     yyMonth = tm->tm_mon + 1;
+     yyDay = tm->tm_mday;
+diff --git a/src.freebsd/findutils/find/meson.build b/src.freebsd/findutils/find/meson.build
+index df3d11c5..859173eb 100644
+--- a/src.freebsd/findutils/find/meson.build
++++ b/src.freebsd/findutils/find/meson.build
+@@ -4,7 +4,9 @@ find_prog = executable(
+         'find.c', 'function.c', yacc.process('getdate.y'),
+         'ls.c', 'main.c', 'misc.c', 'operator.c', 'option.c', 'printf.c',
+     ],
+-    c_args: ['-DQUAD_MAX=LONG_MAX', '-DMAXLOGNAME=_POSIX_LOGIN_NAME_MAX', '-DACL_TYPE_NFS4'],
++    c_args: ['-DQUAD_MAX=LONG_MAX', '-DMAXLOGNAME=_POSIX_LOGIN_NAME_MAX', '-DACL_TYPE_NFS4',
++        # getdate's date arithmetic is allowed to wrap on overflow
++        '-fwrapv'],
+     include_directories: [inc, cinc],
+     dependencies: [libacl],
+     link_with: [libcompat, libutil_static],
+-- 
+2.55.0
+

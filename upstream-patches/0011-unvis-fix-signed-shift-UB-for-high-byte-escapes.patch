@@ -1,0 +1,54 @@
+From b403e52f284b8e56cd91891c61e00104281aa466 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:09:05 -0400
+Subject: [PATCH 11/13] unvis: fix signed-shift UB for high-byte escapes
+
+(*cp << 3) / (*cp << 4) overflow signed char for escapes above \177
+(found by libFuzzer+UBSan). Compute via unsigned char and cast back.
+---
+ src.freebsd/compat/unvis.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/compat/unvis.c b/src.freebsd/compat/unvis.c
+index 87723367..6f7af58f 100644
+--- a/src.freebsd/compat/unvis.c
++++ b/src.freebsd/compat/unvis.c
+@@ -356,7 +356,7 @@ unvis(char *cp, int c, int *astate, int flag)
+ 			/*
+ 			 * yes - and maybe a third
+ 			 */
+-			*cp = (*cp << 3) + (c - '0');
++			*cp = (char)(((unsigned char)*cp << 3) + (c - '0'));
+ 			*astate = SS(0, S_OCTAL3);
+ 			return UNVIS_NOCHAR;
+ 		}
+@@ -369,7 +369,7 @@ unvis(char *cp, int c, int *astate, int flag)
+ 	case S_OCTAL3:	/* third possible octal digit */
+ 		*astate = SS(0, S_GROUND);
+ 		if (isoctal(uc)) {
+-			*cp = (*cp << 3) + (c - '0');
++			*cp = (char)(((unsigned char)*cp << 3) + (c - '0'));
+ 			return UNVIS_VALID;
+ 		}
+ 		/*
+@@ -396,7 +396,7 @@ unvis(char *cp, int c, int *astate, int flag)
+ 	case S_HEX2:
+ 		*astate = S_GROUND;
+ 		if (isxdigit(uc)) {
+-			*cp = xtod(uc) | (*cp << 4);
++			*cp = (char)(xtod(uc) | ((unsigned char)*cp << 4));
+ 			return UNVIS_VALID;
+ 		}
+ 		return UNVIS_VALIDPUSH;
+@@ -416,7 +416,7 @@ unvis(char *cp, int c, int *astate, int flag)
+ 	case S_MIME2:
+ 		if (isxdigit(uc) && (isdigit(uc) || isupper(uc))) {
+ 			*astate = SS(0, S_GROUND);
+-			*cp = XTOD(uc) | (*cp << 4);
++			*cp = XTOD(uc) | ((unsigned char)*cp << 4);
+ 			return UNVIS_VALID;
+ 		}
+ 		goto bad;
+-- 
+2.55.0
+

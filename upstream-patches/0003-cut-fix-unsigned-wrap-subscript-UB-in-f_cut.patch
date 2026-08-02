@@ -1,0 +1,27 @@
+From fefc0d4713135bcf0d9b0af2a425e129adf75690 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:43 -0400
+Subject: [PATCH 03/13] cut: fix unsigned-wrap subscript UB in f_cut
+
+p[i - clen] with int i and size_t clen computed p + (SIZE_MAX - ...),
+wrapping the address space (UB). Use a signed subscript.
+---
+ src.freebsd/coreutils/cut/cut.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src.freebsd/coreutils/cut/cut.c b/src.freebsd/coreutils/cut/cut.c
+index 22f184f9..401ef7cf 100644
+--- a/src.freebsd/coreutils/cut/cut.c
++++ b/src.freebsd/coreutils/cut/cut.c
+@@ -450,7 +450,7 @@ f_cut(FILE *fp, const char *fname)
+ 				}
+ 				if (*pos)
+ 					for (i = 0; i < (int)clen; i++)
+-						putchar(p[i - clen]);
++						putchar(p[i - (int)clen]);
+ 			}
+ 			if (ch == '\n')
+ 				break;
+-- 
+2.55.0
+

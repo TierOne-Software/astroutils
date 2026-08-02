@@ -1,0 +1,52 @@
+From f322f4624930ca2229ed54009fc09d6cd507f89c Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:08:46 -0400
+Subject: [PATCH 07/13] mcookie: fix stack buffer overflow in hex output
+
+The hex loop wrote 2*(sizeof(mdbuf)-1) = 62 bytes plus NUL into a
+32-byte stack buffer and read 31 bytes from the 16-byte MD5 digest.
+Caught by _FORTIFY_SOURCE=3. Size the buffer for 32 hex chars + NUL and
+bound the loop by mdlen.
+---
+ src.custom/mcookie/mcookie.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/src.custom/mcookie/mcookie.c b/src.custom/mcookie/mcookie.c
+index b533a9d4..db09e874 100644
+--- a/src.custom/mcookie/mcookie.c
++++ b/src.custom/mcookie/mcookie.c
+@@ -39,7 +39,7 @@
+ #include <sys/random.h>
+ #include <openssl/evp.h>
+ 
+-extern char const *__progname;
++extern char *__progname;
+ 
+ static struct option gnuopts[] = {
+     {"verbose",     no_argument, NULL, 'v'},
+@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
+     }
+ 
+     char randbuf[RANDOM_BYTES];
+-    char mdbuf[RANDOM_BYTES / 4];
++    char mdbuf[RANDOM_BYTES / 4 + 1]; /* 32 hex chars of the MD5 digest + NUL */
+     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
+ 
+     if (!ctx) {
+@@ -175,10 +175,10 @@ do_hash:
+         errx(1, "could not finalize digest");
+     }
+ 
+-    for (unsigned int i = 0; i < (sizeof(mdbuf) - 1); ++i) {
+-        sprintf(mdbuf + (i * 2), "%02x", digbuf[i]);
++    for (unsigned int i = 0; i < mdlen; ++i) {
++        snprintf(mdbuf + (i * 2), 3, "%02x", digbuf[i]);
+     }
+-    printf("%.*s\n", (int)sizeof(mdbuf), mdbuf);
++    printf("%s\n", mdbuf);
+ 
+     return 0;
+ }
+-- 
+2.55.0
+

@@ -1,0 +1,45 @@
+From 119148e406fca399277909ae1d6320cb03981287 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:09:03 -0400
+Subject: [PATCH 08/13] fetch: rename once_flag variable conflicting with glibc
+
+Newer glibc exposes a once_flag typedef via <stdlib.h>, conflicting
+with fetch's static int once_flag. Rename to once_f.
+---
+ src.freebsd/fetch/fetch.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src.freebsd/fetch/fetch.c b/src.freebsd/fetch/fetch.c
+index 66aabcf0..5840176c 100644
+--- a/src.freebsd/fetch/fetch.c
++++ b/src.freebsd/fetch/fetch.c
+@@ -78,7 +78,7 @@ static int	 o_flag;	/*    -o: specify output file */
+ static int	 o_directory;	/*        output file is a directory */
+ static char	*o_filename;	/*        name of output file */
+ static int	 o_stdout;	/*        output file is stdout */
+-static int	 once_flag;	/*    -1: stop at first successful file */
++static int	 once_f;	/*    -1: stop at first successful file */
+ static int	 p_flag;	/* -[Pp]: use passive FTP */
+ static int	 R_flag;	/*    -R: don't delete partial files */
+ static int	 r_flag;	/*    -r: restart previous transfer */
+@@ -928,7 +928,7 @@ main(int argc, char *argv[])
+ 	    longopts, NULL)) != -1)
+ 		switch (c) {
+ 		case '1':
+-			once_flag = 1;
++			once_f = 1;
+ 			break;
+ 		case '4':
+ 			family = PF_INET;
+@@ -1200,7 +1200,7 @@ main(int argc, char *argv[])
+ 		if (sigint)
+ 			kill(getpid(), SIGINT);
+ 
+-		if (e == 0 && once_flag)
++		if (e == 0 && once_f)
+ 			exit(0);
+ 
+ 		if (e) {
+-- 
+2.55.0
+

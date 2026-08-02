@@ -1,0 +1,37 @@
+From 96a9968ff20788b8b6c7bef66f578d679c671147 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 16:09:03 -0400
+Subject: [PATCH 09/13] cp: prefer linux/openat2.h over the local open_how shim
+
+The chimera openat2 shim redefines struct open_how, which now conflicts
+with the system header when it gets pulled in transitively. Use
+__has_include to prefer <linux/openat2.h>.
+---
+ src.freebsd/coreutils/cp/utils.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src.freebsd/coreutils/cp/utils.c b/src.freebsd/coreutils/cp/utils.c
+index 26d1ba84..17de7f4a 100644
+--- a/src.freebsd/coreutils/cp/utils.c
++++ b/src.freebsd/coreutils/cp/utils.c
+@@ -52,6 +52,9 @@
+ 
+ #include "extern.h"
+ 
++#if __has_include(<linux/openat2.h>)
++#include <linux/openat2.h>
++#else
+ struct open_how {
+ 	uint64_t flags;
+ 	uint64_t mode;
+@@ -60,6 +63,7 @@ struct open_how {
+ 
+ #define RESOLVE_NO_MAGICLINKS 0x02
+ #define RESOLVE_BENEATH 0x08
++#endif
+ 
+ int openat_beneath(int dfd, const char *path, int flags, bool beneath, mode_t mode) {
+ 	if (!beneath)
+-- 
+2.55.0
+
