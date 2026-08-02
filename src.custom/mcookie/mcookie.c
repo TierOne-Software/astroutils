@@ -39,7 +39,7 @@
 #include <sys/random.h>
 #include <openssl/evp.h>
 
-extern char const *__progname;
+extern char *__progname;
 
 static struct option gnuopts[] = {
     {"verbose",     no_argument, NULL, 'v'},
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
     }
 
     char randbuf[RANDOM_BYTES];
-    char mdbuf[RANDOM_BYTES / 4];
+    char mdbuf[RANDOM_BYTES / 4 + 1]; /* 32 hex chars of the MD5 digest + NUL */
     EVP_MD_CTX *ctx = EVP_MD_CTX_new();
 
     if (!ctx) {
@@ -175,10 +175,10 @@ do_hash:
         errx(1, "could not finalize digest");
     }
 
-    for (unsigned int i = 0; i < (sizeof(mdbuf) - 1); ++i) {
-        sprintf(mdbuf + (i * 2), "%02x", digbuf[i]);
+    for (unsigned int i = 0; i < mdlen; ++i) {
+        snprintf(mdbuf + (i * 2), 3, "%02x", digbuf[i]);
     }
-    printf("%.*s\n", (int)sizeof(mdbuf), mdbuf);
+    printf("%s\n", mdbuf);
 
     return 0;
 }
