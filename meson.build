@@ -172,3 +172,4 @@ endif
 subdir('include')
 subdir('src.freebsd')
 subdir('src.custom')
+subdir('src.safestr')
