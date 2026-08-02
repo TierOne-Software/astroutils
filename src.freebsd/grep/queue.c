@@ -58,7 +58,8 @@ initqueue(void)
 {
 
 	qlist = qnext = qpool = grep_calloc(Bflag, sizeof(*qpool));
-	qend = qpool + (Bflag - 1);
+	/* with Bflag == 0 the queue is unused; avoid forming qpool - 1 (UB) */
+	qend = (Bflag > 0) ? qpool + (Bflag - 1) : qpool;
 }
 
 static qentry_t *
