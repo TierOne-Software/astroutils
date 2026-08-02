@@ -687,3 +687,27 @@ function on Linux.  We replace procctl() calls with prctl().
 The `-l` (paginate) flag is not supported in `diff` as it was too
 hard to port. The `diff3` tool comes from OpenBSD rather than FreeBSD,
 as I have not managed to port the FreeBSD one yet.
+
+
+once_flag in fetch(1)
+---------------------
+fetch(1) used a static variable named once_flag, which conflicts with the
+once_flag typedef that newer glibc exposes via <stdlib.h>.  The variable
+was renamed to once_f.
+
+
+__progname in src.custom
+------------------------
+The src.custom tools (derived from util-linux) declared
+'extern char const *__progname', which conflicts with the non-const
+declaration used by glibc and by include/stdlib.h.  The declarations were
+changed to 'extern char *__progname'.
+
+
+-fwrapv for getdate and patch
+-----------------------------
+The date arithmetic in find(1)'s getdate.y and the line-number arithmetic
+in patch(1)'s pch.c pervasively rely on signed wraparound semantics; on
+overflow the behavior is undefined in C and trips UBSan.  Both files are
+compiled with -fwrapv (defined wraparound) in the meson and zig builds,
+and the hottest accumulation sites use unsigned arithmetic explicitly.
