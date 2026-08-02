@@ -52,6 +52,9 @@
 
 #include "extern.h"
 
+#if __has_include(<linux/openat2.h>)
+#include <linux/openat2.h>
+#else
 struct open_how {
 	uint64_t flags;
 	uint64_t mode;
@@ -60,6 +63,7 @@ struct open_how {
 
 #define RESOLVE_NO_MAGICLINKS 0x02
 #define RESOLVE_BENEATH 0x08
+#endif
 
 int openat_beneath(int dfd, const char *path, int flags, bool beneath, mode_t mode) {
 	if (!beneath)
