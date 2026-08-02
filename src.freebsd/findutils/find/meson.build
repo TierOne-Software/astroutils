@@ -4,7 +4,9 @@ find_prog = executable(
         'find.c', 'function.c', yacc.process('getdate.y'),
         'ls.c', 'main.c', 'misc.c', 'operator.c', 'option.c', 'printf.c',
     ],
-    c_args: ['-DQUAD_MAX=LONG_MAX', '-DMAXLOGNAME=_POSIX_LOGIN_NAME_MAX', '-DACL_TYPE_NFS4'],
+    c_args: ['-DQUAD_MAX=LONG_MAX', '-DMAXLOGNAME=_POSIX_LOGIN_NAME_MAX', '-DACL_TYPE_NFS4',
+        # getdate's date arithmetic is allowed to wrap on overflow
+        '-fwrapv'],
     include_directories: [inc, cinc],
     dependencies: [libacl],
     link_with: [libcompat, libutil_static],
