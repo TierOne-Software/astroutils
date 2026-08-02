@@ -76,6 +76,30 @@ $ meson ..
 $ ninja all
 ```
 
+## Building with zig build (experimental)
+
+An alternative build based on `zig build` is provided. It compiles the C
+sources with zig's bundled clang/LLVM and produces the same default tool
+set as the meson build (minus man pages and install-time renames/symlinks,
+which are not yet implemented).
+
+Requirements: `zig` (developed against 0.17.0-dev), `byacc`, `flex`, and
+`pkg-config` for dependency probing.
+
+```
+$ ./zig-configure.sh   # probes system deps, writes build-data/deps.json
+$ zig build            # binaries land in zig-out/bin
+$ sh zig-build-smoke.sh # optional smoke tests
+```
+
+Tools whose dependencies are missing are skipped and listed at configure
+time. The target inventory lives in `build-data/targets.json` (extracted
+from the meson build files; regenerate manually if meson files change).
+The default optimization mode is ReleaseFast, matching meson's behavior;
+building with `-Doptimize=Debug` or `ReleaseSafe` enables zig's runtime
+UB checks, which currently fire on some latent upstream issues (see
+SECURITY-FINDINGS.md).
+
 ## Importing a new FreeBSD release
 
 When a new release of FreeBSD is made, the import-src.sh script should
