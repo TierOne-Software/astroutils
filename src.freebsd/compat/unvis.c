@@ -356,7 +356,7 @@ unvis(char *cp, int c, int *astate, int flag)
 			/*
 			 * yes - and maybe a third
 			 */
-			*cp = (*cp << 3) + (c - '0');
+			*cp = (char)(((unsigned char)*cp << 3) + (c - '0'));
 			*astate = SS(0, S_OCTAL3);
 			return UNVIS_NOCHAR;
 		}
@@ -369,7 +369,7 @@ unvis(char *cp, int c, int *astate, int flag)
 	case S_OCTAL3:	/* third possible octal digit */
 		*astate = SS(0, S_GROUND);
 		if (isoctal(uc)) {
-			*cp = (*cp << 3) + (c - '0');
+			*cp = (char)(((unsigned char)*cp << 3) + (c - '0'));
 			return UNVIS_VALID;
 		}
 		/*
@@ -396,7 +396,7 @@ unvis(char *cp, int c, int *astate, int flag)
 	case S_HEX2:
 		*astate = S_GROUND;
 		if (isxdigit(uc)) {
-			*cp = xtod(uc) | (*cp << 4);
+			*cp = (char)(xtod(uc) | ((unsigned char)*cp << 4));
 			return UNVIS_VALID;
 		}
 		return UNVIS_VALIDPUSH;
@@ -416,7 +416,7 @@ unvis(char *cp, int c, int *astate, int flag)
 	case S_MIME2:
 		if (isxdigit(uc) && (isdigit(uc) || isupper(uc))) {
 			*astate = SS(0, S_GROUND);
-			*cp = XTOD(uc) | (*cp << 4);
+			*cp = XTOD(uc) | ((unsigned char)*cp << 4);
 			return UNVIS_VALID;
 		}
 		goto bad;
