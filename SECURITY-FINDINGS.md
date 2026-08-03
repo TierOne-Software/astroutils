@@ -5,10 +5,9 @@ Work queue for the hardening effort. Sources:
 - **zig-safety**: runtime UB checks of `zig build -Doptimize=Debug` (zig's
   bundled clang UBSan-style checks) firing on normal input.
 - **jot-gcc**: reproduced with both gcc and zig clang; a port/env bug.
-- **infer**: Facebook Infer static analysis (pending; needs the full meson
-  build, which needs libacl-devel, libxo-devel, libedit-devel,
-  libzstd-devel installed).
-- **scan-build**: clang static analyzer cross-check (pending, same blocker).
+- **infer**: Facebook Infer static analysis (reports in `infer-out/`).
+- **scan-build**: clang static analyzer cross-check (reports in
+  `scanbuild-out/`).
 
 Status legend: OPEN / FIXED / WONTFIX (with rationale).
 
@@ -87,43 +86,85 @@ Status legend: OPEN / FIXED / WONTFIX (with rationale).
   Fixed: NULL checks (`err(1)` for allocations, skip unreadable init
   file).
 
-### OPEN — infer — tail: possible null deref
-- `src.freebsd/coreutils/tail/reverse.c:278` `r_buf()`: `first` could be
-  null (from line 195) and is dereferenced. Needs verification.
+### FALSE POSITIVE — infer — tail: possible null deref
+- `src.freebsd/coreutils/tail/reverse.c:278` `r_buf()`: `first` from
+  `TAILQ_FIRST` reported possibly null. The `feof(fp)` guard guarantees
+  the read loop runs at least once on any freshly opened stream (no
+  prior reads on `fp`), so the list is never empty when `first` is
+  taken; infer can't model feof's EOF-indicator state. Verified with
+  `tail -r` on empty pipe and empty regular file (clean exit 0).
 
-### OPEN — infer — stty: possible null deref
-- `src.freebsd/coreutils/stty/cchar.c:111` `csearch()`: `arg` could be null
-  (from line 104). Needs verification.
+### FALSE POSITIVE — infer — stty: possible null deref
+- `src.freebsd/coreutils/stty/cchar.c:111` `csearch()`: NULL `arg` is
+  guarded at :105-108 via `usage()`, which exits — unreachable. Infer
+  can't see `usage()` as noreturn because `__dead2` expands to empty in
+  this port's `include/sys/cdefs.h`. Verified: `stty intr` with missing
+  argument errors and exits 1 cleanly.
 
-### PARTIAL — infer — nvi: use-after-free candidates (5)
+### TRIAGED — infer — nvi: use-after-free candidates (5)
 - `src.freebsd/nvi/regex/regcomp.c` — FIXED via `doinsert()`: bail out
   when `EMIT()` sets `p->error` instead of indexing the stale strip.
-- Still OPEN, need per-site verification (the BSD queue macros often
-  make these FPs):
-  - `src.freebsd/nvi/common/cut.c:322` `text_lfree()`
-  - `src.freebsd/nvi/ex/ex_tag.c:687` `tagq_free()`
-  - `src.freebsd/nvi/ex/ex_tag.c:850` `ex_tagf_alloc()`
-  - `src.freebsd/nvi/common/conv.c:245` `default_int2char()` (via `binc`)
+- `src.freebsd/nvi/common/conv.c` — REAL, FIXED (two fixes):
+  - `BINC_RET` (common/mem.h): `binc()` frees the old buffer on realloc
+    failure (reallocf semantics) but the macro returned without clearing
+    the caller's pointer — dangling pointer + zero length, so the next
+    conversion reusing `sp->cw.bp1` passed freed memory to realloc and
+    `conv_end()` double-freed it. Fixed: NULL the pointer on failure.
+  - `CONVERT2` macro (the more serious find, see "FIXED — nvi: CONVERT2
+    iconv buffer growth" below).
+- `src.freebsd/nvi/common/cut.c:322` `text_lfree()` — FALSE POSITIVE:
+  `TAILQ_REMOVE` unlinks `tp` strictly before `text_free(tp)`, and
+  repoints the successor's `tqe_prev` into the queue head; infer
+  mis-orders the macro-expanded access vs. the free.
+- `src.freebsd/nvi/ex/ex_tag.c:687` `tagq_free()` and :850
+  `ex_tagf_alloc()` — FALSE POSITIVE: canonical TAILQ drain idiom
+  (unlink head before free); infer loses the head update through the
+  `tqe_prev` indirection.
 
-### OPEN — infer — nvi: stack variable address escape
-- `src.freebsd/nvi/vi/v_yank.c:75` `v_yank()`: infer reports the address of
-  stack variable `len` escapes the function. Needs verification.
+### FIXED — nvi: CONVERT2 iconv output pointer stale after buffer growth
+- `src.freebsd/nvi/common/conv.c` `CONVERT2` (used by `fe_int2char`):
+  `outleft`/`obp` were computed before the `BINC_RETC` growth check, so
+  a mid-conversion realloc left `obp` dangling and `outleft` stale —
+  an infinite E2BIG retry loop growing the buffer without bound.
+  Reproduced live: UTF-8 locale + `set fe=utf-32` + editing a 2048-char
+  line drove vi to 527 MB RSS in 0.4 s (memory-exhaustion DoS); on
+  iconv implementations that write before reporting E2BIG it is also a
+  heap UAF write. Present verbatim in upstream FreeBSD contrib/nvi.
+- Fixed: growth check first, then derive `outleft`/`obp` from the
+  post-growth buffer. Verified: same repro now completes in 0.01 s /
+  3.7 MB RSS with correct UTF-32 output.
 
-### PARTIAL — infer — uninitialized value reads (78 total)
+### FALSE POSITIVE — infer — nvi: stack variable address escape
+- `src.freebsd/nvi/vi/v_yank.c:75` `v_yank()`: `&len` is an out-param
+  to `db_get()` (common/line.c), which only writes through it and never
+  stores the pointer; cross-TU analysis artifact, no escape exists.
+
+### TRIAGED — infer — uninitialized value reads (78 total)
 Fixed:
 - `src.freebsd/nvi/vi/vs_smap.c` (~30 reports, `vs_sm_up`/`vs_sm_down`) —
   root cause fixed: uninitialized `s2` on first loop iteration and a
   stale-copy scroll-up loop (scroll loop reworked to fill in place).
 - `src.freebsd/nvi/ex/ex_filter.c` `ex_filter()` — `nread` initialized.
-- `src.freebsd/awk/b.c` `cclenter()` — unchecked calloc fixed (the
-  remaining `mkdfa`/`relex`/`cgoto` reports still open).
+- `src.freebsd/awk/b.c` `cclenter()` — unchecked calloc fixed.
+- `src.freebsd/nvi/common/msg.c` `msgq()` — on the
+  `msgq(sp, M_SYSERR, NULL)` path, `len` still held the already-consumed
+  prefix length at the `nofmt` label and was double-counted: the
+  strerror text was written past a gap of uninitialized bytes and the
+  printed error was truncated. Fixed: `len = 0` on that path.
 
-Still open:
-- `src.freebsd/awk/b.c` (remaining `mkdfa`/`relex`/`cgoto` reports) —
-  regex engine, reachable from user-supplied patterns.
-- `src.freebsd/nvi/common/msg.c:315` `msgq()` — `len` read uninit.
-- `src.freebsd/sh/exec.c:477` `find_builtin()` — `bp` read uninit.
-- `src.freebsd/tip/tip/acu.c:143` `con()` — `phnum` read uninit.
+False positives (no code change):
+- `src.freebsd/awk/b.c` remaining cluster (~12, `mkdfa`/`relex`/`cgoto`) —
+  relex `{n,m}` locals are initialized on the only path reaching the
+  parse loop; `mkdfa`'s `p1` is fully initialized via `op2`/`nodealloc`
+  (cross-TU gap); `cgoto` reads stay within regions the resize loops
+  initialize (infer's realloc model). Clean under gcc
+  `-O2 -Wmaybe-uninitialized`; repetition patterns behave correctly.
+- `src.freebsd/sh/exec.c:477` `find_builtin()` — `bp` is initialized by
+  the for-loop init clause before `*bp` is tested; `builtincmd` is a
+  statically initialized NUL-terminated table.
+- `src.freebsd/tip/tip/acu.c:143` `con()` — `conflag` guards the
+  `phnum` read and is only assigned immediately after `phnum` in both
+  dialing loops; `con()` runs once per process.
 
 ### FALSE POSITIVE — triaged out
 - `src.freebsd/m4/misc.c:337` `xrealloc` UAF — `err(1, ...)` is noreturn;
