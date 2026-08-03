@@ -242,13 +242,8 @@ False positives (no change), with root cause:
   noise; the mid-multibyte EOF path is explicitly handled.
 
 ### vfork reports — TRIAGED (13)
-- FIXED: `xargs` (above).
-- REAL, NEEDS REDESIGN (deferred): `nvi/ex/ex_cscope.c:391`
-  `run_cscope()` — the child does malloc/strdup (`quote()`), asprintf,
-  free, and msgq between vfork and execl. Harmless in practice on glibc
-  (single-threaded, heap consistent before exec) but strictly
-  prohibited; the correct fix hoists command-string construction into
-  the parent before forking.
+- FIXED: `xargs` (above); `nvi/ex/ex_cscope.c` `run_cscope()` (see
+  follow-ups — command-string construction hoisted into the parent).
 - FALSE POSITIVE (11): nvi ex_filter/ex_argv/ex_shell, telnet `shell`,
   sh `vforkexecshell`, tip `expand`, apply `exec_shell` — flagged calls
   are async-signal-safe (dup2/close/open/sigprocmask), read-only
@@ -257,14 +252,37 @@ False positives (no change), with root cause:
   `msgq_str` on the execl-failure path before `_exit` — non-conforming
   upstream idiom that only runs when exec already failed.
 
-### Follow-ups found during triage (OPEN)
-- `src.freebsd/dbcompat/rec_put.c:263` — memcpy NULL-arg UB flagged by
-  UBSan when loading files containing empty lines; masks the s()
-  confirm-mode path at runtime. Needs its own triage/fix.
-- `nvi/ex/ex_subst.c` `re_conv()` second pass: bare `~` under `nomagic`
-  writes 1 byte the counting pass didn't account for — latent 1-byte
-  heap overflow when `needlen` is an exact power of two ≥ 256. Not
-  analyzer-reported; found by inspection during the ex_subst triage.
+### Follow-ups found during triage
+Fixed:
+- `src.freebsd/dbcompat/recno/rec_put.c:263` — `WR_RLEAF`
+  (`btree/btree.h`) did `memmove(dest, NULL, 0)` when nvi stored an
+  empty line with a still-NULL conversion buffer. Exact trigger: a file
+  whose first line is empty (traps on initial load, no `:w` needed);
+  a non-empty first line hides it because the reused CONVWIN buffer is
+  non-NULL. Reproduced under clang `-fsanitize=undefined`; fixed by
+  skipping the zero-length copy.
+- `nvi/ex/ex_subst.c` `re_conv()` counting pass undercounted by one
+  CHAR_T in two tilde cases (bare `~` under nomagic, `\~` under magic)
+  vs. the emitting pass's literal `~` — 1-CHAR_T heap overflow when
+  `needlen*sizeof(CHAR_T)` is an exact power of two ≥ 256. Reproduced
+  under ASan; fixed (`else needlen += 1` in both branches). Present
+  verbatim in upstream contrib/nvi.
+- `nvi/ex/ex_cscope.c` `run_cscope()` vfork window — fixed by hoisting
+  the command-string construction into the parent (was: malloc/
+  asprintf/free/msgq between vfork and execl, plus freeing `cmd` in
+  the parent's heap on the execl-failure path). Verified
+  behavior-identical.
+
+Still open:
+- `nvi/common/line.c:524` `db_last()` — `MEMCPY(ep->c_lp, wp, wlen)`
+  with both NULL on a file consisting solely of empty lines
+  (UBSan-flagged; same empty-line NULL family).
+- `src.freebsd/compat/mktemp.c:164` `_gettemp()` — `padchar[*bx %
+  sizeof(padchar)]` indexes with `sizeof` including the NUL, so a
+  random byte can plant `'\0'` in the template; the later
+  `strchr(padchar, *trv)` then returns the terminator and `*++pad`
+  reads one past the global (ASan global-buffer-overflow, ~1-in-6 vi
+  startups, getrandom-dependent). Suggested fix: `% (sizeof(padchar)-1)`.
 - `nvi/ex/ex_subst.c` `s()` lb leak on OOM (`ADD_SPACE_RETW` returns
   without freeing `lb`): real, low value, needs the `_GOTO` macro
   rework (BINC_GOTO leaves `bp` dangling, so not a minimal swap).
