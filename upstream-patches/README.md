@@ -38,6 +38,15 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   pointer arithmetic (zig ReleaseSafe trap on startup).
 - 0023 nvi: zero-length MEMCPY from NULL build buffer on match at
   offset 0 (zig ReleaseSafe trap on `%s` at line start).
+- 0024 nvi: dangling buffer pointer left on binc() failure — UAF /
+  double-free on OOM (Infer).
+- 0025 nvi: double-counted message-prefix length in msgq — strerror
+  text written past uninitialized gap, truncated error messages
+  (Infer).
+- 0026 nvi: stale iconv output pointer after buffer growth in
+  CONVERT2 — infinite E2BIG retry loop with unbounded memory growth
+  (observed 527 MB RSS in 0.4 s), plus UAF write on iconv
+  implementations that write before reporting E2BIG. HIGH severity.
 
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h.

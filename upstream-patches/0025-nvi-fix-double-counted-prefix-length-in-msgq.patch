@@ -1,0 +1,33 @@
+From 4001951c40fcfeac13415a1daca78134a2a0f462 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 22:23:57 -0400
+Subject: [PATCH 25/26] nvi: fix double-counted prefix length in msgq
+
+Found by Infer: on the msgq(sp, M_SYSERR, NULL) path, len still held
+the already-consumed message-prefix length at the nofmt label, so it
+was counted twice -- the strerror text was written past a gap of
+uninitialized buffer bytes, truncating the printed error. Set len = 0
+on that path.
+---
+ src.freebsd/nvi/common/msg.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/nvi/common/msg.c b/src.freebsd/nvi/common/msg.c
+index 7499f451..893392f8 100644
+--- a/src.freebsd/nvi/common/msg.c
++++ b/src.freebsd/nvi/common/msg.c
+@@ -161,8 +161,10 @@ retry:		FREE_SPACE(sp, bp, blen);
+ 	}
+ 
+ 	/* If nothing to format, we're done. */
+-	if (fmt == NULL)
++	if (fmt == NULL) {
++		len = 0;	/* Prefix lengths already accounted for. */
+ 		goto nofmt;
++	}
+ 	fmt = msg_cat(sp, fmt, NULL);
+ 
+ #ifndef NL_ARGMAX
+-- 
+2.55.0
+

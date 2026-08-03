@@ -1,0 +1,43 @@
+From 2815c3f02b064fcf435d361fe847222849f74858 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 22:23:57 -0400
+Subject: [PATCH 26/26] nvi: fix stale output pointer in CONVERT2 buffer growth
+
+CONVERT2 computed outleft/obp from the buffer before the BINC_RETC
+growth check; when binc() reallocated mid-conversion, obp dangled
+into the freed buffer and the stale outleft made iconv fail with
+E2BIG forever -- an infinite loop growing the buffer without bound
+(observed: 527 MB RSS in 0.4 s editing a 2048-char line with
+fileencoding=utf-32), plus a use-after-free write on iconv
+implementations that write before reporting E2BIG. Perform the
+growth check first and derive outleft/obp from the post-growth
+buffer.
+---
+ src.freebsd/nvi/common/conv.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/nvi/common/conv.c b/src.freebsd/nvi/common/conv.c
+index 2e675a6d..bd3e39c6 100644
+--- a/src.freebsd/nvi/common/conv.c
++++ b/src.freebsd/nvi/common/conv.c
+@@ -221,13 +221,15 @@ default_int2char(SCR *sp, const CHAR_T * str, ssize_t len, CONVWIN *cw,
+ 		char *bp = _buffer;					\
+ 		int ret;						\
+ 		do {							\
+-			size_t outleft = cw->blen1 - offset;		\
+-			char *obp = cw->bp1.c + offset;			\
++			size_t outleft;					\
++			char *obp;					\
+ 			if (cw->blen1 < offset + MB_CUR_MAX) {		\
+ 				nlen += 256;				\
+ 				BINC_RETC(NULL, cw->bp1.c, cw->blen1,	\
+ 				    nlen);				\
+ 			}						\
++			outleft = cw->blen1 - offset;			\
++			obp = cw->bp1.c + offset;			\
+ 			errno = 0;					\
+ 			ret = iconv(id, (iconv_src_t)&bp, lenp, &obp,	\
+ 			    &outleft);					\
+-- 
+2.55.0
+

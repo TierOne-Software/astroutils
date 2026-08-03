@@ -1,0 +1,36 @@
+From 9ef401e2e280da4a8b99558d1d52bfcee44155f6 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 22:23:32 -0400
+Subject: [PATCH 24/26] nvi: don't leave dangling buffer pointer on binc
+ failure
+
+Found by Infer (conv.c default_int2char UAF): binc() frees the old
+buffer on realloc failure (reallocf semantics), but BINC_RET returned
+without clearing the caller's pointer, leaving it dangling with a
+zero length. The next conversion reusing sp->cw.bp1 would pass freed
+memory to realloc, and conv_end() would double-free it. NULL the
+pointer on the failure path.
+---
+ src.freebsd/nvi/common/mem.h | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/nvi/common/mem.h b/src.freebsd/nvi/common/mem.h
+index 0c83b70d..10a96efc 100644
+--- a/src.freebsd/nvi/common/mem.h
++++ b/src.freebsd/nvi/common/mem.h
+@@ -38,8 +38,11 @@
+ 	CHECK_TYPE(type *, lp)						\
+ 	void *L__bincp;							\
+ 	if ((nlen) > llen) {						\
+-		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL)	\
++		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL) {	\
++			/* binc() freed lp; don't leave it dangling. */	\
++			lp = NULL;					\
+ 			return (1);					\
++		}							\
+ 		/*							\
+ 		 * !!!							\
+ 		 * Possible pointer conversion.				\
+-- 
+2.55.0
+
