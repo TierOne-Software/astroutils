@@ -274,18 +274,17 @@ Fixed:
   behavior-identical.
 
 Still open:
-- `nvi/common/line.c:524` `db_last()` — `MEMCPY(ep->c_lp, wp, wlen)`
-  with both NULL on a file consisting solely of empty lines
-  (UBSan-flagged; same empty-line NULL family).
-- `src.freebsd/compat/mktemp.c:164` `_gettemp()` — `padchar[*bx %
-  sizeof(padchar)]` indexes with `sizeof` including the NUL, so a
-  random byte can plant `'\0'` in the template; the later
-  `strchr(padchar, *trv)` then returns the terminator and `*++pad`
-  reads one past the global (ASan global-buffer-overflow, ~1-in-6 vi
-  startups, getrandom-dependent). Suggested fix: `% (sizeof(padchar)-1)`.
 - `nvi/ex/ex_subst.c` `s()` lb leak on OOM (`ADD_SPACE_RETW` returns
   without freeing `lb`): real, low value, needs the `_GOTO` macro
   rework (BINC_GOTO leaves `bp` dangling, so not a minimal swap).
+
+(Also fixed in the same pass: `nvi/common/line.c` `db_get()`/`db_last()`
+did `MEMCPY(ep->c_lp, wp, 0)` with `ep->c_lp == NULL` when caching an
+empty line — trapped on loading an all-empty-lines file; and
+`compat/mktemp.c` `_gettemp()` indexed `padchar` with `sizeof`
+including the NUL, planting `'\0'` in templates and causing a 1-byte
+global over-read on the EEXIST carry path — ASan-verified, fixed with
+`% (sizeof(padchar) - 1)` matching upstream libc.)
 
 ### Cross-analyzer agreement — RESOLVED
 The clusters reported by BOTH infer and scan-build are all closed:
