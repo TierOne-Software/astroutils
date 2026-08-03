@@ -196,42 +196,86 @@ Run: `scan-build meson setup build-scan && scan-build ninja -C build-scan`
 - 20 Error handling (errno not checked)
 - 9 Security group (insecureAPI checker hits)
 
-### scan-build hotspots (null-deref / nonnull-arg clusters)
-Recurring functions across both analyzers — highest triage value.
-Fixed so far: `cat/cat.c` `scanfiles` (fdopen check), `ed/main.c`
-join_lines (zero-len memcpy), `hexdump/parse.c` `rewrite` (null
-nextpr), `nvi/ex/ex_subst.c` `s` (NULL build buffer, zig-safety).
+### scan-build hotspots — TRIAGED
+All hotspot clusters triaged (per-report reasoning preserved in session
+notes; report IDs reference `scanbuild-out/2026-08-01-200052-2978396-1/`).
 
-- `src.freebsd/awk/tran.c` `qstring`/`makesymtab` (8 reports), `awk/run.c`
-  `format`/`bltin`, `awk/lex.c` `string` — awk parser/evaluator on
-  user-supplied programs.
-- `src.freebsd/nvi/ex/ex_subst.c` `re_conv`/`ex_s` (remaining),
-  `nvi/ex/ex_argv.c`
-  `argv_esc` (2), `nvi/common/delete.c` `del` (2), `nvi/common/put.c` `put` (2),
-  `nvi/vi/v_search.c` `v_searchw` (3) — ex/vi command handling.
-- `src.freebsd/sed/main.c` `cu_fgets` (2) — sed's line reader.
-- `src.freebsd/m4/gnum4.c` `doindir`/`do_subst`/`doformat` (3) — GNU m4
-  compat paths.
-- `src.freebsd/findutils/find/function.c` `f_exec` (3) — find -exec.
-- `src.freebsd/coreutils/test/test.c` `binop`/`newerf` (4).
-- `src.freebsd/ed/main.c`/`glbl.c`/`re.c` (remaining).
-- `src.freebsd/telnet/telnet/commands.c` `sourceroute` — network-reachable.
-- `src.freebsd/gzip/gzip.c` `prepend_gzip` (2).
-- `src.freebsd/coreutils/ls/print.c` `printcol`,
-  `src.freebsd/coreutils/tail/forward.c` `rlines`,
-  `src.freebsd/coreutils/du/du.c` `ignoreadd`,
-  `src.freebsd/coreutils/cat/cat.c` `cook_cat`,
-  `src.freebsd/miscutils/hexdump/parse.c` `add`.
+Fixed:
+- `nvi/ex/ex_subst.c` `re_conv`/`ex_s`/`s` (7 reports): with no previous
+  replacement (`sp->repl == NULL`), all-`~` patterns/replacements left
+  the build buffer NULL and passed it to memcpy (UB; trapped live under
+  zig ReleaseSafe on `:s/~/X/`, `:s/a/~/`, nomagic `:s/\~/X/`). Fixed:
+  zero-length guards on the three `~`-expansion MEMCPYs and the
+  confirm-mode copy, `MAX(needlen, 1)` allocation. (2 further reports
+  already covered by the BUILD-macro guard; remaining re_conv/ex_s
+  reports are FPs — the counting passes guarantee non-zero sizes.)
+- `xargs` vfork child (`xargs.c:611`): `err(3)` between vfork and exec
+  runs atexit/stdio cleanup in the shared address space. Fixed:
+  `warn(3)` + `_exit(1)` (2 sites).
+- `ed/main.c` `append_lines`: dead `lp` initializer removed (dead-store
+  report). ed `join_lines` report already fixed earlier.
+- `cat/cat.c` `cook_cat` NULL-arg report: already fixed by the earlier
+  `scanfiles` fdopen check.
 
-### Cross-analyzer agreement (fix first)
-Reported by BOTH infer and scan-build:
-- `awk/parse.c` `nodealloc`, `awk/tran.c` `makesymtab`
-- `nvi` ex-substitution / msg paths
-- `sed` compile/read paths
+False positives (no change), with root cause:
+- awk evaluator cluster (18 reports: `tran.c` `qstring`/`makesymtab`,
+  `run.c` `format`/`bltin`, `lex.c` `string`): every path exits through
+  `FATAL`, which is `noreturn` — but awk is built `-std=c99`, and
+  `awk.h` defines `noreturn` away for C99, so both analyzers model the
+  fatal path as returning.
+- nvi ex/vi command handling (16 reports: `argv_esc`, `del`, `put`,
+  `v_searchw`): all require the GET_SPACE scratch buffer to be NULL
+  without taking the error exit — only possible for zero-byte requests,
+  and every flagged path provably requests > 0 bytes (gdb-verified
+  `tmp_bp` allocated during option init). Closest case (`delete.c:78`,
+  `fm->cno == 0`) additionally needs `sp == NULL` (never) — not
+  reproducible.
+- sed `cu_fgets` (2), m4 `gnum4.c` (3), test `binop`/`newerf` (6),
+  gzip `prepend_gzip` (3), du `ignoreadd`: noreturn error functions
+  (`m4errx`, `error`/`verrx`, `xo_errx`) hidden behind the port's empty
+  `__dead2` — same pattern as the awk FATAL cluster.
+- find `f_exec` (3), telnet `sourceroute`, ed glbl.c/re.c (3), ls
+  `printcol` (2), tail `rlines`, hexdump `add`: infeasible analyzer
+  paths (tandem static invariants, arithmetic relations the analyzer
+  lost, caller-guaranteed non-empty inputs).
+- cat stream-state reports (5): experimental alpha.unix.Stream checker
+  noise; the mid-multibyte EOF path is explicitly handled.
 
-Note: many reports in both analyzers assume malloc/getenv/rewind can fail
-in ways FreeBSD's code doesn't check. Each needs a reachability judgment;
-the clusters above are where to start.
+### vfork reports — TRIAGED (13)
+- FIXED: `xargs` (above).
+- REAL, NEEDS REDESIGN (deferred): `nvi/ex/ex_cscope.c:391`
+  `run_cscope()` — the child does malloc/strdup (`quote()`), asprintf,
+  free, and msgq between vfork and execl. Harmless in practice on glibc
+  (single-threaded, heap consistent before exec) but strictly
+  prohibited; the correct fix hoists command-string construction into
+  the parent before forking.
+- FALSE POSITIVE (11): nvi ex_filter/ex_argv/ex_shell, telnet `shell`,
+  sh `vforkexecshell`, tip `expand`, apply `exec_shell` — flagged calls
+  are async-signal-safe (dup2/close/open/sigprocmask), read-only
+  (getenv/strrchr), local-only assignments, or explicitly permitted
+  (execl/_exit). Noted caveat, not changed: several nvi children call
+  `msgq_str` on the execl-failure path before `_exit` — non-conforming
+  upstream idiom that only runs when exec already failed.
+
+### Follow-ups found during triage (OPEN)
+- `src.freebsd/dbcompat/rec_put.c:263` — memcpy NULL-arg UB flagged by
+  UBSan when loading files containing empty lines; masks the s()
+  confirm-mode path at runtime. Needs its own triage/fix.
+- `nvi/ex/ex_subst.c` `re_conv()` second pass: bare `~` under `nomagic`
+  writes 1 byte the counting pass didn't account for — latent 1-byte
+  heap overflow when `needlen` is an exact power of two ≥ 256. Not
+  analyzer-reported; found by inspection during the ex_subst triage.
+- `nvi/ex/ex_subst.c` `s()` lb leak on OOM (`ADD_SPACE_RETW` returns
+  without freeing `lb`): real, low value, needs the `_GOTO` macro
+  rework (BINC_GOTO leaves `bp` dangling, so not a minimal swap).
+
+### Cross-analyzer agreement — RESOLVED
+The clusters reported by BOTH infer and scan-build are all closed:
+- `awk/parse.c` `nodealloc`, `awk/tran.c` `makesymtab` — false positives
+  (noreturn FATAL, see above).
+- `nvi` ex-substitution / msg paths — fixed (BUILD guard, `~`-expansion
+  NULL buffer, msgq prefix double-count).
+- `sed` compile/read paths — not reproducible / false positive.
 
 ## Fuzzing results (libFuzzer; harnesses in fuzz/)
 
