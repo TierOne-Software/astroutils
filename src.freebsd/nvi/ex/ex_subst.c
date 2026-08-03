@@ -1044,7 +1044,8 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
 					if (!O_ISSET(sp, O_MAGIC)) {
 						magic = 1;
 						needlen += sp->repl_len;
-					}
+					} else
+						needlen += 1;
 					break;
 				case '.':
 				case '[':
@@ -1064,7 +1065,8 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
 			if (O_ISSET(sp, O_MAGIC)) {
 				magic = 1;
 				needlen += sp->repl_len;
-			}
+			} else
+				needlen += 1;
 			break;
 		case '.':
 		case '[':
