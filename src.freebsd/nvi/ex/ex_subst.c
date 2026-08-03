@@ -318,8 +318,10 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
 			return (1);					\
 		}							\
 	}								\
-	MEMCPY(lb + lbclen, l, len);					\
-	lbclen += len;							\
+	if (len != 0) {							\
+		MEMCPY(lb + lbclen, l, len);				\
+		lbclen += len;						\
+	}								\
 } while (0)
 
 #define	NEEDSP(sp, len, pnt) do {					\
