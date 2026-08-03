@@ -614,6 +614,7 @@ vs_sm_up(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
 	if (IS_SMALL(sp)) {
 		if (count >= sp->t_maxrows || scmd == CNTRL_F) {
 			s1 = TMAP[0];
+			s2 = s1;
 			if (vs_sm_erase(sp))
 				return (1);
 			for (; count--; s1 = s2) {
@@ -630,11 +631,12 @@ vs_sm_up(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
 		cursor_set = scmd == CNTRL_E || vs_sm_cursor(sp, &ssmp);
 		for (; count &&
 		    sp->t_rows != sp->t_maxrows; --count, ++sp->t_rows) {
-			if (vs_sm_next(sp, TMAP, &s1))
+			if (vs_sm_next(sp, TMAP, TMAP + 1))
 				return (1);
-			if (TMAP->lno != s1.lno && !db_exist(sp, s1.lno))
+			if (TMAP->lno != TMAP[1].lno &&
+			    !db_exist(sp, TMAP[1].lno))
 				break;
-			*++TMAP = s1;
+			++TMAP;
 			/* vs_sm_next() flushed the cache. */
 			if (vs_line(sp, TMAP, NULL, NULL))
 				return (1);
@@ -833,6 +835,7 @@ vs_sm_down(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
 	if (IS_SMALL(sp)) {
 		if (count >= sp->t_maxrows || scmd == CNTRL_B) {
 			s1 = HMAP[0];
+			s2 = s1;
 			if (vs_sm_erase(sp))
 				return (1);
 			for (; count--; s1 = s2) {
