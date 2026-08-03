@@ -474,6 +474,8 @@ int *cclenter(const char *argp)	/* add a character class */
 	/* DPRINTF("cclenter: in = |%s|, out = |%s|\n", op, buf); BUG: can't print array of int */
 	/* xfree(op);  BUG: what are we freeing here? */
 	retp = (int *) calloc(bp-buf+1, sizeof(int));
+	if (retp == NULL)
+		overflo(__func__);
 	for (i = 0; i < bp-buf+1; i++)
 		retp[i] = buf[i];
 	return retp;
