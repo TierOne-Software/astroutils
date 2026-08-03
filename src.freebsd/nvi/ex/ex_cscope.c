@@ -377,22 +377,47 @@ static int
 run_cscope(SCR *sp, CSC *csc, char *dbname)
 {
 	int to_cs[2], from_cs[2];
-	char *cmd;
+	char *cmd, *dbn, *dn;
 
 	/*
 	 * Cscope reads from to_cs[0] and writes to from_cs[1]; vi reads from
 	 * from_cs[0] and writes to to_cs[1].
 	 */
 	to_cs[0] = to_cs[1] = from_cs[0] = from_cs[1] = -1;
+	cmd = NULL;
 	if (pipe(to_cs) < 0 || pipe(from_cs) < 0) {
 		msgq(sp, M_SYSERR, "pipe");
 		goto err;
 	}
+
+	/*
+	 * Build the command string before forking; the vfork'd child may
+	 * only use async-signal-safe interfaces until it execs.
+	 */
+#define	CSCOPE_CMD_FMT		"cd %s && exec cscope -dl -f %s"
+	if ((dn = quote(csc->dname)) == NULL) {
+		msgq(sp, M_SYSERR, NULL);
+		goto err;
+	}
+	if ((dbn = quote(dbname)) == NULL) {
+		free(dn);
+		msgq(sp, M_SYSERR, NULL);
+		goto err;
+	}
+	if (asprintf(&cmd, CSCOPE_CMD_FMT, dn, dbn) == -1)
+		cmd = NULL;
+	free(dbn);
+	free(dn);
+	if (cmd == NULL) {
+		msgq(sp, M_SYSERR, NULL);
+		goto err;
+	}
+
 	switch (csc->pid = vfork()) {
-		char *dn, *dbn;
 	case -1:
 		msgq(sp, M_SYSERR, "vfork");
-err:		if (to_cs[0] != -1)
+err:		free(cmd);
+		if (to_cs[0] != -1)
 			(void)close(to_cs[0]);
 		if (to_cs[1] != -1)
 			(void)close(to_cs[1]);
@@ -411,30 +436,15 @@ err:		if (to_cs[0] != -1)
 		(void)close(from_cs[0]);
 
 		/* Run the cscope command. */
-#define	CSCOPE_CMD_FMT		"cd %s && exec cscope -dl -f %s"
-		if ((dn = quote(csc->dname)) == NULL)
-			goto nomem;
-		if ((dbn = quote(dbname)) == NULL) {
-			free(dn);
-			goto nomem;
-		}
-		if (asprintf(&cmd, CSCOPE_CMD_FMT, dn, dbn) == -1)
-			cmd = NULL;
-		free(dbn);
-		free(dn);
-		if (cmd == NULL) {
-nomem:			msgq(sp, M_SYSERR, NULL);
-			_exit (1);
-		}
 		(void)execl(_PATH_BSHELL, "sh", "-c", cmd, (char *)NULL);
 		msgq_str(sp, M_SYSERR, cmd, "execl: %s");
-		free(cmd);
 		_exit (127);
 		/* NOTREACHED */
 	default:			/* parent. */
 		/* Close unused file descriptors. */
 		(void)close(to_cs[0]);
 		(void)close(from_cs[1]);
+		free(cmd);
 
 		/*
 		 * Save the file descriptors for later duplication, and
