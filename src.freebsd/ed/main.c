@@ -1010,7 +1010,7 @@ int
 append_lines(long n)
 {
 	int l;
-	const char *lp = ibuf;
+	const char *lp;
 	const char *eot;
 	undo_t *up = NULL;
 
