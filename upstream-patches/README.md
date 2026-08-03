@@ -53,6 +53,13 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 - 0028 xargs: err(3) in the vfork'd child runs atexit/stdio cleanup in
   the shared pre-exec address space; use warn(3) + _exit(1).
 - 0029 ed: drop dead initializer in append_lines (dead store).
+- 0030 dbcompat: WR_RLEAF did memmove(p, NULL, 0) for empty records —
+  triggers when nvi loads a file whose first line is empty (UBSan).
+- 0031 nvi: re_conv counting pass undercounted literal '~' by one
+  CHAR_T in two cases — 1-CHAR_T heap overflow when
+  needlen*sizeof(CHAR_T) is an exact power of two ≥ 256 (ASan-verified).
+- 0032 nvi: run_cscope child did malloc/asprintf/free/msgq between
+  vfork and execl — command string now built in the parent.
 
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h.

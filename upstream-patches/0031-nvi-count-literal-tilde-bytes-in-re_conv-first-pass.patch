@@ -1,0 +1,43 @@
+From 2346bc7c3054ae20b6491ca116eb786152d62d04 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 10:19:35 -0400
+Subject: [PATCH 31/32] nvi: count literal tilde bytes in re_conv first pass
+
+The counting pass undercounted the converted pattern by one CHAR_T in
+two tilde cases (bare '~' under nomagic, '\~' under magic) while the
+emitting pass writes a literal '~', so when needlen*sizeof(CHAR_T)
+landed exactly on a power-of-two >= 256, binc() allocated exactly
+that much and the emit pass wrote one CHAR_T past the buffer.
+Reproduced under ASan with crafted 257-character substitute patterns.
+Present verbatim in upstream FreeBSD contrib/nvi.
+---
+ src.freebsd/nvi/ex/ex_subst.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_subst.c b/src.freebsd/nvi/ex/ex_subst.c
+index 17a73f66..b25c57ee 100644
+--- a/src.freebsd/nvi/ex/ex_subst.c
++++ b/src.freebsd/nvi/ex/ex_subst.c
+@@ -1044,7 +1044,8 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
+ 					if (!O_ISSET(sp, O_MAGIC)) {
+ 						magic = 1;
+ 						needlen += sp->repl_len;
+-					}
++					} else
++						needlen += 1;
+ 					break;
+ 				case '.':
+ 				case '[':
+@@ -1064,7 +1065,8 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
+ 			if (O_ISSET(sp, O_MAGIC)) {
+ 				magic = 1;
+ 				needlen += sp->repl_len;
+-			}
++			} else
++				needlen += 1;
+ 			break;
+ 		case '.':
+ 		case '[':
+-- 
+2.55.0
+

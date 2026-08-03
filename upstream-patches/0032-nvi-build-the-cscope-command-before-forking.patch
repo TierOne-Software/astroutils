@@ -1,0 +1,107 @@
+From acb2834e23524526f1670f812106f106906ce44e Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 10:19:36 -0400
+Subject: [PATCH 32/32] nvi: build the cscope command before forking
+
+Found by scan-build ('dangerous construct in a vforked process'):
+run_cscope()'s vfork'd child called quote() (malloc), asprintf,
+free(), and msgq() before execl(), and freed cmd in the parent's
+heap on the execl-failure path. Hoist the command-string
+construction into the parent; the child now only does
+dup2/close/execl/_exit, matching the ex_filter.c/ex_argv.c idiom.
+Command string, error messages, and cleanup verified
+behavior-identical against the pre-fix binary.
+---
+ src.freebsd/nvi/ex/ex_cscope.c | 48 ++++++++++++++++++++--------------
+ 1 file changed, 29 insertions(+), 19 deletions(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_cscope.c b/src.freebsd/nvi/ex/ex_cscope.c
+index 9166bcb5..2882bb2f 100644
+--- a/src.freebsd/nvi/ex/ex_cscope.c
++++ b/src.freebsd/nvi/ex/ex_cscope.c
+@@ -377,22 +377,47 @@ static int
+ run_cscope(SCR *sp, CSC *csc, char *dbname)
+ {
+ 	int to_cs[2], from_cs[2];
+-	char *cmd;
++	char *cmd, *dbn, *dn;
+ 
+ 	/*
+ 	 * Cscope reads from to_cs[0] and writes to from_cs[1]; vi reads from
+ 	 * from_cs[0] and writes to to_cs[1].
+ 	 */
+ 	to_cs[0] = to_cs[1] = from_cs[0] = from_cs[1] = -1;
++	cmd = NULL;
+ 	if (pipe(to_cs) < 0 || pipe(from_cs) < 0) {
+ 		msgq(sp, M_SYSERR, "pipe");
+ 		goto err;
+ 	}
++
++	/*
++	 * Build the command string before forking; the vfork'd child may
++	 * only use async-signal-safe interfaces until it execs.
++	 */
++#define	CSCOPE_CMD_FMT		"cd %s && exec cscope -dl -f %s"
++	if ((dn = quote(csc->dname)) == NULL) {
++		msgq(sp, M_SYSERR, NULL);
++		goto err;
++	}
++	if ((dbn = quote(dbname)) == NULL) {
++		free(dn);
++		msgq(sp, M_SYSERR, NULL);
++		goto err;
++	}
++	if (asprintf(&cmd, CSCOPE_CMD_FMT, dn, dbn) == -1)
++		cmd = NULL;
++	free(dbn);
++	free(dn);
++	if (cmd == NULL) {
++		msgq(sp, M_SYSERR, NULL);
++		goto err;
++	}
++
+ 	switch (csc->pid = vfork()) {
+-		char *dn, *dbn;
+ 	case -1:
+ 		msgq(sp, M_SYSERR, "vfork");
+-err:		if (to_cs[0] != -1)
++err:		free(cmd);
++		if (to_cs[0] != -1)
+ 			(void)close(to_cs[0]);
+ 		if (to_cs[1] != -1)
+ 			(void)close(to_cs[1]);
+@@ -411,30 +436,15 @@ err:		if (to_cs[0] != -1)
+ 		(void)close(from_cs[0]);
+ 
+ 		/* Run the cscope command. */
+-#define	CSCOPE_CMD_FMT		"cd %s && exec cscope -dl -f %s"
+-		if ((dn = quote(csc->dname)) == NULL)
+-			goto nomem;
+-		if ((dbn = quote(dbname)) == NULL) {
+-			free(dn);
+-			goto nomem;
+-		}
+-		if (asprintf(&cmd, CSCOPE_CMD_FMT, dn, dbn) == -1)
+-			cmd = NULL;
+-		free(dbn);
+-		free(dn);
+-		if (cmd == NULL) {
+-nomem:			msgq(sp, M_SYSERR, NULL);
+-			_exit (1);
+-		}
+ 		(void)execl(_PATH_BSHELL, "sh", "-c", cmd, (char *)NULL);
+ 		msgq_str(sp, M_SYSERR, cmd, "execl: %s");
+-		free(cmd);
+ 		_exit (127);
+ 		/* NOTREACHED */
+ 	default:			/* parent. */
+ 		/* Close unused file descriptors. */
+ 		(void)close(to_cs[0]);
+ 		(void)close(from_cs[1]);
++		free(cmd);
+ 
+ 		/*
+ 		 * Save the file descriptors for later duplication, and
+-- 
+2.55.0
+

@@ -1,0 +1,38 @@
+From a54d798dd16fac3e199e6f8b3eec1f496b767ef0 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 10:19:26 -0400
+Subject: [PATCH 30/32] dbcompat: skip zero-length memmove in WR_RLEAF
+
+Found via UBSan during the ex_subst triage: when nvi stores an empty
+line with a still-NULL conversion buffer (exact trigger: a file whose
+first line is empty), db_put is called with data.data == NULL and
+data.size == 0, and WR_RLEAF did memmove(p, NULL, 0) -- UB. Skip the
+copy for empty records.
+---
+ src.freebsd/dbcompat/btree/btree.h | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/dbcompat/btree/btree.h b/src.freebsd/dbcompat/btree/btree.h
+index 9e30f097..f25e0f66 100644
+--- a/src.freebsd/dbcompat/btree/btree.h
++++ b/src.freebsd/dbcompat/btree/btree.h
+@@ -215,13 +215,14 @@ typedef struct _rleaf {
+ #define	NRLEAFDBT(dsize)						\
+ 	LALIGN(sizeof(u_int32_t) + sizeof(u_char) + (dsize))
+ 
+-/* Copy a RLEAF entry to the page. */
++/* Copy a RLEAF entry to the page.  Empty records may have NULL data. */
+ #define	WR_RLEAF(p, data, flags) {					\
+ 	*(u_int32_t *)p = data->size;					\
+ 	p += sizeof(u_int32_t);						\
+ 	*(u_char *)p = flags;						\
+ 	p += sizeof(u_char);						\
+-	memmove(p, data->data, data->size);				\
++	if (data->size != 0)						\
++		memmove(p, data->data, data->size);			\
+ }
+ 
+ /*
+-- 
+2.55.0
+
