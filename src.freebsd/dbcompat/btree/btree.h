@@ -215,13 +215,14 @@ typedef struct _rleaf {
 #define	NRLEAFDBT(dsize)						\
 	LALIGN(sizeof(u_int32_t) + sizeof(u_char) + (dsize))
 
-/* Copy a RLEAF entry to the page. */
+/* Copy a RLEAF entry to the page.  Empty records may have NULL data. */
 #define	WR_RLEAF(p, data, flags) {					\
 	*(u_int32_t *)p = data->size;					\
 	p += sizeof(u_int32_t);						\
 	*(u_char *)p = flags;						\
 	p += sizeof(u_char);						\
-	memmove(p, data->data, data->size);				\
+	if (data->size != 0)						\
+		memmove(p, data->data, data->size);			\
 }
 
 /*
