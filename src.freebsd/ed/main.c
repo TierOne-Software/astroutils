@@ -1071,7 +1071,8 @@ join_lines(long from, long to)
 		if ((s = get_sbuf_line(bp)) == NULL)
 			return ERR;
 		REALLOC(buf, n, size + bp->len, ERR);
-		memcpy(buf + size, s, bp->len);
+		if (bp->len > 0)
+			memcpy(buf + size, s, bp->len);
 		size += bp->len;
 	}
 	REALLOC(buf, n, size + 2, ERR);
