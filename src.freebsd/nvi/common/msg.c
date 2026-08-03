@@ -161,8 +161,10 @@ retry:		FREE_SPACE(sp, bp, blen);
 	}
 
 	/* If nothing to format, we're done. */
-	if (fmt == NULL)
+	if (fmt == NULL) {
+		len = 0;	/* Prefix lengths already accounted for. */
 		goto nofmt;
+	}
 	fmt = msg_cat(sp, fmt, NULL);
 
 #ifndef NL_ARGMAX
