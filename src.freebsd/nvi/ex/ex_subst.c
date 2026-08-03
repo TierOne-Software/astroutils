@@ -217,9 +217,11 @@ subagain:	return (ex_subagain(sp, cmdp));
 				}
 			} else if (p[0] == '~' && O_ISSET(sp, O_MAGIC)) {
 tilde:				++p;
-				MEMCPY(t, sp->repl, sp->repl_len);
-				t += sp->repl_len;
-				len += sp->repl_len;
+				if (sp->repl_len != 0) {
+					MEMCPY(t, sp->repl, sp->repl_len);
+					t += sp->repl_len;
+					len += sp->repl_len;
+				}
 				continue;
 			}
 			*t++ = *p++;
@@ -506,8 +508,10 @@ noargs:	if (F_ISSET(sp, SC_VI) && sp->c_suffix && (lflag || nflag || pflag)) {
 				GET_SPACE_RETW(sp, bp, blen, llen);
 			} else
 				ADD_SPACE_RETW(sp, bp, blen, llen);
-			MEMCPY(bp, s, llen);
-			s = bp;
+			if (llen != 0) {
+				MEMCPY(bp, s, llen);
+				s = bp;
+			}
 		}
 
 		/* Start searching from the beginning. */
@@ -1082,7 +1086,7 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
 
 	/* Get enough memory to hold the final pattern. */
 	*replacedp = 1;
-	GET_SPACE_RETW(sp, bp, blen, needlen);
+	GET_SPACE_RETW(sp, bp, blen, MAX(needlen, 1));
 
 	for (p = *ptrnp, len = *plenp, t = bp; len > 0; ++p, --len)
 		switch (*p) {
@@ -1103,7 +1107,7 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
 				case '~':
 					if (O_ISSET(sp, O_MAGIC))
 						*t++ = '~';
-					else {
+					else if (sp->repl_len != 0) {
 						MEMCPY(t,
 						    sp->repl, sp->repl_len);
 						t += sp->repl_len;
@@ -1125,8 +1129,10 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
 			break;
 		case '~':
 			if (O_ISSET(sp, O_MAGIC)) {
-				MEMCPY(t, sp->repl, sp->repl_len);
-				t += sp->repl_len;
+				if (sp->repl_len != 0) {
+					MEMCPY(t, sp->repl, sp->repl_len);
+					t += sp->repl_len;
+				}
 			} else
 				*t++ = '~';
 			break;
