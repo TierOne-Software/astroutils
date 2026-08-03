@@ -607,8 +607,11 @@ exec:
 		break;
 	case 0:
 		if (oflag) {
-			if ((fd = open(_PATH_TTY, O_RDONLY)) == -1)
-				err(1, "can't open /dev/tty");
+			if ((fd = open(_PATH_TTY, O_RDONLY)) == -1) {
+				/* vfork'd child: warn(3) + _exit, not err(3). */
+				warn("can't open /dev/tty");
+				_exit(1);
+			}
 		} else if (aflag) {
 			/* don't redirect anything by default for -a */
 			fd = -1;
@@ -616,8 +619,11 @@ exec:
 			fd = open(_PATH_DEVNULL, O_RDONLY);
 		}
 		if (fd > STDIN_FILENO) {
-			if (dup2(fd, STDIN_FILENO) != 0)
-				err(1, "can't dup2 to stdin");
+			if (dup2(fd, STDIN_FILENO) != 0) {
+				/* vfork'd child: warn(3) + _exit, not err(3). */
+				warn("can't dup2 to stdin");
+				_exit(1);
+			}
 			close(fd);
 		}
 		execvp(argv[0], argv);
