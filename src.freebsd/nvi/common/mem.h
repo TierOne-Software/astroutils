@@ -38,8 +38,11 @@
 	CHECK_TYPE(type *, lp)						\
 	void *L__bincp;							\
 	if ((nlen) > llen) {						\
-		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL)	\
+		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL) {	\
+			/* binc() freed lp; don't leave it dangling. */	\
+			lp = NULL;					\
 			return (1);					\
+		}							\
 		/*							\
 		 * !!!							\
 		 * Possible pointer conversion.				\
