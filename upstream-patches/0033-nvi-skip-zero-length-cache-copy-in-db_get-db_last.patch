@@ -1,0 +1,50 @@
+From 8c743af05013b30c9026f3f2a75020736584c0c6 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 10:36:40 -0400
+Subject: [PATCH 33/34] nvi: skip zero-length cache copy in db_get/db_last
+
+Loading a file whose last line is empty (e.g. all-empty-lines file;
+plain load via file_cinit -> db_last suffices) did
+MEMCPY(ep->c_lp, wp, 0) with ep->c_lp == NULL: the widechar
+conversion yields wlen == 0 for empty lines, making the cache-grow
+macro a no-op. UB (UBSan nonnull report; SIGILL under zig
+ReleaseSafe). Guard the cache fill on wlen != 0 in both db_last()
+and the identical db_get() path, which trapped on the first
+empty-line read of the same trigger file.
+---
+ src.freebsd/nvi/common/line.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/nvi/common/line.c b/src.freebsd/nvi/common/line.c
+index d1b7cb51..c79c2a9b 100644
+--- a/src.freebsd/nvi/common/line.c
++++ b/src.freebsd/nvi/common/line.c
+@@ -172,8 +172,10 @@ err3:		if (lenp != NULL)
+ 
+ 	/* Reset the cache. */
+ 	if (wp != data.data) {
+-		BINC_GOTOW(sp, ep->c_lp, ep->c_blen, wlen);
+-		MEMCPY(ep->c_lp, wp, wlen);
++		if (wlen != 0) {
++			BINC_GOTOW(sp, ep->c_lp, ep->c_blen, wlen);
++			MEMCPY(ep->c_lp, wp, wlen);
++		}
+ 	} else
+ 		ep->c_lp = data.data;
+ 	ep->c_lno = lno;
+@@ -520,8 +522,10 @@ alloc_err:
+ 
+ 		/* Fill the cache. */
+ 		if (wp != data.data) {
+-			BINC_GOTOW(sp, ep->c_lp, ep->c_blen, wlen);
+-			MEMCPY(ep->c_lp, wp, wlen);
++			if (wlen != 0) {
++				BINC_GOTOW(sp, ep->c_lp, ep->c_blen, wlen);
++				MEMCPY(ep->c_lp, wp, wlen);
++			}
+ 		} else
+ 			ep->c_lp = data.data;
+ 		ep->c_lno = lno;
+-- 
+2.55.0
+

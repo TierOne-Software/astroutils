@@ -60,6 +60,11 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   needlen*sizeof(CHAR_T) is an exact power of two ≥ 256 (ASan-verified).
 - 0032 nvi: run_cscope child did malloc/asprintf/free/msgq between
   vfork and execl — command string now built in the parent.
+- 0033 nvi: db_get/db_last did MEMCPY(NULL, wp, 0) caching an empty
+  last line — traps on loading an all-empty-lines file (UBSan).
+- 0034 compat: mktemp _gettemp indexed padchar with sizeof including
+  the NUL — planted '\0' in templates, 1-byte global over-read on the
+  EEXIST carry path (ASan).
 
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h.

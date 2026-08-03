@@ -1,0 +1,34 @@
+From cea0d6b9917a325fd6ed7b55978c839a479f94d8 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 10:36:41 -0400
+Subject: [PATCH 34/34] compat: don't index mktemp padchar with its NUL
+ included
+
+_gettemp() mapped random bytes with % sizeof(padchar) -- 63,
+including the terminating NUL -- so ~1.6% of bytes per 'X' planted
+'\0' into the template; a following EEXIST collision then made
+strchr(padchar, '\0') return the terminator and *++pad read one
+byte past the global (ASan global-buffer-overflow, getrandom-
+dependent, seen on ~1-in-6 nvi startups). Use
+% (sizeof(padchar) - 1), matching upstream FreeBSD libc idiom. Only
+such site in src.freebsd/compat/.
+---
+ src.freebsd/compat/mktemp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src.freebsd/compat/mktemp.c b/src.freebsd/compat/mktemp.c
+index 0ef85c0e..082ed56e 100644
+--- a/src.freebsd/compat/mktemp.c
++++ b/src.freebsd/compat/mktemp.c
+@@ -121,7 +121,7 @@ _gettemp(int dfd, char *path, int *doopen, int domkdir, int oflags)
+ 		}
+ 		start = bx;
+ 		while (bx < suffp) {
+-			*bx = padchar[*bx % sizeof(padchar)];
++			*bx = padchar[*bx % (sizeof(padchar) - 1)];
+ 			++bx;
+ 		}
+ 	} else start = trv + 1;
+-- 
+2.55.0
+
