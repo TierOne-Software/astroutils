@@ -268,6 +268,8 @@ scanfiles(char *argv[], int cooked __unused)
 				cook_cat(stdin);
 			else {
 				fp = fdopen(fd, "r");
+				if (fp == NULL)
+					err(1, "%s", filename);
 				cook_cat(fp);
 				fclose(fp);
 			}
