@@ -47,6 +47,7 @@ ex_filter(SCR *sp, EXCMD *cmdp, MARK *fm, MARK *tm, MARK *rp, CHAR_T *cmd, enum 
 	size_t nlen;
 
 	rval = 0;
+	nread = 0;
 
 	/* Set return cursor position, which is never less than line 1. */
 	*rp = *fm;
