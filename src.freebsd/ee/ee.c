@@ -75,6 +75,7 @@ char *version = "@(#) ee, version "  EE_VERSION  " $Revision: 1.104 $";
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <err.h>
 #include <string.h>
 #include <pwd.h>
 #include <locale.h>
@@ -1059,7 +1060,11 @@ insert_line(int disp)
 	wmove(text_win, scr_vert, (scr_horz - horiz_offset));
 	wclrtoeol(text_win);
 	temp_nod= txtalloc();
+	if (temp_nod == NULL)
+		err(1, NULL);
 	temp_nod->line = extra= malloc(10);
+	if (extra == NULL)
+		err(1, NULL);
 	temp_nod->line_length = 1;
 	temp_nod->max_length = 10;
 	temp_nod->line_number = curr_line->line_number + 1;
@@ -4147,6 +4152,8 @@ ee_init(void)
 		if (!(access(init_name[counter], 4)))
 		{
 			init_file = fopen(init_name[counter], "r");
+			if (init_file == NULL)
+				continue;
 			while ((str2 = fgets(string, 512, init_file)) != NULL)
 			{
 				str1 = str2 = string;
