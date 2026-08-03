@@ -221,13 +221,15 @@ default_int2char(SCR *sp, const CHAR_T * str, ssize_t len, CONVWIN *cw,
 		char *bp = _buffer;					\
 		int ret;						\
 		do {							\
-			size_t outleft = cw->blen1 - offset;		\
-			char *obp = cw->bp1.c + offset;			\
+			size_t outleft;					\
+			char *obp;					\
 			if (cw->blen1 < offset + MB_CUR_MAX) {		\
 				nlen += 256;				\
 				BINC_RETC(NULL, cw->bp1.c, cw->blen1,	\
 				    nlen);				\
 			}						\
+			outleft = cw->blen1 - offset;			\
+			obp = cw->bp1.c + offset;			\
 			errno = 0;					\
 			ret = iconv(id, (iconv_src_t)&bp, lenp, &obp,	\
 			    &outleft);					\
