@@ -1,0 +1,28 @@
+From 8089401975f74b8e466ad872eab4d46dbfeae6e4 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:38:30 -0400
+Subject: [PATCH 16/23] ed: skip zero-length memcpy in join_lines
+
+memcpy(NULL, s, 0) is undefined behavior when the joined line is
+empty; guard on bp->len.
+---
+ src.freebsd/ed/main.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/ed/main.c b/src.freebsd/ed/main.c
+index 241d9f19..2d2267f8 100644
+--- a/src.freebsd/ed/main.c
++++ b/src.freebsd/ed/main.c
+@@ -1071,7 +1071,8 @@ join_lines(long from, long to)
+ 		if ((s = get_sbuf_line(bp)) == NULL)
+ 			return ERR;
+ 		REALLOC(buf, n, size + bp->len, ERR);
+-		memcpy(buf + size, s, bp->len);
++		if (bp->len > 0)
++			memcpy(buf + size, s, bp->len);
+ 		size += bp->len;
+ 	}
+ 	REALLOC(buf, n, size + 2, ERR);
+-- 
+2.55.0
+

@@ -1,0 +1,28 @@
+From 60608689696a36498240eb48656d91b567bcd31b Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:39:10 -0400
+Subject: [PATCH 21/23] nvi: stop doinsert when EMIT fails
+
+EMIT() records an error in p->error when the strip must grow;
+continuing to index p->strip afterwards operates on stale state.
+Bail out instead.
+---
+ src.freebsd/nvi/regex/regcomp.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src.freebsd/nvi/regex/regcomp.c b/src.freebsd/nvi/regex/regcomp.c
+index cec7ba07..f8f1905d 100644
+--- a/src.freebsd/nvi/regex/regcomp.c
++++ b/src.freebsd/nvi/regex/regcomp.c
+@@ -1405,6 +1405,8 @@ doinsert(struct parse *p, sop op, size_t opnd, sopno pos)
+ 
+ 	sn = HERE();
+ 	EMIT(op, opnd);		/* do checks, ensure space */
++	if (p->error != 0)
++		return;
+ 	assert(HERE() == sn+1);
+ 	s = p->strip[sn];
+ 	d = p->stripdata[sn];
+-- 
+2.55.0
+

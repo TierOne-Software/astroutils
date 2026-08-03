@@ -1,0 +1,33 @@
+From 4e39efd3bd8e69b8fc9ac671dc9aa8ff8d10fe0e Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:39:12 -0400
+Subject: [PATCH 23/23] nvi: skip zero-length copy in ex_subst BUILD
+
+A substitution matching at offset 0 on the first line did
+MEMCPY(lb + 0, s, 0) with lb still NULL -- pointer arithmetic on
+NULL is UB (traps under zig's ReleaseSafe checks). Skip the copy
+when len is 0.
+---
+ src.freebsd/nvi/ex/ex_subst.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_subst.c b/src.freebsd/nvi/ex/ex_subst.c
+index 3113ac5c..729b6bf9 100644
+--- a/src.freebsd/nvi/ex/ex_subst.c
++++ b/src.freebsd/nvi/ex/ex_subst.c
+@@ -318,8 +318,10 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
+ 			return (1);					\
+ 		}							\
+ 	}								\
+-	MEMCPY(lb + lbclen, l, len);					\
+-	lbclen += len;							\
++	if (len != 0) {							\
++		MEMCPY(lb + lbclen, l, len);				\
++		lbclen += len;						\
++	}								\
+ } while (0)
+ 
+ #define	NEEDSP(sp, len, pnt) do {					\
+-- 
+2.55.0
+

@@ -1,0 +1,26 @@
+From 9dda49560ac83ef46a3de1b6954a1fc04bb603fd Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:39:10 -0400
+Subject: [PATCH 20/23] nvi: initialize nread in ex_filter
+
+The variable could be read uninitialized depending on which filter
+path ran.
+---
+ src.freebsd/nvi/ex/ex_filter.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src.freebsd/nvi/ex/ex_filter.c b/src.freebsd/nvi/ex/ex_filter.c
+index fee34a6d..8a90c644 100644
+--- a/src.freebsd/nvi/ex/ex_filter.c
++++ b/src.freebsd/nvi/ex/ex_filter.c
+@@ -47,6 +47,7 @@ ex_filter(SCR *sp, EXCMD *cmdp, MARK *fm, MARK *tm, MARK *rp, CHAR_T *cmd, enum
+ 	size_t nlen;
+ 
+ 	rval = 0;
++	nread = 0;
+ 
+ 	/* Set return cursor position, which is never less than line 1. */
+ 	*rp = *fm;
+-- 
+2.55.0
+

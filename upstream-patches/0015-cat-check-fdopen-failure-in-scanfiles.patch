@@ -1,0 +1,27 @@
+From 5b5609b7768b33cc0b96074b4bfa4f2fa5cf4fb1 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:38:29 -0400
+Subject: [PATCH 15/23] cat: check fdopen failure in scanfiles
+
+Found by scan-build: fdopen() result was passed to cook_cat()
+unchecked (null deref on failure).
+---
+ src.freebsd/coreutils/cat/cat.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src.freebsd/coreutils/cat/cat.c b/src.freebsd/coreutils/cat/cat.c
+index 9e81ee71..d23141e0 100644
+--- a/src.freebsd/coreutils/cat/cat.c
++++ b/src.freebsd/coreutils/cat/cat.c
+@@ -268,6 +268,8 @@ scanfiles(char *argv[], int cooked __unused)
+ 				cook_cat(stdin);
+ 			else {
+ 				fp = fdopen(fd, "r");
++				if (fp == NULL)
++					err(1, "%s", filename);
+ 				cook_cat(fp);
+ 				fclose(fp);
+ 			}
+-- 
+2.55.0
+

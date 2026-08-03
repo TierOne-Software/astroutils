@@ -1,0 +1,28 @@
+From 2db92e3f65ec4d5222aa074e0a22d5c3e564b77a Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:38:20 -0400
+Subject: [PATCH 14/23] awk: check calloc failure in cclenter
+
+Found by Infer: the calloc result in cclenter() was copied into
+unchecked (null deref on OOM). Fail via overflo() like the other
+allocation errors in this file.
+---
+ src.freebsd/awk/b.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src.freebsd/awk/b.c b/src.freebsd/awk/b.c
+index ada896f2..d7a77791 100644
+--- a/src.freebsd/awk/b.c
++++ b/src.freebsd/awk/b.c
+@@ -474,6 +474,8 @@ int *cclenter(const char *argp)	/* add a character class */
+ 	/* DPRINTF("cclenter: in = |%s|, out = |%s|\n", op, buf); BUG: can't print array of int */
+ 	/* xfree(op);  BUG: what are we freeing here? */
+ 	retp = (int *) calloc(bp-buf+1, sizeof(int));
++	if (retp == NULL)
++		overflo(__func__);
+ 	for (i = 0; i < bp-buf+1; i++)
+ 		retp[i] = buf[i];
+ 	return retp;
+-- 
+2.55.0
+

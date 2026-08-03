@@ -1,0 +1,54 @@
+From 17750dbccb1c45856c12c594cc8d3edc2fe52429 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:39:09 -0400
+Subject: [PATCH 19/23] nvi: fix uninitialized SMAP reads in
+ vs_sm_up/vs_sm_down
+
+Found by Infer (~30 reports with one root cause): in the IS_SMALL
+paths, s2 was read uninitialized on the first loop iteration, and
+the scroll-up loop read s1 before assigning it. Initialize s2 from
+the first map entry, and have the scroll-up loop fill the next map
+slot in place instead of copying through a stale temporary.
+---
+ src.freebsd/nvi/vi/vs_smap.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/src.freebsd/nvi/vi/vs_smap.c b/src.freebsd/nvi/vi/vs_smap.c
+index 2c0f2a4d..2c685544 100644
+--- a/src.freebsd/nvi/vi/vs_smap.c
++++ b/src.freebsd/nvi/vi/vs_smap.c
+@@ -614,6 +614,7 @@ vs_sm_up(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
+ 	if (IS_SMALL(sp)) {
+ 		if (count >= sp->t_maxrows || scmd == CNTRL_F) {
+ 			s1 = TMAP[0];
++			s2 = s1;
+ 			if (vs_sm_erase(sp))
+ 				return (1);
+ 			for (; count--; s1 = s2) {
+@@ -630,11 +631,12 @@ vs_sm_up(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
+ 		cursor_set = scmd == CNTRL_E || vs_sm_cursor(sp, &ssmp);
+ 		for (; count &&
+ 		    sp->t_rows != sp->t_maxrows; --count, ++sp->t_rows) {
+-			if (vs_sm_next(sp, TMAP, &s1))
++			if (vs_sm_next(sp, TMAP, TMAP + 1))
+ 				return (1);
+-			if (TMAP->lno != s1.lno && !db_exist(sp, s1.lno))
++			if (TMAP->lno != TMAP[1].lno &&
++			    !db_exist(sp, TMAP[1].lno))
+ 				break;
+-			*++TMAP = s1;
++			++TMAP;
+ 			/* vs_sm_next() flushed the cache. */
+ 			if (vs_line(sp, TMAP, NULL, NULL))
+ 				return (1);
+@@ -833,6 +835,7 @@ vs_sm_down(SCR *sp, MARK *rp, recno_t count, scroll_t scmd, SMAP *smp)
+ 	if (IS_SMALL(sp)) {
+ 		if (count >= sp->t_maxrows || scmd == CNTRL_B) {
+ 			s1 = HMAP[0];
++			s2 = s1;
+ 			if (vs_sm_erase(sp))
+ 				return (1);
+ 			for (; count--; s1 = s2) {
+-- 
+2.55.0
+

@@ -1,0 +1,27 @@
+From 313bfc72aefd0f397dd820ccee34238bded456b0 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 2 Aug 2026 20:38:31 -0400
+Subject: [PATCH 18/23] hexdump: guard null nextpr dereference in rewrite
+
+The F_SETREP loop walked fu->nextpr without checking it; with a
+format unit that has no price list this is a null deref.
+---
+ src.freebsd/miscutils/hexdump/parse.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src.freebsd/miscutils/hexdump/parse.c b/src.freebsd/miscutils/hexdump/parse.c
+index f84109da..566c6920 100644
+--- a/src.freebsd/miscutils/hexdump/parse.c
++++ b/src.freebsd/miscutils/hexdump/parse.c
+@@ -428,7 +428,7 @@ isint2:					switch(fu->bcnt) {
+ 		if (!fu->nextfu && fs->bcnt < blocksize &&
+ 		    !(fu->flags&F_SETREP) && fu->bcnt)
+ 			fu->reps += (blocksize - fs->bcnt) / fu->bcnt;
+-		if (fu->reps > 1) {
++		if (fu->reps > 1 && fu->nextpr) {
+ 			for (pr = fu->nextpr;; pr = pr->nextpr)
+ 				if (!pr->nextpr)
+ 					break;
+-- 
+2.55.0
+
