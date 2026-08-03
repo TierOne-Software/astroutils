@@ -1405,6 +1405,8 @@ doinsert(struct parse *p, sop op, size_t opnd, sopno pos)
 
 	sn = HERE();
 	EMIT(op, opnd);		/* do checks, ensure space */
+	if (p->error != 0)
+		return;
 	assert(HERE() == sn+1);
 	s = p->strip[sn];
 	d = p->stripdata[sn];
