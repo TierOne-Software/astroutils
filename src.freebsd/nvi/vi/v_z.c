@@ -135,7 +135,14 @@ vs_crel(SCR *sp, long int count)
 	sp->t_minrows = sp->t_rows = count;
 	if (sp->t_rows > sp->rows - 1)
 		sp->t_minrows = sp->t_rows = sp->rows - 1;
-	TMAP = HMAP + (sp->t_rows - 1);
+	/*
+	 * The map may not have been allocated yet if the window option is
+	 * being set during screen initialization; forming a pointer past
+	 * (or from) a NULL map is undefined behavior.  vs_screen() sets
+	 * TMAP after allocating the map.
+	 */
+	if (HMAP != NULL)
+		TMAP = HMAP + (sp->t_rows - 1);
 	F_SET(sp, SC_SCR_REDRAW);
 	return (0);
 }
