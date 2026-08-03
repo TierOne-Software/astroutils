@@ -16,6 +16,23 @@ Status legend: OPEN / FIXED / WONTFIX (with rationale).
 
 ## Buffer overflow / memory safety candidates
 
+### FIXED — zig-safety — nvi: TMAP formed from NULL map at startup
+- `src.freebsd/nvi/vi/v_z.c:138` `vs_crel()`: runs during option init
+  (O_WINDOW), before `vs_screen()` allocates the screen map —
+  `TMAP = HMAP + (t_rows - 1)` is pointer arithmetic on NULL (UB,
+  trapped by zig ReleaseSafe on every vi/ex startup). Never
+  dereferenced on that path (map refill happens after allocation).
+- Fixed: only compute TMAP when HMAP != NULL. Verified with pty-driven
+  vi scroll session (ReleaseSafe, clean exit).
+
+### FIXED — zig-safety — nvi: zero-length copy from NULL build buffer
+- `src.freebsd/nvi/ex/ex_subst.c:321` `BUILD()` macro: a match at
+  offset 0 on the first substituted line did `MEMCPY(lb + 0, s, 0)`
+  with `lb` still NULL — pointer arithmetic on NULL (UB, trapped by
+  zig ReleaseSafe on e.g. `%s/1/x/g`).
+- Fixed: skip the copy when `len == 0`. Verified with ex-mode
+  substitute/filter/search session (ReleaseSafe, clean exit).
+
 ### FIXED — zig-safety — grep: out-of-bounds pointer arithmetic
 - `src.freebsd/grep/queue.c:61` `initqueue()`: with `Bflag == 0`,
   `qend = qpool + (Bflag - 1)` forms a pointer before the allocation
@@ -63,6 +80,13 @@ Status legend: OPEN / FIXED / WONTFIX (with rationale).
   malloc results dereferenced without a null check (null-deref on OOM).
   Fixed: both allocations now `err(1, "malloc")` on failure.
 
+### FIXED — infer — ee: unchecked allocations (was "likely FP")
+- `src.freebsd/ee/ee.c:1062` `insert_line()`: `txtalloc()` and `malloc()`
+  results dereferenced unchecked; `ee_init()` read from an unchecked
+  `fopen()` result after `access()` (TOCTOU race makes failure real).
+  Fixed: NULL checks (`err(1)` for allocations, skip unreadable init
+  file).
+
 ### OPEN — infer — tail: possible null deref
 - `src.freebsd/coreutils/tail/reverse.c:278` `r_buf()`: `first` could be
   null (from line 195) and is dereferenced. Needs verification.
@@ -71,25 +95,32 @@ Status legend: OPEN / FIXED / WONTFIX (with rationale).
 - `src.freebsd/coreutils/stty/cchar.c:111` `csearch()`: `arg` could be null
   (from line 104). Needs verification.
 
-### OPEN — infer — nvi: use-after-free candidates (5)
-- `src.freebsd/nvi/common/cut.c:322` `text_lfree()`
-- `src.freebsd/nvi/ex/ex_tag.c:687` `tagq_free()`
-- `src.freebsd/nvi/ex/ex_tag.c:850` `ex_tagf_alloc()`
-- `src.freebsd/nvi/common/conv.c:245` `default_int2char()` (via `binc`)
-- `src.freebsd/nvi/regex/regcomp.c:1240` `mcadd()`
-- All follow the "access queue/link pointer after free()" pattern; need
-  per-site verification (the BSD queue macros often make these FPs).
+### PARTIAL — infer — nvi: use-after-free candidates (5)
+- `src.freebsd/nvi/regex/regcomp.c` — FIXED via `doinsert()`: bail out
+  when `EMIT()` sets `p->error` instead of indexing the stale strip.
+- Still OPEN, need per-site verification (the BSD queue macros often
+  make these FPs):
+  - `src.freebsd/nvi/common/cut.c:322` `text_lfree()`
+  - `src.freebsd/nvi/ex/ex_tag.c:687` `tagq_free()`
+  - `src.freebsd/nvi/ex/ex_tag.c:850` `ex_tagf_alloc()`
+  - `src.freebsd/nvi/common/conv.c:245` `default_int2char()` (via `binc`)
 
 ### OPEN — infer — nvi: stack variable address escape
 - `src.freebsd/nvi/vi/v_yank.c:75` `v_yank()`: infer reports the address of
   stack variable `len` escapes the function. Needs verification.
 
-### OPEN — infer — uninitialized value reads (78 total)
-Concentrations worth fixing first:
-- `src.freebsd/awk/b.c` (13 reports: `mkdfa`, `relex`, `cgoto`) — regex
-  engine, reachable from user-supplied patterns.
+### PARTIAL — infer — uninitialized value reads (78 total)
+Fixed:
 - `src.freebsd/nvi/vi/vs_smap.c` (~30 reports, `vs_sm_up`/`vs_sm_down`) —
-  likely one root cause (partially initialized struct copy).
+  root cause fixed: uninitialized `s2` on first loop iteration and a
+  stale-copy scroll-up loop (scroll loop reworked to fill in place).
+- `src.freebsd/nvi/ex/ex_filter.c` `ex_filter()` — `nread` initialized.
+- `src.freebsd/awk/b.c` `cclenter()` — unchecked calloc fixed (the
+  remaining `mkdfa`/`relex`/`cgoto` reports still open).
+
+Still open:
+- `src.freebsd/awk/b.c` (remaining `mkdfa`/`relex`/`cgoto` reports) —
+  regex engine, reachable from user-supplied patterns.
 - `src.freebsd/nvi/common/msg.c:315` `msgq()` — `len` read uninit.
 - `src.freebsd/sh/exec.c:477` `find_builtin()` — `bp` read uninit.
 - `src.freebsd/tip/tip/acu.c:143` `con()` — `phnum` read uninit.
@@ -104,8 +135,6 @@ Concentrations worth fixing first:
 - `src.freebsd/awk/lib.c:72`, `awk/parse.c:39`, `awk/tran.c:167`,
   `awk/run.c:487` null derefs — all guarded by `FATAL`/null checks that
   infer's model misses.
-- `src.freebsd/ee/ee.c:1062` — `txtalloc()` failure path exits via
-  `writeline()`-style longjmp; needs one more look but likely FP.
 - 165 DEAD_STORE and 56 MEMORY_LEAK_C reports: not triaged — mostly benign
   for short-lived CLI tools (memory is reclaimed at exit).
 
@@ -127,12 +156,16 @@ Run: `scan-build meson setup build-scan && scan-build ninja -C build-scan`
 - 9 Security group (insecureAPI checker hits)
 
 ### scan-build hotspots (null-deref / nonnull-arg clusters)
-Recurring functions across both analyzers — highest triage value:
+Recurring functions across both analyzers — highest triage value.
+Fixed so far: `cat/cat.c` `scanfiles` (fdopen check), `ed/main.c`
+join_lines (zero-len memcpy), `hexdump/parse.c` `rewrite` (null
+nextpr), `nvi/ex/ex_subst.c` `s` (NULL build buffer, zig-safety).
 
 - `src.freebsd/awk/tran.c` `qstring`/`makesymtab` (8 reports), `awk/run.c`
   `format`/`bltin`, `awk/lex.c` `string` — awk parser/evaluator on
   user-supplied programs.
-- `src.freebsd/nvi/ex/ex_subst.c` `re_conv`/`ex_s`/`s` (7), `nvi/ex/ex_argv.c`
+- `src.freebsd/nvi/ex/ex_subst.c` `re_conv`/`ex_s` (remaining),
+  `nvi/ex/ex_argv.c`
   `argv_esc` (2), `nvi/common/delete.c` `del` (2), `nvi/common/put.c` `put` (2),
   `nvi/vi/v_search.c` `v_searchw` (3) — ex/vi command handling.
 - `src.freebsd/sed/main.c` `cu_fgets` (2) — sed's line reader.
@@ -140,14 +173,14 @@ Recurring functions across both analyzers — highest triage value:
   compat paths.
 - `src.freebsd/findutils/find/function.c` `f_exec` (3) — find -exec.
 - `src.freebsd/coreutils/test/test.c` `binop`/`newerf` (4).
-- `src.freebsd/ed/main.c`/`glbl.c`/`re.c` (4).
+- `src.freebsd/ed/main.c`/`glbl.c`/`re.c` (remaining).
 - `src.freebsd/telnet/telnet/commands.c` `sourceroute` — network-reachable.
 - `src.freebsd/gzip/gzip.c` `prepend_gzip` (2).
 - `src.freebsd/coreutils/ls/print.c` `printcol`,
   `src.freebsd/coreutils/tail/forward.c` `rlines`,
   `src.freebsd/coreutils/du/du.c` `ignoreadd`,
-  `src.freebsd/coreutils/cat/cat.c` `scanfiles`/`cook_cat` (2),
-  `src.freebsd/miscutils/hexdump/parse.c` `rewrite`/`add` (2).
+  `src.freebsd/coreutils/cat/cat.c` `cook_cat`,
+  `src.freebsd/miscutils/hexdump/parse.c` `add`.
 
 ### Cross-analyzer agreement (fix first)
 Reported by BOTH infer and scan-build:
