@@ -1,0 +1,27 @@
+From e225adbcccefe9640e9158f0482ea63cbcc0937e Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 09:47:41 -0400
+Subject: [PATCH 29/29] ed: drop dead initializer in append_lines
+
+lp is assigned on every path before use (scan-build dead-store
+report).
+---
+ src.freebsd/ed/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src.freebsd/ed/main.c b/src.freebsd/ed/main.c
+index 2d2267f8..bf80f9a5 100644
+--- a/src.freebsd/ed/main.c
++++ b/src.freebsd/ed/main.c
+@@ -1010,7 +1010,7 @@ int
+ append_lines(long n)
+ {
+ 	int l;
+-	const char *lp = ibuf;
++	const char *lp;
+ 	const char *eot;
+ 	undo_t *up = NULL;
+ 
+-- 
+2.55.0
+

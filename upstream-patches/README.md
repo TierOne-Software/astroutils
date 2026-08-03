@@ -47,6 +47,12 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   CONVERT2 — infinite E2BIG retry loop with unbounded memory growth
   (observed 527 MB RSS in 0.4 s), plus UAF write on iconv
   implementations that write before reporting E2BIG. HIGH severity.
+- 0027 nvi: NULL build buffer on all-`~` patterns/replacements with no
+  previous replacement — NULL passed to memcpy (scan-build; traps under
+  zig ReleaseSafe/UBSan on `:s/~/X/`, `:s/a/~/`).
+- 0028 xargs: err(3) in the vfork'd child runs atexit/stdio cleanup in
+  the shared pre-exec address space; use warn(3) + _exit(1).
+- 0029 ed: drop dead initializer in append_lines (dead store).
 
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h.

@@ -1,0 +1,85 @@
+From 137244f79c87518c03c6247cfec966e317f2d484 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 09:47:33 -0400
+Subject: [PATCH 27/29] nvi: fix NULL build buffer handling in ~ expansion and
+ confirm mode
+
+Found by scan-build (re_conv/ex_s/s reports): with no previous
+replacement (sp->repl == NULL, repl_len == 0), a pattern or
+replacement consisting only of ~ expansions produced a zero-length
+GET_SPACE buffer, leaving bp NULL when the global tmp buffer was not
+yet allocated, and MEMCPY(t, sp->repl, 0) passed NULL to memcpy (UB,
+traps under zig ReleaseSafe/UBSan on e.g. :s/~/X/ or :s/a/~/ as the
+first command). Likewise the confirm-mode line copy in s() on empty
+lines. Guard the three ~ expansion MEMCPYs and the confirm copy on
+zero length, and allocate MAX(needlen, 1) in re_conv().
+---
+ src.freebsd/nvi/ex/ex_subst.c | 24 +++++++++++++++---------
+ 1 file changed, 15 insertions(+), 9 deletions(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_subst.c b/src.freebsd/nvi/ex/ex_subst.c
+index 729b6bf9..17a73f66 100644
+--- a/src.freebsd/nvi/ex/ex_subst.c
++++ b/src.freebsd/nvi/ex/ex_subst.c
+@@ -217,9 +217,11 @@ subagain:	return (ex_subagain(sp, cmdp));
+ 				}
+ 			} else if (p[0] == '~' && O_ISSET(sp, O_MAGIC)) {
+ tilde:				++p;
+-				MEMCPY(t, sp->repl, sp->repl_len);
+-				t += sp->repl_len;
+-				len += sp->repl_len;
++				if (sp->repl_len != 0) {
++					MEMCPY(t, sp->repl, sp->repl_len);
++					t += sp->repl_len;
++					len += sp->repl_len;
++				}
+ 				continue;
+ 			}
+ 			*t++ = *p++;
+@@ -506,8 +508,10 @@ noargs:	if (F_ISSET(sp, SC_VI) && sp->c_suffix && (lflag || nflag || pflag)) {
+ 				GET_SPACE_RETW(sp, bp, blen, llen);
+ 			} else
+ 				ADD_SPACE_RETW(sp, bp, blen, llen);
+-			MEMCPY(bp, s, llen);
+-			s = bp;
++			if (llen != 0) {
++				MEMCPY(bp, s, llen);
++				s = bp;
++			}
+ 		}
+ 
+ 		/* Start searching from the beginning. */
+@@ -1082,7 +1086,7 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
+ 
+ 	/* Get enough memory to hold the final pattern. */
+ 	*replacedp = 1;
+-	GET_SPACE_RETW(sp, bp, blen, needlen);
++	GET_SPACE_RETW(sp, bp, blen, MAX(needlen, 1));
+ 
+ 	for (p = *ptrnp, len = *plenp, t = bp; len > 0; ++p, --len)
+ 		switch (*p) {
+@@ -1103,7 +1107,7 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
+ 				case '~':
+ 					if (O_ISSET(sp, O_MAGIC))
+ 						*t++ = '~';
+-					else {
++					else if (sp->repl_len != 0) {
+ 						MEMCPY(t,
+ 						    sp->repl, sp->repl_len);
+ 						t += sp->repl_len;
+@@ -1125,8 +1129,10 @@ re_conv(SCR *sp, CHAR_T **ptrnp, size_t *plenp, int *replacedp)
+ 			break;
+ 		case '~':
+ 			if (O_ISSET(sp, O_MAGIC)) {
+-				MEMCPY(t, sp->repl, sp->repl_len);
+-				t += sp->repl_len;
++				if (sp->repl_len != 0) {
++					MEMCPY(t, sp->repl, sp->repl_len);
++					t += sp->repl_len;
++				}
+ 			} else
+ 				*t++ = '~';
+ 			break;
+-- 
+2.55.0
+
