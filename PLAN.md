@@ -133,7 +133,7 @@ against *exploitation*; several standard mitigations are missing.
       unchecked allocation was a recurring finding, that flag suppresses
       exactly the signal we want.
 
-## P4 — musl and aarch64 validation
+## P4 — musl and aarch64 validation — DONE
 
 **Why:** Astro is musl-based and ships on aarch64; this work has run on
 glibc/x86_64. Locale, regex and `getopt` differences will surface bugs —
@@ -160,7 +160,10 @@ in unvis.
       only a 32-bit-`LINENUM` test assumption, fixed).  Skipped tools
       (sort, nvi, fetch, telnet, …) need a cross sysroot for
       crypto/ncurses/xo — revisit if Astro wants full-tool cross builds.
-- [ ] Re-run sanitizers cross-arch; expect new signed/unsigned char and
+- [x] Re-run sanitizers cross-arch — DONE: both arches built with
+      `-Dprod-sanitize=true` (trap-mode bounds/object-size) on top of
+      ReleaseSafe UB checks; full suite including corpus replay passes
+      clean under qemu on aarch64 and armv7. No new signed-char or
       alignment findings.
 - [x] Alpine (musl) CI job running the new suite.
 
