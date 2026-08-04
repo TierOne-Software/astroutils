@@ -30,15 +30,6 @@ if require "unvis/vis" unvis vis; then
     cu_run_limited sh -c "$(tool vis) < allbytes.bin | $(tool unvis) > roundtrip.bin" 2>/dev/null
     if cmp -s allbytes.bin roundtrip.bin 2>/dev/null; then
         pass "vis/unvis round-trips all byte values 1..255"
-    elif is_musl; then
-        # OPEN finding: on musl, bytes >= 0x80 do not survive the round
-        # trip.  musl's C locale has MB_CUR_MAX == 1 and maps those bytes
-        # to wchar_t 0xDF80..0xDFFF, so mbrtowc() reports success (never
-        # taking vis's conversion-error path) and the escape logic, which
-        # assumes a byte-sized value, emits two characters for one input
-        # byte.  glibc's single-byte C locale hides this entirely.
-        xfail "vis/unvis round-trips all byte values 1..255" \
-            "musl: bytes >= 0x80 corrupted by vis(1) — SECURITY-FINDINGS.md"
     else
         fail "vis/unvis round-trips all byte values 1..255" \
             "output differs from input"
