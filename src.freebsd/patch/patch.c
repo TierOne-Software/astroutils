@@ -754,6 +754,21 @@ locate_hunk(LINENUM fuzz)
 	}
 }
 
+/*
+ * Fetch a patch line for output.  A malformed hunk can leave slots
+ * unfilled while p_end still counts them (the "old lines were omitted"
+ * fill, or a hunk that failed partway), so the reject and apply paths
+ * need a defined string here: glibc's printf substitutes "(null)" for a
+ * null %s argument, but musl dereferences it.
+ */
+static const char *
+pfetch_str(LINENUM i)
+{
+	const char	*s = pfetch(i);
+
+	return s != NULL ? s : "";
+}
+
 /* We did not find the pattern, dump out the hunk so they can handle it. */
 
 static void
@@ -794,13 +809,13 @@ abort_context_hunk(void)
 				    newlast, minuses);
 			break;
 		case '\n':
-			fprintf(rejfp, "%s", pfetch(i));
+			fprintf(rejfp, "%s", pfetch_str(i));
 			break;
 		case ' ':
 		case '-':
 		case '+':
 		case '!':
-			fprintf(rejfp, "%c %s", pch_char(i), pfetch(i));
+			fprintf(rejfp, "%c %s", pch_char(i), pfetch_str(i));
 			break;
 		default:
 			fatal("fatal internal error in abort_context_hunk\n");
@@ -812,7 +827,7 @@ static void
 rej_line(int ch, LINENUM i)
 {
 	size_t len;
-	const char *line = pfetch(i);
+	const char *line = pfetch_str(i);
 
 	len = strlen(line);
 
@@ -920,7 +935,7 @@ apply_hunk(LINENUM where)
 					fputs(else_defined, ofp);
 					def_state = IN_ELSE;
 				}
-				fputs(pfetch(old), ofp);
+				fputs(pfetch_str(old), ofp);
 			}
 			last_frozen_line++;
 			old++;
@@ -937,7 +952,7 @@ apply_hunk(LINENUM where)
 					def_state = IN_IFDEF;
 				}
 			}
-			fputs(pfetch(new), ofp);
+			fputs(pfetch_str(new), ofp);
 			new++;
 		} else if (pch_char(new) != pch_char(old)) {
 			say("Out-of-sync patch, lines %ld,%ld--mangled text or line numbers, maybe?\n",
@@ -956,7 +971,7 @@ apply_hunk(LINENUM where)
 			}
 			while (pch_char(old) == '!') {
 				if (do_defines) {
-					fputs(pfetch(old), ofp);
+					fputs(pfetch_str(old), ofp);
 				}
 				last_frozen_line++;
 				old++;
@@ -966,7 +981,7 @@ apply_hunk(LINENUM where)
 				def_state = IN_ELSE;
 			}
 			while (pch_char(new) == '!') {
-				fputs(pfetch(new), ofp);
+				fputs(pfetch_str(new), ofp);
 				new++;
 			}
 		} else {
@@ -992,7 +1007,7 @@ apply_hunk(LINENUM where)
 			}
 		}
 		while (new <= pat_end && pch_char(new) == '+') {
-			fputs(pfetch(new), ofp);
+			fputs(pfetch_str(new), ofp);
 			new++;
 		}
 	}
@@ -1099,6 +1114,14 @@ patch_match(LINENUM base, LINENUM offset, LINENUM fuzz)
 		if (ilineptr == NULL)
 			return false;
 		plineptr = pfetch(pline);
+		/*
+		 * A malformed hunk can leave pattern slots unfilled while
+		 * p_ptrn_lines still counts them (e.g. the "old lines were
+		 * omitted" path advances p_end past slots the fill never
+		 * reaches).  Such a hunk simply does not match.
+		 */
+		if (plineptr == NULL)
+			return false;
 		plinelen = pch_line_len(pline);
 		if (canonicalize) {
 			if (!similar(ilineptr, plineptr, plinelen))
@@ -1109,14 +1132,22 @@ patch_match(LINENUM base, LINENUM offset, LINENUM fuzz)
 			/*
 			 * We are looking at the last line of the file.
 			 * If the file has no eol, the patch line should
-			 * not have one either and vice-versa. Note that
-			 * plinelen > 0.
+			 * not have one either and vice-versa.
+			 *
+			 * Upstream assumes plinelen > 0 here and indexes
+			 * plineptr[plinelen - 1] directly, but a malformed
+			 * hunk can leave a zero-length line, which reads one
+			 * byte before the allocation.  An empty line has no
+			 * trailing newline.
 			 */
+			bool plineeol = plinelen > 0 &&
+			    plineptr[plinelen - 1] == '\n';
+
 			if (last_line_missing_eol) {
-				if (plineptr[plinelen - 1] == '\n')
+				if (plineeol)
 					return false;
 			} else {
-				if (plineptr[plinelen - 1] != '\n')
+				if (!plineeol)
 					return false;
 			}
 		}

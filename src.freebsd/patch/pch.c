@@ -171,12 +171,17 @@ open_patch_file(const char *filename)
 void
 set_hunkmax(void)
 {
+	/*
+	 * All three are zeroed: a malformed hunk can leave slots unfilled
+	 * while p_ptrn_lines still counts them, and consumers must see a
+	 * NULL line with length 0 rather than uninitialized heap.
+	 */
 	if (p_line == NULL)
 		p_line = calloc(hunkmax, sizeof(char *));
 	if (p_len == NULL)
-		p_len = malloc(hunkmax * sizeof(size_t));
+		p_len = calloc(hunkmax, sizeof(size_t));
 	if (p_char == NULL)
-		p_char = malloc(hunkmax * sizeof(char));
+		p_char = calloc(hunkmax, sizeof(char));
 }
 
 /*
@@ -197,6 +202,8 @@ grow_hunkmax(void)
 	if (p_line != NULL && p_len != NULL && p_char != NULL) {
 		/* zero the new half so cleanup paths never see garbage */
 		memset(p_line + hunkmax, 0, hunkmax * sizeof(char *));
+		memset(p_len + hunkmax, 0, hunkmax * sizeof(size_t));
+		memset(p_char + hunkmax, 0, hunkmax * sizeof(char));
 		hunkmax = new_hunkmax;
 		return;
 	}
@@ -590,12 +597,23 @@ another_hunk(void)
 	int	context = 0;
 
 	while (p_end >= 0) {
-		if (p_end == p_efake)
-			p_end = p_bfake;	/* don't free twice */
-		else {
-			free(p_line[p_end]);
-			p_line[p_end] = NULL;
+		if (p_end == p_efake) {
+			/*
+			 * The faked-up lines alias storage owned by the
+			 * slots they were copied from, which this same
+			 * loop frees, so they must not be freed here.
+			 * They must still be cleared: otherwise they are
+			 * left dangling and the next hunk's error paths
+			 * (abort_context_hunk, rej_line) read them.
+			 */
+			while (p_end >= p_bfake) {
+				p_line[p_end] = NULL;
+				p_end--;
+			}
+			continue;
 		}
+		free(p_line[p_end]);
+		p_line[p_end] = NULL;
 		p_end--;
 	}
 	p_efake = -1;
