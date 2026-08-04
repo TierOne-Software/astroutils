@@ -1,0 +1,50 @@
+From 39184fd71aab757299c7bbbea1f18f28a8903ccc Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Tue, 4 Aug 2026 13:26:06 -0400
+Subject: [PATCH] compat: fold musl surrogate-escape decodes back to bytes in
+ vis
+
+musl's C locale decodes bytes 0x80-0xff into the surrogate range
+U+DF80..U+DFFF so arbitrary bytes round-trip through the wide
+charset, so mbrtowc() succeeds where glibc fails with EILSEQ and
+vis never takes its conversion-error path.  do_svis() then encoded
+the 16-bit value as two bytes: vis|unvis turned 0x80 into 0xDF 0x80,
+corrupting every high byte on musl.
+
+No genuine multibyte decoding can produce a surrogate, so in the
+istrsenvisx() input loop, fold a single-byte decode in that range
+whose low byte matches the input byte back to the raw byte.  All
+256 byte values now round-trip on musl; glibc is unaffected (the
+condition can only trigger there on a real decoding error, which
+takes the existing cerr path first).
+---
+ src.freebsd/compat/vis.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/src.freebsd/compat/vis.c b/src.freebsd/compat/vis.c
+index cea8ee88..d6e4b478 100644
+--- a/src.freebsd/compat/vis.c
++++ b/src.freebsd/compat/vis.c
+@@ -484,6 +484,19 @@ istrsenvisx(char **mbdstp, size_t *dlen, const char *mbsrc, size_t mblength,
+ 			assert(clen < 0 || (size_t)clen <= mbslength);
+ 			assert(clen <= MB_LEN_MAX);
+ 		}
++		if (!cerr && clen == 1 && *src >= 0xd800 && *src <= 0xdfff &&
++		    (u_char)*mbsrc == (u_char)*src) {
++			/*
++			 * musl's C locale decodes bytes 0x80-0xff into the
++			 * surrogate range U+DF80..U+DFFF so that arbitrary
++			 * bytes round-trip through the wide charset.  No
++			 * genuine multibyte decoding can produce a
++			 * surrogate, and do_svis() would encode the 16-bit
++			 * value as two bytes, so fold it back to the raw
++			 * input byte.
++			 */
++			*src = (wint_t)(u_char)*src;
++		}
+ 		if (cerr || clen < 0) {
+ 			/* Conversion error, process as a byte instead. */
+ 			*src = (wint_t)(u_char)*mbsrc;
+-- 
+2.55.0
+

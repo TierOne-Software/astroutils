@@ -65,6 +65,10 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 - 0034 compat: mktemp _gettemp indexed padchar with sizeof including
   the NUL — planted '\0' in templates, 1-byte global over-read on the
   EEXIST carry path (ASan).
+- 0038 compat: fold musl surrogate-escape decodes (U+DF80..U+DFFF) back
+  to raw bytes in vis — every byte ≥ 0x80 was double-encoded on musl,
+  corrupting vis|unvis round-trips (data-integrity bug; musl-only
+  trigger, harmless on glibc/FreeBSD).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap
