@@ -30,7 +30,23 @@
 
 /* the queue.h may not provide everything the bsd ones do */
 
+#if defined(__has_include_next)
+#if __has_include_next(<sys/queue.h>)
+#define CU_QUEUE_HAVE_NEXT 1
+#endif
+#endif
+#ifndef CU_QUEUE_HAVE_NEXT
+/* libc has no sys/queue.h at all (e.g. bare musl cross builds, where
+ * Alpine's bsd-compat-headers is unavailable): use the bundled
+ * FreeBSD copy instead. */
+#define CU_QUEUE_HAVE_NEXT 0
+#endif
+
+#if CU_QUEUE_HAVE_NEXT
 #include_next <sys/queue.h>
+#else
+#include <sys/queue-bsd.h>
+#endif
 
 #ifndef SLIST_REMOVE_AFTER
 #define SLIST_REMOVE_AFTER(elm, field) do {				\

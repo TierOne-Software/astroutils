@@ -8,6 +8,7 @@
 // Meson remains the reference build.
 
 const std = @import("std");
+const builtin = @import("builtin");
 
 const Target = struct {
     name: []const u8,
@@ -143,6 +144,15 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.option(std.builtin.OptimizeMode, "optimize", "optimization mode") orelse .ReleaseFast;
     const arena = b.allocator;
     loadDeps(b);
+
+    // deps.json was probed for the host; none of it applies when
+    // cross-compiling.  Zero the system deps so tools needing external
+    // libraries are skipped instead of failing to link against host
+    // libraries.  byacc/flex run on the host at build time, keep those.
+    if (target.result.cpu.arch != builtin.cpu.arch or
+        target.result.os.tag != builtin.os.tag) {
+        deps = .{ .byacc = deps.byacc, .flex = deps.flex };
+    }
 
     const have_ssl = deps.ssl and deps.crypto;
 
