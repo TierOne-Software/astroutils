@@ -344,6 +344,84 @@ The clusters reported by BOTH infer and scan-build are all closed:
   The same applies to patch's line-number arithmetic (`-fwrapv` on
   patch, both builds).
 
+## Regression-suite findings (tests/ + ci/)
+
+Found by replaying the saved fuzz corpora through the **real binaries**
+rather than the in-process harnesses (`tests/t/20-fuzz-corpus.sh`), and by
+running the suite under ASan/UBSan (`ci/jobs/sanitizers.sh`). The patch
+harness only covers parsing (`open_patch_file` → `another_hunk`), so
+everything below was unreachable from it.
+
+### FIXED — patch: NULL pattern line dereferenced in patch_match
+- `src.freebsd/patch/patch.c` `patch_match()`: `ilineptr` is NULL-checked,
+  `plineptr = pfetch(pline)` is not, and goes straight to `strncmp`.
+  A malformed hunk reaches `patch_match` with `p_line[]` slots unfilled
+  while `p_ptrn_lines` still counts them — the "old lines were omitted"
+  path (`pch.c:707`) advances `p_end` to `p_ptrn_lines + 1` and leaves
+  slots 2..`p_ptrn_lines` for a fill that a truncated hunk never performs.
+- **46 of the 8001 saved corpus inputs segfaulted the real binary**
+  (SIGSEGV on the apply path, after "Hunk #1 failed"). Reachable from any
+  malicious diff; a plain DoS here, but note the pre-`calloc` upstream
+  code reaches the same site with *uninitialized* `p_line[]`, making it an
+  arbitrary-pointer read rather than a NULL dereference.
+- Fixed: NULL check in `patch_match` (a hunk with missing pattern lines
+  does not match). `p_len`/`p_char` also switched to `calloc` and their
+  grown halves zeroed, so an unfilled slot has length 0 rather than
+  uninitialized heap — `p_len` was `malloc`'d, so the stale length was
+  feeding `strncmp` too. Repro inputs kept in `tests/data/crashers/patch/`.
+
+### FIXED — patch: heap use-after-free via the faked-up line range
+- `src.freebsd/patch/pch.c` `another_hunk()` cleanup loop: the fill logic
+  sets `p_line[filldst] = p_line[fillsrc]` (`pch.c:918`), so the range
+  `[p_bfake, p_efake]` *aliases* storage owned by other slots. The cleanup
+  loop correctly skips freeing that range — but never cleared it, leaving
+  dangling pointers once the owning slots were freed. The next hunk's
+  error path (`abort_context_hunk` → `fprintf("%s", pfetch(i))`) then read
+  freed memory.
+- ASan `heap-use-after-free`, READ of size 2; 12 corpus inputs. Invisible
+  without a sanitizer.
+- Fixed: clear the aliased range instead of skipping it entirely.
+
+### FIXED — patch: out-of-bounds read on a zero-length pattern line
+- `src.freebsd/patch/patch.c` `patch_match()`: the last-line
+  end-of-line check indexes `plineptr[plinelen - 1]` under an upstream
+  comment asserting "Note that plinelen > 0". A malformed hunk can carry
+  a zero-length line, making that a read **one byte before** the
+  allocation.
+- ASan `heap-buffer-overflow`, READ of size 1, "1 bytes before a 1-byte
+  region"; 29 corpus inputs, on the *successful* apply path. Silent on a
+  normal build.
+- Fixed: treat a zero-length line as having no trailing newline, which is
+  the only consistent reading, and leave behaviour for non-empty lines
+  unchanged.
+
+### FIXED — counted_by breaks the build on gcc
+- `include/sys/cdefs.h`: `__cu_counted_by` was enabled on any compiler
+  answering `__has_attribute(counted_by)`. gcc 15 answers yes but accepts
+  the attribute **only on flexible array members**, rejecting pointers
+  with a hard error, so `struct fetchconn.buf` failed to compile on
+  Alpine/gcc — the entire musl build was broken.
+- Fixed: restrict to clang, which supports the pointer form. The
+  annotation is a checking aid with no semantic effect, so compiling it
+  away elsewhere is safe. Found by the musl CI job on its first run.
+
+### OPEN — vis(1) corrupts bytes >= 0x80 on musl
+- `vis | unvis` does not round-trip binary data on musl: byte `0x80` comes
+  back as `0xDF 0x80`. Reproduced in the Alpine CI container; correct on
+  glibc.
+- Mechanism: musl's C locale has `MB_CUR_MAX == 1` and represents bytes
+  `0x80..0xFF` as `wchar_t 0xDF80..0xDFFF` (its surrogate-escape
+  convention). `mbrtowc()` therefore **succeeds** on such a byte, so
+  `src.freebsd/compat/vis.c` never takes its conversion-error path
+  (`vis.c:487`, which would have handled the byte as a byte), and the
+  escape logic in `do_svis()` — `c & 0200`, `c &= 0177` (`vis.c:273`) —
+  does byte arithmetic on a 16-bit value. glibc's single-byte C locale
+  hides this completely.
+- Impact: `vis`/`unvis` are unsafe for binary data on musl, which is what
+  Astro ships. Not a memory-safety bug; a correctness/data-integrity one.
+- Tracked as an XFAIL in `tests/t/13-regress-parsers.sh` so the musl CI
+  job reports it without masking real regressions. Fix planned (PLAN.md).
+
 ### Fuzz harness notes
 - `fuzz_patch` runs in-process with patch's `exit()` rewritten to a
   longjmp (`-Dexit=fuzz_skip_exit`) plus `pch_reset()` (new, exported)
@@ -385,3 +463,9 @@ The clusters reported by BOTH infer and scan-build are all closed:
   `len` would flag intentional terminator writes under `-fsanitize=bounds`).
 - Fuzzing: `fuzz/` — libFuzzer harnesses for parsers consuming untrusted
   input (see fuzz/README.md).
+- Regression suite: `tests/` — a functional and security regression suite
+  covering every command-line-observable fix above, wired into
+  `meson test` (see tests/README.md).
+- CI: `ci/` — podman-based local-first pipeline (gcc, clang, musl,
+  ASan+UBSan, fuzz replay, hardening verification), run identically by
+  `ci/run-ci.sh` and `.github/workflows/ci.yml` (see ci/README.md).

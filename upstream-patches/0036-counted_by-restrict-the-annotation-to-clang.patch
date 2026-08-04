@@ -1,0 +1,48 @@
+From 005dde2ae40715ec3284552c175f1da2ef5c9181 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 21:04:43 -0400
+Subject: [PATCH 36/36] counted_by: restrict the annotation to clang
+
+gcc 15 answers __has_attribute(counted_by) yes but accepts the attribute
+only on flexible array members, rejecting pointers with a hard error, so
+probing the attribute is not enough to know it can be used on
+struct fetchconn.buf and ARGS.bp.  The whole musl build failed on
+Alpine/gcc as a result.
+
+The annotation is a checking aid with no semantic effect, so compiling it
+away on gcc is safe.
+
+Found by the musl CI job on its first run.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ include/sys/cdefs.h | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/include/sys/cdefs.h b/include/sys/cdefs.h
+index c6dd06a7..4850862f 100644
+--- a/include/sys/cdefs.h
++++ b/include/sys/cdefs.h
+@@ -54,8 +54,17 @@
+ #define __unused __attribute__((unused))
+ #define __unreachable() __builtin_unreachable()
+ 
+-/* counted_by (clang 18+, gcc 15+); empty on older compilers */
+-#if defined(__has_attribute)
++/*
++ * counted_by: annotates a pointer with the member holding its element
++ * count, so -fsanitize=bounds and _FORTIFY_SOURCE can check accesses.
++ *
++ * Enabled for clang only.  gcc 15 also answers __has_attribute(counted_by)
++ * yes, but accepts the attribute solely on flexible array members and
++ * rejects it on pointers with a hard error, so probing the attribute is
++ * not enough to know it can be used here.  The annotation is a checking
++ * aid with no semantic effect, so compiling it away is always safe.
++ */
++#if defined(__has_attribute) && defined(__clang__)
+ #if __has_attribute(counted_by)
+ #define __cu_counted_by(x) __attribute__((counted_by(x)))
+ #endif
+-- 
+2.55.0
+

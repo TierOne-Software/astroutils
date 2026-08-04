@@ -66,8 +66,27 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   the NUL — planted '\0' in templates, 1-byte global over-read on the
   EEXIST carry path (ASan).
 
+- 0035 patch: three apply-path memory-safety bugs — NULL pattern line
+  dereferenced in patch_match (46 corpus inputs segfault), heap
+  use-after-free through the faked-up line range (ASan), and an
+  out-of-bounds read on a zero-length pattern line (ASan). All reachable
+  from a malicious diff. HIGH severity; see the note below.
+- 0036 counted_by: gcc accepts the attribute only on flexible array
+  members, so restrict 0001's annotation to clang (build fix — gcc 15
+  fails to build libfetch otherwise).
+
 Notes for upstream:
-- 0001 introduces __cu_counted_by in include/sys/cdefs.h.
+- 0001 introduces __cu_counted_by in include/sys/cdefs.h; 0036 corrects
+  its feature test. Squash them if 0001 has not been applied yet.
+- 0035 should go to the Security Officer rather than through normal
+  review, together with the earlier patch(1) findings in 0013: the
+  combination is remotely triggerable memory corruption from an
+  untrusted diff. Note that upstream is *more* exposed than this tree on
+  the first bug — 0013 had already switched p_line to calloc, so the
+  unfilled slot reads as NULL here but as uninitialized heap upstream.
+- 0035 was found by replaying fuzz corpora through the real binary
+  rather than the parse-only harness; the harness cannot reach any of
+  the three sites. The replay driver is tests/t/20-fuzz-corpus.sh.
 - 0012/0013 add -fwrapv to the affected targets in meson; equivalent
   flag already present in the (local) zig build.
 - The fuzz harnesses that found 0011-0013 live in fuzz/ (not part of
