@@ -484,6 +484,19 @@ istrsenvisx(char **mbdstp, size_t *dlen, const char *mbsrc, size_t mblength,
 			assert(clen < 0 || (size_t)clen <= mbslength);
 			assert(clen <= MB_LEN_MAX);
 		}
+		if (!cerr && clen == 1 && *src >= 0xd800 && *src <= 0xdfff &&
+		    (u_char)*mbsrc == (u_char)*src) {
+			/*
+			 * musl's C locale decodes bytes 0x80-0xff into the
+			 * surrogate range U+DF80..U+DFFF so that arbitrary
+			 * bytes round-trip through the wide charset.  No
+			 * genuine multibyte decoding can produce a
+			 * surrogate, and do_svis() would encode the 16-bit
+			 * value as two bytes, so fold it back to the raw
+			 * input byte.
+			 */
+			*src = (wint_t)(u_char)*src;
+		}
 		if (cerr || clen < 0) {
 			/* Conversion error, process as a byte instead. */
 			*src = (wint_t)(u_char)*mbsrc;
