@@ -1,0 +1,33 @@
+# musl build environment.
+#
+# Astro ships musl, so this is the configuration that actually matters for
+# the product; the glibc image exists because the analyzers and sanitizer
+# tooling are better supported there.
+#
+# libxo is not packaged by Alpine, so it is built from source here — once,
+# into the image layer, rather than on every CI run.
+FROM docker.io/library/alpine:latest
+
+RUN apk add --no-cache \
+        build-base clang llvm compiler-rt \
+        meson ninja pkgconf \
+        flex bison \
+        ncurses-dev libedit-dev openssl-dev \
+        zlib-dev bzip2-dev xz-dev zstd-dev acl-dev \
+        bsd-compat-headers linux-headers \
+        git curl ca-certificates \
+        autoconf automake libtool file
+
+ARG LIBXO_VERSION=1.7.5
+RUN curl -fsSL -o /tmp/libxo.tar.gz \
+        "https://github.com/Juniper/libxo/releases/download/${LIBXO_VERSION}/libxo-${LIBXO_VERSION}.tar.gz" \
+    && tar -xf /tmp/libxo.tar.gz -C /tmp \
+    && cd "/tmp/libxo-${LIBXO_VERSION}" \
+    && ./configure --prefix=/usr --disable-static \
+    && make -j"$(nproc)" \
+    && make install \
+    && rm -rf /tmp/libxo*
+
+RUN adduser -D build
+WORKDIR /src
+USER build

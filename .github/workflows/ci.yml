@@ -1,0 +1,143 @@
+name: CI
+
+# Runs the same job scripts as ci/run-ci.sh, so anything that fails here
+# can be reproduced locally with:  ci/run-ci.sh <job>
+#
+# The container images come from ci/Containerfile.*; GitHub Actions runs
+# the jobs directly in those images rather than through run-ci.sh, which
+# only exists to give a laptop the same environment.
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # Weekly deeper pass: the scheduled run fuzzes rather than just
+    # replaying the corpus.
+    - cron: '0 4 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  glibc:
+    name: glibc (${{ matrix.cc }})
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - name: dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            gcc gcc-c++ clang compiler-rt llvm meson ninja-build \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel binutils file git which
+
+      - uses: actions/checkout@v4
+
+      - name: build and test
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cc == 'gcc' && 'g++' || 'clang++' }}
+          BUILD_DIR: build-ci-${{ matrix.cc }}
+        run: sh ci/jobs/build-test.sh
+
+      - name: hardening check
+        env:
+          BUILD_DIR: build-ci-${{ matrix.cc }}
+        run: sh ci/jobs/hardening-check.sh
+
+  musl:
+    name: musl (Alpine)
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/library/alpine:latest
+    steps:
+      - name: dependencies
+        run: |
+          apk add --no-cache build-base clang llvm compiler-rt meson ninja \
+            pkgconf flex bison ncurses-dev libedit-dev openssl-dev \
+            zlib-dev bzip2-dev xz-dev zstd-dev acl-dev bsd-compat-headers \
+            linux-headers git curl autoconf automake libtool file
+
+      - name: libxo
+        run: |
+          VER=1.7.5
+          curl -fsSL -o libxo.tar.gz \
+            "https://github.com/Juniper/libxo/releases/download/${VER}/libxo-${VER}.tar.gz"
+          tar -xf libxo.tar.gz
+          cd "libxo-${VER}"
+          ./configure --prefix=/usr --disable-static
+          make -j"$(nproc)"
+          make install
+
+      - uses: actions/checkout@v4
+
+      - name: build and test
+        env:
+          BUILD_DIR: build-ci-musl
+        run: sh ci/jobs/build-test.sh
+
+  sanitizers:
+    name: asan + ubsan
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    steps:
+      - name: dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            clang compiler-rt llvm libasan libubsan meson ninja-build \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel binutils file git which
+
+      - uses: actions/checkout@v4
+
+      - name: build and test under sanitizers
+        env:
+          CC: clang
+          CXX: clang++
+          BUILD_DIR: build-ci-asan
+        run: sh ci/jobs/sanitizers.sh
+
+  fuzz:
+    name: fuzz corpus replay
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    steps:
+      - name: dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            clang compiler-rt llvm libasan libubsan meson ninja-build \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel binutils file git which
+
+      - uses: actions/checkout@v4
+
+      - name: replay corpora
+        env:
+          CC: clang
+          # Scheduled runs fuzz for real; push/PR runs only replay.
+          FUZZ_TIME: ${{ github.event_name == 'schedule' && '300' || '0' }}
+        run: sh ci/jobs/fuzz-regress.sh
+
+      - name: upload new crash artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/
+          if-no-files-found: ignore

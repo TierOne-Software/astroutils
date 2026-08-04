@@ -1,0 +1,22 @@
+# glibc build environment: gcc, clang, sanitizers and libFuzzer.
+#
+# Used for the gcc, clang, sanitizers, fuzz and hardening jobs.
+FROM registry.fedoraproject.org/fedora:latest
+
+RUN dnf -y install --setopt=install_weak_deps=False \
+        gcc gcc-c++ clang compiler-rt llvm \
+        meson ninja-build pkgconf-pkg-config \
+        flex byacc bison \
+        libxo-devel \
+        ncurses-devel libedit-devel openssl-devel \
+        zlib-devel bzip2-devel xz-devel libzstd-devel libacl-devel \
+        libselinux-devel \
+        binutils file diffutils findutils grep sed gawk which \
+        git ca-certificates \
+    && dnf clean all
+
+# The suite runs unprivileged so that permission-dependent tests (which
+# skip when running as root) actually execute.
+RUN useradd -m build
+WORKDIR /src
+USER build
