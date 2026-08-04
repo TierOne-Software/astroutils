@@ -151,8 +151,15 @@ in unvis.
       byte-oriented or `(unsigned char)`-hardened, runtime-verified
       musl ≡ glibc. The audit did surface an unrelated upstream unvis
       `&#NN;` decode bug — fixed (see SECURITY-FINDINGS.md).
-- [ ] `zig build -Dtarget=x86_64-linux-musl` and
-      `-Dtarget=aarch64-linux-musl`, tests under qemu-user.
+- [x] `zig build -Dtarget=aarch64-linux-musl` and
+      `-Dtarget=arm-linux-musleabihf`, tests under qemu-user — DONE:
+      bare musl cross builds work (bundled FreeBSD queue.h fallback for
+      libcs without sys/queue.h; host-probed deps are zeroed on cross so
+      library-dependent tools skip cleanly). 123/146 tools build; the
+      suite passes on both arches (aarch64: all green; armv7 exposed
+      only a 32-bit-`LINENUM` test assumption, fixed).  Skipped tools
+      (sort, nvi, fetch, telnet, …) need a cross sysroot for
+      crypto/ncurses/xo — revisit if Astro wants full-tool cross builds.
 - [ ] Re-run sanitizers cross-arch; expect new signed/unsigned char and
       alignment findings.
 - [x] Alpine (musl) CI job running the new suite.
