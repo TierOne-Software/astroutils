@@ -9,4 +9,6 @@ infer-out/
 scanbuild-out/
 fuzz/bin/
 fuzz/artifacts/
+build-ci-*/
+build-asan/
 
