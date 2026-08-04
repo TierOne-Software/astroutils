@@ -32,8 +32,25 @@ EOF
 mktarget target.txt
 assert_bounded "context diff with 4e17-line hunk stays bounded" 262144 \
     "$PATCH" -t -C -i dos-context.diff target.txt
-assert_contains "rejects oversized hunk with a diagnostic" "hunk too large" \
+# 64-bit: parsed fine, rejected as "hunk too large".  32-bit: does not
+# fit LINENUM at all, rejected as "... is too large" at parse time.
+# Either diagnostic proves a bounded rejection.
+assert_contains "rejects oversized hunk with a diagnostic" "too large" \
     "$PATCH" -t -C -i dos-context.diff target.txt
+
+# 2e9 lines: fits a 32-bit LINENUM, so the MAXHUNKSIZE check itself is
+# what rejects it — the "hunk too large" diagnostic on every arch.
+cat > dos-context-max.diff <<'EOF'
+*** target.txt	2020-01-01
+--- target.txt	2020-01-01
+***************
+*** 1,2000000000 ****
+  alpha
+--- 1,1 ----
+EOF
+mktarget target-max.txt
+assert_contains "2e9-line hunk hits the hunk-size limit" "hunk too large" \
+    "$PATCH" -t -C -i dos-context-max.diff target-max.txt
 
 # Same class via the unified-diff @@ header path.
 cat > dos-unified.diff <<'EOF'
