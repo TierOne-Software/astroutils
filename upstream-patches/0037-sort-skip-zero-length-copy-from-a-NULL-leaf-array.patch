@@ -1,0 +1,54 @@
+From c34e7fc6709879ea399742bdc787b028148102d6 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 3 Aug 2026 21:14:18 -0400
+Subject: [PATCH] sort: skip zero-length copy from a NULL leaf array
+
+run_sort_level_next() copied sl->leaves unconditionally in both the
+forward and reverse branches, but the pointer is NULL when leaves_num is
+0, making it memcpy(dst, NULL, 0) -- the same UB class already fixed in
+nvi, ed and dbcompat.
+
+Fires on an ordinary three-line sort; UBSan reports "null pointer passed
+as argument 2, which is declared to never be null".  Invisible on a
+normal build, which is why the earlier analyzer passes missed it.
+
+Found by ci/jobs/sanitizers.sh on its first containerized run.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+---
+ src.freebsd/coreutils/sort/radixsort.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/coreutils/sort/radixsort.c b/src.freebsd/coreutils/sort/radixsort.c
+index de928f88..17f8b73e 100644
+--- a/src.freebsd/coreutils/sort/radixsort.c
++++ b/src.freebsd/coreutils/sort/radixsort.c
+@@ -590,8 +590,10 @@ run_top_sort_level(struct sort_level *sl)
+ 	}
+ 
+ 	if (!reverse_sort) {
+-		memcpy(sl->tosort + sl->start_position, sl->leaves,
+-		    sl->leaves_num * sizeof(struct sort_list_item*));
++		/* sl->leaves is NULL when no leaves were allocated */
++		if (sl->leaves_num > 0)
++			memcpy(sl->tosort + sl->start_position, sl->leaves,
++			    sl->leaves_num * sizeof(struct sort_list_item*));
+ 		sl->start_position += sl->leaves_num;
+ 		sort_left_dec(sl->leaves_num);
+ 
+@@ -624,8 +626,10 @@ run_top_sort_level(struct sort_level *sl)
+ 			}
+ 		}
+ 
+-		memcpy(sl->tosort + sl->start_position, sl->leaves,
+-		    sl->leaves_num * sizeof(struct sort_list_item*));
++		/* sl->leaves is NULL when no leaves were allocated */
++		if (sl->leaves_num > 0)
++			memcpy(sl->tosort + sl->start_position, sl->leaves,
++			    sl->leaves_num * sizeof(struct sort_list_item*));
+ 
+ 		sort_left_dec(sl->leaves_num);
+ 	}
+-- 
+2.55.0
+

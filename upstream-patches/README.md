@@ -75,6 +75,9 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   members, so restrict 0001's annotation to clang (build fix — gcc 15
   fails to build libfetch otherwise).
 
+- 0037 sort: memcpy(dst, NULL, 0) in radixsort run_sort_level_next, both
+  branches — fires on an ordinary three-line sort (UBSan).
+
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h; 0036 corrects
   its feature test. Squash them if 0001 has not been applied yet.

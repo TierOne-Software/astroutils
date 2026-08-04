@@ -11,7 +11,11 @@ cd "$(dirname "$0")/../.."
 CC=${CC:-clang}
 export CC
 FUZZ_TIME=${FUZZ_TIME:-0}
-BUILD_DIR=build-meson   # build-fuzz.sh expects this path
+# Its own tree, not build-meson: a meson build directory records absolute
+# paths, so a developer's host-configured tree cannot be reconfigured
+# inside the container (and vice versa).
+BUILD_DIR=${BUILD_DIR:-build-ci-fuzz}
+export BUILD_DIR
 
 printf '=== meson tree for generated sources and libcompat\n'
 [ -f "$BUILD_DIR/build.ninja" ] || meson setup "$BUILD_DIR" -Dbuildtype=debugoptimized

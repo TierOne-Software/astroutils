@@ -405,6 +405,21 @@ everything below was unreachable from it.
   annotation is a checking aid with no semantic effect, so compiling it
   away elsewhere is safe. Found by the musl CI job on its first run.
 
+### FIXED — sort: zero-length memcpy from a NULL leaf array
+- `src.freebsd/coreutils/sort/radixsort.c:593` and :628
+  (`run_sort_level_next`): both the forward and reverse branches copied
+  `sl->leaves` unconditionally, and the pointer is NULL when
+  `sl->leaves_num == 0` — `memcpy(dst, NULL, 0)`, the same UB class
+  already fixed in nvi (`BUILD`, `db_get`), ed (`join_lines`) and
+  dbcompat (`WR_RLEAF`).
+- Fires on an ordinary `sort` of three lines; UBSan reports "null pointer
+  passed as argument 2, which is declared to never be null". Invisible on
+  a normal build, which is why it survived the earlier analyzer passes —
+  neither Infer nor scan-build models the `nonnull` attribute on
+  `memcpy` here.
+- Fixed: skip the copy when `leaves_num == 0`, both branches.
+  Found by `ci/jobs/sanitizers.sh` on its first containerized run.
+
 ### OPEN — vis(1) corrupts bytes >= 0x80 on musl
 - `vis | unvis` does not round-trip binary data on musl: byte `0x80` comes
   back as `0xDF 0x80`. Reproduced in the Alpine CI container; correct on

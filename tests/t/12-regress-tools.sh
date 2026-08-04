@@ -61,6 +61,23 @@ if require "join" join; then
     assert_out "join -t separator" "1:a:x" "$(tool join)" -t: j3.txt j4.txt
 fi
 
+group "sort: zero-length memcpy from a NULL leaf array"
+
+# radixsort.c copied sl->leaves unconditionally; with leaves_num == 0 the
+# pointer is NULL, so this was memcpy(dst, NULL, 0) — the same UB class
+# already fixed in nvi, ed and dbcompat.  Only a sanitizer build shows
+# it; found by ci/jobs/sanitizers.sh with UBSAN halt_on_error=1.
+if require "sort" sort; then
+    assert_out "sort ascending" "1" sh -c "printf '3\n1\n2\n' | $(tool sort) | $(tool head) -1"
+    assert_out "sort reverse" "3" sh -c "printf '3\n1\n2\n' | $(tool sort) -r | $(tool head) -1"
+    assert_no_crash "sort empty input" sh -c ": | $(tool sort) >/dev/null"
+    assert_no_crash "sort -r empty input" sh -c ": | $(tool sort) -r >/dev/null"
+    assert_no_crash "sort single empty line" sh -c "printf '\n' | $(tool sort) >/dev/null"
+    assert_no_crash "sort -u over duplicates" sh -c \
+        "printf 'a\na\nb\n' | $(tool sort) -u >/dev/null"
+    assert_out "sort -n numeric" "2" sh -c "printf '10\n2\n' | $(tool sort) -n | $(tool head) -1"
+fi
+
 group "env: unchecked malloc in split_spaces"
 
 if require "env" env; then

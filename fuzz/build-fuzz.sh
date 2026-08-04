@@ -6,14 +6,19 @@ set -eu
 cd "$(dirname "$0")/.."
 
 CC=${CC:-clang}
+# Which configured meson tree to take generated sources and libcompat
+# from.  Overridable so CI can use its own tree: a build directory
+# records absolute paths, so one configured on the host cannot be reused
+# inside a container.
+BUILD_DIR=${BUILD_DIR:-build-meson}
 CFLAGS="-g -O1 -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer"
 DEF="-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_CHIMERAUTILS_BUILD -Dlint"
-INC="-I include -I src.freebsd/include -I build-meson/include"
-GETDATE_C=build-meson/src.freebsd/findutils/find/find.p/getdate.c
-LIBCOMPAT=build-meson/src.freebsd/compat/libcompat.a
+INC="-I include -I src.freebsd/include -I $BUILD_DIR/include"
+GETDATE_C=$BUILD_DIR/src.freebsd/findutils/find/find.p/getdate.c
+LIBCOMPAT=$BUILD_DIR/src.freebsd/compat/libcompat.a
 
-for f in "$GETDATE_C" "$LIBCOMPAT" build-meson/include/config-compat.h; do
-    [ -f "$f" ] || { echo "missing $f — run 'meson setup build-meson && ninja -C build-meson' first"; exit 1; }
+for f in "$GETDATE_C" "$LIBCOMPAT" "$BUILD_DIR/include/config-compat.h"; do
+    [ -f "$f" ] || { echo "missing $f — run 'meson setup $BUILD_DIR && ninja -C $BUILD_DIR' first"; exit 1; }
 done
 
 mkdir -p fuzz/bin fuzz/artifacts
