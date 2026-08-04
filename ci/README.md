@@ -31,6 +31,7 @@ they are cached by podman.
 | `sanitizers` | ASan+UBSan build, full suite **and** full corpus replay |
 | `fuzz` | builds the libFuzzer harnesses, replays every corpus |
 | `hardening` | checks built binaries carry the expected mitigations |
+| `zig` | zig build (ReleaseSafe), smoke tests + full suite |
 
 `sanitizers` is the job most likely to find something new: it drives the
 regression tests and the whole fuzz corpus through instrumented binaries,

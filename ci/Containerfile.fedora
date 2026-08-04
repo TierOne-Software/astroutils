@@ -1,6 +1,6 @@
 # glibc build environment: gcc, clang, sanitizers and libFuzzer.
 #
-# Used for the gcc, clang, sanitizers, fuzz and hardening jobs.
+# Used for the gcc, clang, sanitizers, fuzz, hardening and zig jobs.
 FROM registry.fedoraproject.org/fedora:latest
 
 RUN dnf -y install --setopt=install_weak_deps=False \
@@ -12,8 +12,21 @@ RUN dnf -y install --setopt=install_weak_deps=False \
         zlib-devel bzip2-devel xz-devel libzstd-devel libacl-devel \
         libselinux-devel \
         binutils file diffutils findutils grep sed gawk which \
-        git ca-certificates \
+        hostname words \
+        git curl ca-certificates \
     && dnf clean all
+
+# zig: pinned dev snapshot (see README.md; distro packages are too old
+# for build.zig).  Old dev snapshots vanish from ziglang.org but are kept
+# on the machengine mirror; the tarball is sha256-verified here.
+ARG ZIG_VERSION=0.17.0-dev.813+2153f8143
+ARG ZIG_SHA256=b0d46ffc4587b9e8dd0b524ee5bc4da1e67f28bba55e7c534cec64af2f2d7a74
+RUN curl -fsSL -o /tmp/zig.tar.xz \
+        "https://pkg.machengine.org/zig/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" \
+    && echo "${ZIG_SHA256}  /tmp/zig.tar.xz" | sha256sum -c - \
+    && tar -xf /tmp/zig.tar.xz -C /usr/local \
+    && ln -s "/usr/local/zig-x86_64-linux-${ZIG_VERSION}/zig" /usr/local/bin/zig \
+    && rm -f /tmp/zig.tar.xz
 
 # The suite runs unprivileged so that permission-dependent tests (which
 # skip when running as root) actually execute.

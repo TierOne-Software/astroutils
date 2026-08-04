@@ -20,6 +20,7 @@
 #   sanitizers  ASan+UBSan build, full suite and corpus replay
 #   fuzz        libFuzzer harnesses, corpus replay (FUZZ_TIME=N to fuzz)
 #   hardening   verify built binaries carry the expected mitigations
+#   zig         zig build (ReleaseSafe), smoke + full suite
 #
 # Options:
 #   --host          run directly instead of in a container
@@ -37,7 +38,7 @@ rebuild=0
 keep_going=0
 jobs=
 
-all_jobs="gcc clang musl sanitizers fuzz hardening"
+all_jobs="gcc clang musl sanitizers fuzz hardening zig"
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -150,6 +151,14 @@ run_job() {
                     CC=clang "FUZZ_TIME=${FUZZ_TIME:-0}"
             else
                 CC=clang FUZZ_TIME=${FUZZ_TIME:-0} sh "$srcdir/ci/jobs/fuzz-regress.sh"
+            fi ;;
+        zig)
+            if [ "$use_container" = "1" ]; then
+                build_image "$img_fedora" Containerfile.fedora
+                in_container "$img_fedora" 'sh ci/jobs/zig-build.sh' \
+                    "ZIG_OPTIMIZE=${ZIG_OPTIMIZE:-ReleaseSafe}"
+            else
+                ZIG_OPTIMIZE=${ZIG_OPTIMIZE:-ReleaseSafe} sh "$srcdir/ci/jobs/zig-build.sh"
             fi ;;
         hardening)
             # Reuses the gcc job's tree; build it first if absent.

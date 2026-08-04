@@ -141,3 +141,35 @@ jobs:
           name: fuzz-artifacts
           path: fuzz/artifacts/
           if-no-files-found: ignore
+
+  zig:
+    name: zig (ReleaseSafe)
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    steps:
+      - name: dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel hostname words \
+            git curl ca-certificates which
+
+      # Same pin as ci/Containerfile.fedora: dev snapshots vanish from
+      # ziglang.org; the machengine mirror keeps them.
+      - name: zig
+        run: |
+          VER=0.17.0-dev.813+2153f8143
+          SHA=b0d46ffc4587b9e8dd0b524ee5bc4da1e67f28bba55e7c534cec64af2f2d7a74
+          curl -fsSL -o /tmp/zig.tar.xz \
+            "https://pkg.machengine.org/zig/zig-x86_64-linux-${VER}.tar.xz"
+          echo "${SHA}  /tmp/zig.tar.xz" | sha256sum -c -
+          tar -xf /tmp/zig.tar.xz -C /usr/local
+          ln -s "/usr/local/zig-x86_64-linux-${VER}/zig" /usr/local/bin/zig
+
+      - uses: actions/checkout@v4
+
+      - name: build and test (ReleaseSafe)
+        run: sh ci/jobs/zig-build.sh
