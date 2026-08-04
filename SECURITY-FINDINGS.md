@@ -420,6 +420,18 @@ everything below was unreachable from it.
 - Fixed: skip the copy when `leaves_num == 0`, both branches.
   Found by `ci/jobs/sanitizers.sh` on its first containerized run.
 
+### FIXED — unvis: &#NN; numeric entities decoded incorrectly
+- `src.freebsd/compat/unvis.c` `S_NUMBER`: accumulated with
+  `*cp += (*cp * 10) + d` — computing `cp*11 + d`, so every numeric
+  character reference with ≥ 2 digits decoded wrong (`&#65;` → 'G',
+  `&#233;` silently wrapped). Upstream NetBSD bug (PR lib/60111),
+  present on all platforms; found during the musl wide-char audit of
+  `src.freebsd/compat/` (the only wide-char consumer there was vis.c;
+  everything else runtime-verified musl ≡ glibc).
+- Fixed by cherry-picking the upstream 1.46 accumulation fix and the
+  1.47 `UCHAR_MAX` overflow check. Regression tests in
+  `tests/t/13-regress-parsers.sh`.
+
 ### FIXED — vis(1) corrupts bytes >= 0x80 on musl
 - `vis | unvis` did not round-trip binary data on musl: byte `0x80` came
   back as `0xDF 0x80`. Reproduced in the Alpine CI container; correct on

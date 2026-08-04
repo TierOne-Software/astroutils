@@ -146,9 +146,11 @@ in unvis.
       the raw byte in `istrsenvisx()`; all 256 byte values round-trip on
       musl and the XFAIL is now a hard regression test. See
       SECURITY-FINDINGS.md.
-- [ ] Audit the rest of `src.freebsd/compat` for the same assumption —
-      anything pairing `mbrtowc()` with byte-width arithmetic is suspect
-      on musl, and glibc's single-byte C locale hides all of it.
+- [x] Audit the rest of `src.freebsd/compat` for the same assumption —
+      DONE: only vis.c decodes multibyte input; every other file is
+      byte-oriented or `(unsigned char)`-hardened, runtime-verified
+      musl ≡ glibc. The audit did surface an unrelated upstream unvis
+      `&#NN;` decode bug — fixed (see SECURITY-FINDINGS.md).
 - [ ] `zig build -Dtarget=x86_64-linux-musl` and
       `-Dtarget=aarch64-linux-musl`, tests under qemu-user.
 - [ ] Re-run sanitizers cross-arch; expect new signed/unsigned char and
