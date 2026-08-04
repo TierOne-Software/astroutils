@@ -34,7 +34,7 @@ Known gaps this plan addresses, in priority order.
 
 ## P0 — Regression tests and CI — DONE (extensions remain)
 
-**Why first:** roughly fifty behaviour-affecting patches have landed
+**Why first:** close to forty behaviour-affecting patches have landed
 backed only by `zig-build-smoke.sh` and ad-hoc manual repros. Nothing
 mechanically prevents a future FreeBSD import from silently reverting
 any of them, and every later item on this list needs somewhere to run.
