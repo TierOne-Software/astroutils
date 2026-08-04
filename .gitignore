@@ -4,6 +4,7 @@ Makefile.bsd
 build-meson/
 build-scan/
 zig-out/
+zig-*/
 .zig-cache/
 infer-out/
 scanbuild-out/
