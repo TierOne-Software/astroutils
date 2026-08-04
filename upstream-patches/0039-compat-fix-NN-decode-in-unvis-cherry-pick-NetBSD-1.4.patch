@@ -1,0 +1,49 @@
+From c64637bd4a741e97c9f9f542ba8b0b5b5df1c47e Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Tue, 4 Aug 2026 13:57:50 -0400
+Subject: [PATCH] compat: fix &#NN; decode in unvis (cherry-pick NetBSD
+ 1.46/1.47)
+
+Found while auditing src.freebsd/compat for musl wide-char issues:
+S_NUMBER accumulated with *cp += (*cp * 10) + d, computing cp*11 + d
+and corrupting every numeric entity with two or more digits (&#65;
+decoded to 'G', &#233; silently wrapped).  Vis-a-vis NetBSD PR
+lib/60111: adopt the upstream 1.46 fix (proper accumulation, masked
+with UCHAR_MAX) and the 1.47 overflow check (values above UCHAR_MAX
+are rejected).  Affects unvis(1) -H; all platforms, musl and glibc
+alike.
+---
+ src.freebsd/compat/unvis.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/compat/unvis.c b/src.freebsd/compat/unvis.c
+index 6f7af58f..f99a2c8d 100644
+--- a/src.freebsd/compat/unvis.c
++++ b/src.freebsd/compat/unvis.c
+@@ -42,6 +42,7 @@ __RCSID("$NetBSD: unvis.c,v 1.45 2022/04/19 20:32:15 rillig Exp $");
+ 
+ #include <assert.h>
+ #include <ctype.h>
++#include <limits.h>
+ #include <stdint.h>
+ #include <stdio.h>
+ #include <errno.h>
+@@ -477,7 +478,14 @@ unvis(char *cp, int c, int *astate, int flag)
+ 			return UNVIS_VALID;
+ 		if (!isdigit(uc))
+ 			goto bad;
+-		*cp += (*cp * 10) + uc - '0';
++		/*
++		 * I doubt any of this really works on a system where
++		 * chars are not 8 bits, but use UCHAR_MAX rather than
++		 * 255 (or 0xFF), just in case it does.
++		 */
++		if ((int)(*cp & UCHAR_MAX) * 10 > UCHAR_MAX - (uc - '0'))
++			goto bad;
++		*cp = ((*cp & UCHAR_MAX) * 10) + uc - '0';
+ 		return UNVIS_NOCHAR;
+ 
+ 	default:
+-- 
+2.55.0
+
