@@ -590,8 +590,10 @@ run_top_sort_level(struct sort_level *sl)
 	}
 
 	if (!reverse_sort) {
-		memcpy(sl->tosort + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		/* sl->leaves is NULL when no leaves were allocated */
+		if (sl->leaves_num > 0)
+			memcpy(sl->tosort + sl->start_position, sl->leaves,
+			    sl->leaves_num * sizeof(struct sort_list_item*));
 		sl->start_position += sl->leaves_num;
 		sort_left_dec(sl->leaves_num);
 
@@ -624,8 +626,10 @@ run_top_sort_level(struct sort_level *sl)
 			}
 		}
 
-		memcpy(sl->tosort + sl->start_position, sl->leaves,
-		    sl->leaves_num * sizeof(struct sort_list_item*));
+		/* sl->leaves is NULL when no leaves were allocated */
+		if (sl->leaves_num > 0)
+			memcpy(sl->tosort + sl->start_position, sl->leaves,
+			    sl->leaves_num * sizeof(struct sort_list_item*));
 
 		sort_left_dec(sl->leaves_num);
 	}
