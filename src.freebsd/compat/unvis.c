@@ -42,6 +42,7 @@ __RCSID("$NetBSD: unvis.c,v 1.45 2022/04/19 20:32:15 rillig Exp $");
 
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <errno.h>
@@ -477,7 +478,14 @@ unvis(char *cp, int c, int *astate, int flag)
 			return UNVIS_VALID;
 		if (!isdigit(uc))
 			goto bad;
-		*cp += (*cp * 10) + uc - '0';
+		/*
+		 * I doubt any of this really works on a system where
+		 * chars are not 8 bits, but use UCHAR_MAX rather than
+		 * 255 (or 0xFF), just in case it does.
+		 */
+		if ((int)(*cp & UCHAR_MAX) * 10 > UCHAR_MAX - (uc - '0'))
+			goto bad;
+		*cp = ((*cp & UCHAR_MAX) * 10) + uc - '0';
 		return UNVIS_NOCHAR;
 
 	default:
