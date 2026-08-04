@@ -7,12 +7,15 @@
 # zig-out/bin, or an installed image.
 #
 # Usage:
-#   tests/run-tests.sh                      # auto-detect a build
+#   tests/run-tests.sh                      # auto-detect a build (zig first)
+#   tests/run-tests.sh --zig                # zig build, then test zig-out/bin
 #   tests/run-tests.sh --build build-meson  # meson build tree
 #   tests/run-tests.sh --bindir zig-out/bin # flat directory
 #   tests/run-tests.sh regress-patch smoke  # only matching test files
 #
 # Options:
+#   --zig          rebuild with `zig build` first (ZIG_BUILD_ARGS passes
+#                  extra flags, e.g. ZIG_BUILD_ARGS=-Doptimize=ReleaseSafe)
 #   --build DIR    meson/ninja build tree; tools are found by scanning it
 #   --bindir DIR   flat directory containing the tools
 #   --quiet        only report failures and the summary
@@ -26,6 +29,7 @@ set -u
 srcdir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 testdir="$srcdir/tests"
 
+zigbuild=0
 build=
 bindir=
 quiet=0
@@ -35,13 +39,14 @@ filters=
 
 while [ $# -gt 0 ]; do
     case $1 in
+        --zig)     zigbuild=1; shift ;;
         --build)   build=$2; shift 2 ;;
         --bindir)  bindir=$2; shift 2 ;;
         --quiet|-q) quiet=1; shift ;;
         --list)    list=1; shift ;;
         --timeout) timeout_s=$2; shift 2 ;;
         -h|--help)
-            sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'
             exit 0 ;;
         --) shift; break ;;
         -*) printf 'run-tests.sh: unknown option %s\n' "$1" >&2; exit 2 ;;
@@ -60,15 +65,21 @@ fi
 # Locate the binaries under test
 # ---------------------------------------------------------------------
 
+if [ "$zigbuild" = 1 ]; then
+    # shellcheck disable=SC2086
+    (cd "$srcdir" && zig build ${ZIG_BUILD_ARGS:-}) || exit 2
+    bindir=$srcdir/zig-out/bin
+fi
+
 if [ -z "$bindir" ] && [ -z "$build" ]; then
-    if [ -f "$srcdir/build-meson/build.ninja" ]; then
+    if [ -d "$srcdir/zig-out/bin" ]; then
+        bindir=$srcdir/zig-out/bin
+    elif [ -f "$srcdir/build-meson/build.ninja" ]; then
         build=$srcdir/build-meson
     elif [ -f "$srcdir/build/build.ninja" ]; then
         build=$srcdir/build
-    elif [ -d "$srcdir/zig-out/bin" ]; then
-        bindir=$srcdir/zig-out/bin
     else
-        printf 'run-tests.sh: no build found; pass --build or --bindir\n' >&2
+        printf 'run-tests.sh: no build found; pass --zig, --build or --bindir\n' >&2
         exit 2
     fi
 fi
@@ -107,6 +118,27 @@ ntools=$(ls -1 "$CU_BIN" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$ntools" -eq 0 ]; then
     printf 'run-tests.sh: no executables found in %s\n' "${bindir:-$build}" >&2
     exit 2
+fi
+
+# Stale-build check: running the suite against binaries that predate the
+# sources silently validates the wrong tree.  Compare the newest source
+# file against the newest tested binary and warn loudly on mismatch.
+newest_bin=$(
+    for f in "$CU_BIN"/*; do
+        [ -f "$f" ] || continue
+        readlink "$f" 2>/dev/null || printf '%s\n' "$f"
+    done | xargs ls -td 2>/dev/null | head -1
+)
+if [ -n "$newest_bin" ]; then
+    stale=$(find "$srcdir/src.freebsd" "$srcdir/src.custom" \
+        "$srcdir/src.compat" "$srcdir/src.safestr" "$srcdir/include" \
+        "$srcdir/build-data" "$srcdir/build.zig" "$srcdir/meson.build" \
+        -type f -newer "$newest_bin" -print -quit 2>/dev/null)
+    if [ -n "$stale" ]; then
+        printf 'run-tests.sh: WARNING: sources are newer than the tested binaries\n' >&2
+        printf 'run-tests.sh:   (e.g. %s)\n' "$stale" >&2
+        printf 'run-tests.sh: results may reflect a stale build; rebuild first (--zig)\n' >&2
+    fi
 fi
 
 # nvi installs as `vi`; several tests want the ex personality, which nvi

@@ -7,12 +7,16 @@ the tools under test plus `awk`, `od` and (optionally) `timeout`.
 ## Running
 
 ```sh
-tests/run-tests.sh                       # auto-detect a build tree
+tests/run-tests.sh                       # auto-detect a build (zig first)
+tests/run-tests.sh --zig                 # zig build, then test zig-out/bin
 tests/run-tests.sh --build build-meson   # a meson/ninja tree
 tests/run-tests.sh --bindir zig-out/bin  # a flat directory
 tests/run-tests.sh --bindir /usr/bin     # an installed image
 tests/run-tests.sh 10-regress-patch      # only matching files
 ```
+
+The runner warns when the tested binaries are older than the sources —
+if you see that warning, rebuild first (`--zig` does it for you).
 
 Through meson:
 
