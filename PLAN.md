@@ -141,12 +141,11 @@ the jot format bug was exactly that class. aarch64's unsigned-by-default
 `char` interacts directly with the signed-char bug class already fixed
 in unvis.
 
-- [ ] **Fix vis(1) on musl** — currently an XFAIL in the suite and the
-      only open finding from the CI bring-up. `vis | unvis` corrupts
-      every byte >= 0x80 because musl's C locale maps them to `wchar_t`
-      0xDF80..0xDFFF and `mbrtowc()` succeeds, so `do_svis()` does byte
-      arithmetic on a 16-bit value. This is a data-integrity bug in the
-      configuration Astro ships; fix it before anything else in P4.
+- [x] **Fix vis(1) on musl** — DONE: `mbrtowc()` decodes landing in
+      musl's surrogate-escape range (U+DF80..U+DFFF) are folded back to
+      the raw byte in `istrsenvisx()`; all 256 byte values round-trip on
+      musl and the XFAIL is now a hard regression test. See
+      SECURITY-FINDINGS.md.
 - [ ] Audit the rest of `src.freebsd/compat` for the same assumption —
       anything pairing `mbrtowc()` with byte-width arithmetic is suspect
       on musl, and glibc's single-byte C locale hides all of it.

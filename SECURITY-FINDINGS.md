@@ -420,8 +420,8 @@ everything below was unreachable from it.
 - Fixed: skip the copy when `leaves_num == 0`, both branches.
   Found by `ci/jobs/sanitizers.sh` on its first containerized run.
 
-### OPEN — vis(1) corrupts bytes >= 0x80 on musl
-- `vis | unvis` does not round-trip binary data on musl: byte `0x80` comes
+### FIXED — vis(1) corrupts bytes >= 0x80 on musl
+- `vis | unvis` did not round-trip binary data on musl: byte `0x80` came
   back as `0xDF 0x80`. Reproduced in the Alpine CI container; correct on
   glibc.
 - Mechanism: musl's C locale has `MB_CUR_MAX == 1` and represents bytes
@@ -430,12 +430,14 @@ everything below was unreachable from it.
   `src.freebsd/compat/vis.c` never takes its conversion-error path
   (`vis.c:487`, which would have handled the byte as a byte), and the
   escape logic in `do_svis()` — `c & 0200`, `c &= 0177` (`vis.c:273`) —
-  does byte arithmetic on a 16-bit value. glibc's single-byte C locale
-  hides this completely.
-- Impact: `vis`/`unvis` are unsafe for binary data on musl, which is what
-  Astro ships. Not a memory-safety bug; a correctness/data-integrity one.
-- Tracked as an XFAIL in `tests/t/13-regress-parsers.sh` so the musl CI
-  job reports it without masking real regressions. Fix planned (PLAN.md).
+  did byte arithmetic on a 16-bit value. glibc's single-byte C locale
+  hid this completely.
+- Fixed: in the `istrsenvisx()` input loop, a single-byte decode landing
+  in the surrogate range (impossible for a genuine multibyte decoding)
+  whose low byte matches the input byte is folded back to the raw byte.
+  `0x80` now encodes as `\M-^@` and all 256 byte values round-trip on
+  musl; glibc behavior unchanged (musl-only code path). The XFAIL in
+  `tests/t/13-regress-parsers.sh` is now a hard regression test.
 
 ### Fuzz harness notes
 - `fuzz_patch` runs in-process with patch's `exit()` rewritten to a
