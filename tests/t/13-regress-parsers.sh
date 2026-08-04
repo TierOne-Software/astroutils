@@ -24,6 +24,19 @@ if require "unvis/vis" unvis vis; then
     assert_eq "hex escape \\xff" "ff" "$(unvis_hex '\xff')"
     assert_eq "meta escape \\M^?" "ff" "$(unvis_hex '\M^?')"
 
+    # NetBSD 1.45 S_NUMBER botch: `*cp += (*cp * 10) + d` computed
+    # cp*11 + d, corrupting every &#NN; entity with >= 2 digits.
+    unvis_http1866_hex() {
+        printf '%s' "$1" > esc.in
+        "$(tool unvis)" -H < esc.in > esc.out 2>/dev/null
+        od -An -tx1 < esc.out | tr -d ' \n'
+    }
+    assert_eq "numeric entity &#65;" "41" "$(unvis_http1866_hex '&#65;')"
+    assert_eq "numeric entity &#233;" "e9" "$(unvis_http1866_hex '&#233;')"
+    assert_eq "numeric entity &#1;" "01" "$(unvis_http1866_hex '&#1;')"
+    assert_eq "numeric entity &#256; rejected" "3b" \
+        "$(unvis_http1866_hex '&#256;')"
+
     # Round-trip every byte value: vis must encode and unvis decode back
     # to exactly the same bytes.  This covers the whole escape table.
     awk 'BEGIN{for(i=1;i<256;i++)printf "%c",i}' > allbytes.bin
