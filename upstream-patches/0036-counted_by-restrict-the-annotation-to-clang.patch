@@ -1,7 +1,7 @@
-From 005dde2ae40715ec3284552c175f1da2ef5c9181 Mon Sep 17 00:00:00 2001
+From 38412d32c4b89085130aa1ce5ab9c4510f96ab07 Mon Sep 17 00:00:00 2001
 From: Michael John <mj@tierone.software>
 Date: Mon, 3 Aug 2026 21:04:43 -0400
-Subject: [PATCH 36/36] counted_by: restrict the annotation to clang
+Subject: [PATCH] counted_by: restrict the annotation to clang
 
 gcc 15 answers __has_attribute(counted_by) yes but accepts the attribute
 only on flexible array members, rejecting pointers with a hard error, so
@@ -13,8 +13,6 @@ The annotation is a checking aid with no semantic effect, so compiling it
 away on gcc is safe.
 
 Found by the musl CI job on its first run.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  include/sys/cdefs.h | 13 +++++++++++--
  1 file changed, 11 insertions(+), 2 deletions(-)

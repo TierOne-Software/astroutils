@@ -1,8 +1,8 @@
-From 9973797e349f12bd9965cf059918a9e6575945d9 Mon Sep 17 00:00:00 2001
+From ffd648f20911d4b347681526f524423f3ec56d1e Mon Sep 17 00:00:00 2001
 From: Michael John <mj@tierone.software>
 Date: Mon, 3 Aug 2026 21:04:23 -0400
-Subject: [PATCH 35/36] patch: fix memory-safety bugs found by replaying the
- corpus through main()
+Subject: [PATCH] patch: fix memory-safety bugs found by replaying the corpus
+ through main()
 
 The fuzz harness covers parsing only (open_patch_file ->
 there_is_another_patch -> another_hunk), so none of these were reachable
@@ -36,8 +36,6 @@ now that unfilled slots are NULL rather than uninitialized, glibc would
 print "(null)" but musl dereferences it.
 
 Repro inputs kept in tests/data/crashers/patch/.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  src.freebsd/patch/patch.c | 55 ++++++++++++++++++++++++++++++---------
  src.freebsd/patch/pch.c   | 32 ++++++++++++++++++-----

@@ -1,4 +1,4 @@
-From c34e7fc6709879ea399742bdc787b028148102d6 Mon Sep 17 00:00:00 2001
+From 83a0a2bd36b13d7ae21c8cb6578c84012c9b835d Mon Sep 17 00:00:00 2001
 From: Michael John <mj@tierone.software>
 Date: Mon, 3 Aug 2026 21:14:18 -0400
 Subject: [PATCH] sort: skip zero-length copy from a NULL leaf array
@@ -13,8 +13,6 @@ as argument 2, which is declared to never be null".  Invisible on a
 normal build, which is why the earlier analyzer passes missed it.
 
 Found by ci/jobs/sanitizers.sh on its first containerized run.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  src.freebsd/coreutils/sort/radixsort.c | 12 ++++++++----
  1 file changed, 8 insertions(+), 4 deletions(-)
