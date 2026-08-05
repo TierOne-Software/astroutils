@@ -81,9 +81,19 @@ genuine post-open privilege dropping with no per-tool patching.
       access with zero rules (no path-based fs access post-enter) +
       seccomp namespace denylist (exec/sockets/ptrace/mount/... →
       EPERM).  `caph_enter_casper()` → read-only mode: Landlock denies
-      all fs mutation, seccomp allows only O_RDONLY opens — mirroring
-      what casper's fileargs service brokers on FreeBSD (keeps
-      `md5 -c`, `tail -F` working).
+      all fs mutation, seccomp allows only O_RDONLY opens.  The honest
+      property is "no write, no exec, no network" — NOT per-path
+      capability brokerage (any user-readable file stays readable,
+      e.g. ~/.ssh); per-path narrowing for the argv-only tools
+      (cat/head/wc) is possible later via a strict fileargs variant.
+      Read-only opens are what keep `md5 -c` and `tail -F` working —
+      FreeBSD's broker is credential-bound there too.
+- [x] Startup cost: pre-enter limit calls are accumulated in userspace
+      and flushed as one filter per type at enter (~110us per stacked
+      filter saved; basename-class tools carry 4 filters, not 10-13).
+      Sandboxing even the trivial tools (echo/yes/basename) was a
+      deliberate choice: upstream call-site parity, and post-
+      consolidation the cost is ~0.3-0.7 ms one-time per process.
 - [x] Per-fd rights (`caph_rights_limit`, `caph_limit_stdio`,
       `caph_ioctls_limit`, `caph_fcntls_limit`) enforced with
       fd-number-keyed seccomp argument filters.  `CAP_LOOKUP` on a
@@ -105,6 +115,13 @@ Known limitations (documented in src.compat/capsicum.c): fd rights are
 keyed on fd numbers (a dup'd fd escapes its limit; a reused number
 inherits one — over-restriction, the safe direction); Casper services
 (cap_net, cap_syslog) remain in-process stubs.
+
+Follow-on: patch(1) is now path-scoped sandboxed (`caph_allow_path` +
+`caph_enter_paths`, a port-extension mode): Landlock confines all fs
+access to the target tree and TMPDIR, seccomp denies exec/sockets/
+process control.  patch has the worst memory-safety track record in
+this tree (8 fixes, all reachable from a hostile diff); a malicious
+diff now buys at most writes inside the target directory.
 
 ## P2 — Fuzz the network and decompression surface
 

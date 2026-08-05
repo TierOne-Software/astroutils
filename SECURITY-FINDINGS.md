@@ -479,9 +479,11 @@ everything below was unreachable from it.
   is real.  `caph_enter()` applies a full Landlock filesystem lockdown
   plus a seccomp namespace denylist; `caph_enter_casper()` applies a
   read-only-filesystem mode (all mutation denied, O_RDONLY opens
-  allowed); the `caph_*_limit` family enforces per-fd rights via
-  seccomp argument filters.  Enforcement is required — if the kernel
-  lacks Landlock/seccomp the tools fail at startup; set
+  allowed — the property is "no write, no exec, no network", not
+  per-path capability brokerage); the `caph_*_limit` family enforces
+  per-fd rights via seccomp argument filters, consolidated into one
+  filter per type at enter time.  Enforcement is required — if the
+  kernel lacks Landlock/seccomp the tools fail at startup; set
   `ASTROUTILS_SANDBOX=NONE` to fall back to the no-op stub.  See the
   header comment in `src.compat/capsicum.c` for the known limitations
   (fd-number-keyed rights, in-process casper stubs).
