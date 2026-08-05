@@ -1,0 +1,33 @@
+From 4027c8c7dbc5a499e9e26bf43a8035f9e5d45390 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Wed, 5 Aug 2026 15:43:10 -0400
+Subject: [PATCH] fetch: initialize url_stat before the transfer loop
+
+When fetchXGet() fails before filling us (e.g. an http fetch that
+never reaches the stat), the mirror-mode check compared the local
+file's stat against an uninitialized url_stat.  Initialize it to the
+same failure defaults fetch_stat_file uses, so the check is
+deterministic.
+---
+ src.freebsd/fetch/fetch.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/src.freebsd/fetch/fetch.c b/src.freebsd/fetch/fetch.c
+index 5840176c..1e31bfe8 100644
+--- a/src.freebsd/fetch/fetch.c
++++ b/src.freebsd/fetch/fetch.c
+@@ -442,6 +442,11 @@ fetch(char *URL, const char *path, int *is_http)
+ 	const char *slash;
+ 	char *tmppath;
+ 	int r, tries = 0;
++
++	/* fetchXGet may fail before filling us; keep the mirror-mode
++	 * check below from comparing against an uninitialized struct */
++	us.size = -1;
++	us.atime = us.mtime = 0;
+ 	unsigned timeout;
+ 	char *ptr;
+ 
+-- 
+2.55.0
+

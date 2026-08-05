@@ -72,6 +72,9 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 - 0039 compat: unvis &#NN; numeric entities decoded as cp*11+d
   (NetBSD PR lib/60111; cherry-pick of upstream 1.46+1.47 including
   the UCHAR_MAX overflow check). Data corruption on unvis -H.
+- 0040 fetch: initialize url_stat before the transfer loop — the
+  mirror-mode check read an uninitialized struct when fetchXGet failed
+  before filling it.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap
