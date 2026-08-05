@@ -170,8 +170,8 @@ pub fn build(b: *std.Build) !void {
         .PROJECT_VERSION = "15.1.0",
     });
 
-    // worst case: base + selinux + 2 Wno + 7 harden + 3 prod-sanitize
-    var gflags_buf: [global_c_flags.len + 13][]const u8 = undefined;
+    // worst case: base + selinux + 2 Wno + 8 harden + 3 prod-sanitize
+    var gflags_buf: [global_c_flags.len + 14][]const u8 = undefined;
     var gflags_len: usize = global_c_flags.len;
     @memcpy(gflags_buf[0..global_c_flags.len], &global_c_flags);
     if (deps.selinux) {
@@ -187,6 +187,9 @@ pub fn build(b: *std.Build) !void {
     const harden = b.option(bool, "harden", "enable hardening flags (stack protector, auto-var-init, fortify)") orelse true;
     if (harden) {
         for ([_][]const u8{
+            // PIE executables need position-independent objects,
+            // otherwise static musl links fail on absolute relocations
+            "-fPIE",
             "-fstack-protector-strong",
             "-fstack-clash-protection",
             "-ftrivial-auto-var-init=zero",
@@ -259,6 +262,16 @@ pub fn build(b: *std.Build) !void {
     compat_mod.addIncludePath(b.path("src.freebsd/include"));
     compat_mod.addConfigHeader(config_compat);
     const libcompat = b.addLibrary(.{ .name = "compat", .linkage = .static, .root_module = compat_mod });
+
+    // capsicum shim self-test (driven by tests/t/14-sandbox.sh)
+    const shimtest_mod = mkModule(b, target, optimize, false);
+    shimtest_mod.addCSourceFile(.{ .file = b.path("src.compat/shimtest.c"), .flags = compat_flags });
+    shimtest_mod.addIncludePath(b.path("include"));
+    shimtest_mod.addIncludePath(b.path("src.freebsd/include"));
+    shimtest_mod.addConfigHeader(config_compat);
+    shimtest_mod.linkLibrary(libcompat);
+    const shimtest = b.addExecutable(.{ .name = "shimtest", .root_module = shimtest_mod });
+    b.installArtifact(shimtest);
 
     // util_static (also compiled into the shared libchimerautils below)
     const util_mod = mkModule(b, target, optimize, false);
@@ -640,6 +653,10 @@ pub fn build(b: *std.Build) !void {
             m.addIncludePath(b.path("src.freebsd/findutils/locate/locate"));
         }
 
+        // every tool gets libcompat: the capsicum shim lives there and
+        // is referenced by tools that otherwise need nothing from it
+        m.linkLibrary(libcompat);
+
         for (t.link_with) |lw| {
             const lib = libFor(lw, libcompat, libutil, libdbcompat, libmp, libfetch_opt) orelse {
                 skip(b, t.name, b.fmt("internal lib {s} unavailable", .{lw}));
@@ -681,6 +698,7 @@ const compat_sources = [_][]const u8{
 
 const src_compat_sources = [_][]const u8{
     "b64.c", "err.c", "strlfuncs.c", "signames.c", "strtonum.c", "reallocf.c",
+    "capsicum.c",
 };
 
 const util_sources = [_][]const u8{
