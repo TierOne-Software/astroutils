@@ -442,6 +442,11 @@ fetch(char *URL, const char *path, int *is_http)
 	const char *slash;
 	char *tmppath;
 	int r, tries = 0;
+
+	/* fetchXGet may fail before filling us; keep the mirror-mode
+	 * check below from comparing against an uninitialized struct */
+	us.size = -1;
+	us.atime = us.mtime = 0;
 	unsigned timeout;
 	char *ptr;
 
