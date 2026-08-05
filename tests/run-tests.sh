@@ -153,6 +153,20 @@ export CU_LIB=$testdir
 export CU_QUIET=$quiet
 export CU_TIMEOUT=$timeout_s
 
+# Emulated runtimes (qemu-user) may lack Landlock/seccomp, and the
+# sandboxed tools fail by design there.  Detect that once via shimtest
+# and run the suite in stub mode instead; 14-sandbox.sh still records
+# the skips, and the notice below keeps it honest.
+if [ -z "${ASTROUTILS_SANDBOX:-}" ] && [ -x "$CU_BIN/shimtest" ]; then
+    ( cd "$work_root" && "$CU_BIN/shimtest" ) >/dev/null 2>&1
+    _rc=$?
+    if [ "$_rc" -eq 77 ]; then
+        printf 'run-tests.sh: sandbox unavailable on this runtime; testing tools with ASTROUTILS_SANDBOX=NONE\n' >&2
+        ASTROUTILS_SANDBOX=NONE
+        export ASTROUTILS_SANDBOX
+    fi
+fi
+
 # ---------------------------------------------------------------------
 # Run the test files
 # ---------------------------------------------------------------------
