@@ -68,7 +68,7 @@ through `main()`, not through the fuzz harness's chosen entry point.
 Replaying corpora through the real binaries is not redundant with
 fuzzing them.
 
-## P1 — Make the Capsicum shim real (Landlock + seccomp)
+## P1 — Make the Capsicum shim real (Landlock + seccomp) — DONE
 
 **Why:** `include/sys/capsicum.h` and `include/capsicum_helpers.h` are
 no-op stubs that `return 0`. Tools that call `caph_enter()` — cat, tee,
@@ -77,15 +77,34 @@ are not. The call sites and rights declarations already exist and are
 maintained upstream, so implementing the shim gives dozens of tools
 genuine post-open privilege dropping with no per-tool patching.
 
-- [ ] Map `cap_rights_limit` / `caph_limit_stdio` / `cap_enter` onto
-      Landlock (filesystem) + seccomp-BPF (syscall surface).
-- [ ] Decide and document the failure mode: kernels without Landlock
-      must not break the tools, but Astro's kernel can require it.
-      Suggested: `CHIMERA_SANDBOX=require` for Astro images, permissive
-      elsewhere.
-- [ ] Verify each existing `caph_*` call site's rights are honoured
-      rather than silently widened.
-- [ ] Test coverage per sandboxed tool: a denied operation must fail.
+- [x] `caph_enter()` → full lockdown: Landlock ruleset handling all fs
+      access with zero rules (no path-based fs access post-enter) +
+      seccomp namespace denylist (exec/sockets/ptrace/mount/... →
+      EPERM).  `caph_enter_casper()` → read-only mode: Landlock denies
+      all fs mutation, seccomp allows only O_RDONLY opens — mirroring
+      what casper's fileargs service brokers on FreeBSD (keeps
+      `md5 -c`, `tail -F` working).
+- [x] Per-fd rights (`caph_rights_limit`, `caph_limit_stdio`,
+      `caph_ioctls_limit`, `caph_fcntls_limit`) enforced with
+      fd-number-keyed seccomp argument filters.  `CAP_LOOKUP` on a
+      directory fd registers a Landlock+seccomp exception beneath it
+      (write(1)'s /dev fd).
+- [x] Failure mode: enforcement is **required by default** — if the
+      kernel lacks Landlock/seccomp, caph_enter() fails and tools exit
+      via their err(1) path.  `ASTROUTILS_SANDBOX=NONE` restores the
+      no-op stub behavior.
+- [x] Call-site audit: all 33 sandboxed tools traced for post-enter fs
+      access; none need writes.  One tool needed a tweak: logname's
+      `getlogin()` moved before `caph_enter()` (libc opens utmp by
+      path).
+- [x] Tests: `shimtest` (22 assertions over both modes + stub mode)
+      plus `tests/t/14-sandbox.sh` driving it and the sandboxed CLI
+      tools; the whole suite doubles as the over-restriction check.
+
+Known limitations (documented in src.compat/capsicum.c): fd rights are
+keyed on fd numbers (a dup'd fd escapes its limit; a reused number
+inherits one — over-restriction, the safe direction); Casper services
+(cap_net, cap_syslog) remain in-process stubs.
 
 ## P2 — Fuzz the network and decompression surface
 

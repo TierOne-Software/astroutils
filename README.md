@@ -100,6 +100,17 @@ building with `-Doptimize=Debug` or `ReleaseSafe` enables zig's runtime
 UB checks, which currently fire on some latent upstream issues (see
 SECURITY-FINDINGS.md).
 
+## Sandboxing
+
+Tools that call the Capsicum APIs (`caph_enter()` and friends — cat,
+tee, dd, wc, md5, tail, ...) run sandboxed on Linux: `caph_enter()`
+applies a full Landlock + seccomp lockdown (no new filesystem access,
+no exec, no sockets), and `caph_enter_casper()` a read-only filesystem
+mode, mirroring what casper brokers on FreeBSD. This requires a kernel
+with Landlock and seccomp (5.13+); without them the tools fail at
+startup by design. Set `ASTROUTILS_SANDBOX=NONE` in the environment to
+disable enforcement and restore the previous no-op behavior.
+
 ## Importing a new FreeBSD release
 
 When a new release of FreeBSD is made, the import-src.sh script should

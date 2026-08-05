@@ -475,6 +475,16 @@ everything below was unreachable from it.
 
 ## Hardening status
 
+- Sandboxing (both builds, default on): the Capsicum compatibility layer
+  is real.  `caph_enter()` applies a full Landlock filesystem lockdown
+  plus a seccomp namespace denylist; `caph_enter_casper()` applies a
+  read-only-filesystem mode (all mutation denied, O_RDONLY opens
+  allowed); the `caph_*_limit` family enforces per-fd rights via
+  seccomp argument filters.  Enforcement is required — if the kernel
+  lacks Landlock/seccomp the tools fail at startup; set
+  `ASTROUTILS_SANDBOX=NONE` to fall back to the no-op stub.  See the
+  header comment in `src.compat/capsicum.c` for the known limitations
+  (fd-number-keyed rights, in-process casper stubs).
 - Compiler hardening (both builds, default on): `-fstack-protector-strong`,
   `-fstack-clash-protection`, `-ftrivial-auto-var-init=zero`,
   `-D_FORTIFY_SOURCE=3`. (zig build: `-Dharden=false` to disable.)
