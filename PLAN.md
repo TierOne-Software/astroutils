@@ -123,6 +123,19 @@ process control.  patch has the worst memory-safety track record in
 this tree (8 fixes, all reachable from a hostile diff); a malicious
 diff now buys at most writes inside the target directory.
 
+Follow-on: libfetch/fetch(1) is brokered-sandboxed.  `fetch_sandbox_begin()`
+splits the process: a broker child keeps the network rights
+(resolve+connect, ports 21/80/443/8080 plus the run's first-requested
+port), while fetch itself enters the path-scoped sandbox (cwd+TMPDIR
+read/write, no connect/exec/sockets) with the TLS trust store
+preloaded.  All connects — redirects, FTP PASV, SOCKS TCP legs — go
+through the broker over a SEQPACKET socketpair (SCM_RIGHTS fd
+passing).  A parser exploit now yields confined file writes and no
+network channel.  Broker runs as the *child* so fetch's exit status
+reaches the caller.  Caveats (documented): FTP active mode falls back
+to PASV; file:// outside the allowed roots is denied; .netrc-based
+auth is unavailable post-enter.
+
 ## P2 — Fuzz the network and decompression surface
 
 **Why:** the four current targets are good, but the highest-risk parsers
