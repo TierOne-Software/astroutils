@@ -151,4 +151,32 @@ require_all "BIND_NOW" "$n_now" "$no_now"
 # Future mitigations land here first: reported as TODO, enforced under
 # HARDENING_STRICT=1, then moved to require_all above once adopted.
 
+# --- sandbox engagement ----------------------------------------------
+# A sandboxed tool must actually be running under seccomp filter mode;
+# the behavioral suite cannot tell the shim apart from the stub.  Skip
+# when the escape hatch is set; report TODO (not FAIL) when the runtime
+# lacks Landlock/seccomp (the tool then exits immediately).
+if [ -z "${ASTROUTILS_SANDBOX:-}" ]; then
+    sb_bin=$(printf '%s\n' $bins | grep '/yes$' | head -1)
+    if [ -n "$sb_bin" ]; then
+        "$sb_bin" >/dev/null 2>&1 &
+        sb_pid=$!
+        sleep 1
+        if [ -d "/proc/$sb_pid" ]; then
+            sb_sec=$(awk '/^Seccomp:/ {print $2}' "/proc/$sb_pid/status")
+            if [ "$sb_sec" = "2" ]; then
+                printf 'ok: sandboxed tool is under seccomp filter mode\n'
+            else
+                printf 'FAIL: %s running with Seccomp: %s — sandbox not engaged\n' \
+                    "$(basename "$sb_bin")" "$sb_sec"
+                status=1
+            fi
+            kill "$sb_pid" 2>/dev/null
+            wait "$sb_pid" 2>/dev/null
+        else
+            printf 'TODO: sandbox check skipped (tool exited; runtime lacks Landlock/seccomp?)\n'
+        fi
+    fi
+fi
+
 exit $status
