@@ -478,9 +478,20 @@ everything below was unreachable from it.
 - Compiler hardening (both builds, default on): `-fstack-protector-strong`,
   `-fstack-clash-protection`, `-ftrivial-auto-var-init=zero`,
   `-D_FORTIFY_SOURCE=3`. (zig build: `-Dharden=false` to disable.)
-- Production trap-mode UB checks (zig build only, opt-in):
-  `zig build -Dprod-sanitize=true` adds `-fsanitize=bounds,object-size`
-  with `-fsanitize-minimal-runtime -fsanitize-trap=bounds,object-size`.
+- Exploit mitigations (both builds, default on, CI-enforced): PIE
+  executables, full RELRO (`-Wl,-z,now` / zig defaults), and per-arch
+  control-flow protection (`-fcf-protection=full` on x86_64,
+  `-mbranch-protection=standard` on aarch64). Verified mechanically by
+  `ci/jobs/hardening-check.sh` (fails on any binary missing PIE/RELRO/
+  BIND_NOW).
+- `-fstrict-flex-arrays=3` was evaluated and rejected for now: this tree
+  uses old-style trailing arrays pervasively, and any strict level turns
+  those into runtime fortify aborts / ReleaseSafe traps on ordinary
+  commands. Blocked on the `__counted_by` trailing-array audit.
+- Production trap-mode UB checks (opt-in): zig `-Dprod-sanitize=true`,
+  meson `-Dprod_sanitize=true` (clang only) — adds
+  `-fsanitize=bounds,object-size` with `-fsanitize-minimal-runtime
+  -fsanitize-trap=bounds,object-size`.
 - `__counted_by` adoption (incremental): macro `__cu_counted_by` in
   `include/sys/cdefs.h` (empty on pre-clang-18/gcc-15). Annotated so far:
   - `struct fetchconn.buf` (libfetch, network-facing) — `bufsize` is a true

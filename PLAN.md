@@ -106,32 +106,40 @@ sh is the most security-critical tool in the set.
 - [ ] Structure-aware fuzzing for patch (grammar-shaped diffs) to get
       past the shallow rejection paths.
 
-## P3 — Complete the exploit-mitigation set
+## P3 — Complete the exploit-mitigation set — DONE
 
 **Why:** current flags harden against memory-safety *bugs* but not
 against *exploitation*; several standard mitigations are missing.
 
-- [ ] PIE (`b_pie=true`) — confirmed absent: 0 of 146 binaries are
-      position-independent (`ci/jobs/hardening-check.sh`).
-- [ ] Full RELRO: partial RELRO is already present on all 146 binaries,
-      but `BIND_NOW` is on none, so the GOT stays writable. Add `-z now`.
-- [ ] `-fstrict-flex-arrays=3` — pairs with `__counted_by` and FORTIFY;
-      this codebase is full of old-style trailing arrays.
-- [ ] aarch64 `-mbranch-protection=standard` (PAC/BTI) — Astro targets
-      Pi 4/5.
-- [ ] x86_64 `-fcf-protection=full`.
-- [ ] Evaluate `-fzero-call-used-regs=used-gpr` (cost vs. benefit).
-- [ ] Port the zig-only trap-mode `-fsanitize=bounds,object-size` option
-      to the meson build so production images can use it regardless of
-      build system.
+- [x] PIE — meson `b_pie=true` (default option) and zig `exe.pie`;
+      146/146 binaries are ET_DYN PIE in both build systems.
+- [x] Full RELRO / BIND_NOW — `-Wl,-z,now` in meson (native tools too);
+      zig already links `link_z_relro`/`link_z_lazy=false` by default.
+      146/146.
+- [ ] `-fstrict-flex-arrays=3` — DEFERRED with evidence: tried it; with
+      any strict level, `__builtin_object_size` treats this tree's
+      old-style trailing arrays (`char buf[1]` idiom) as fixed, and
+      `_FORTIFY_SOURCE=3` then aborts on ordinary commands (`ls -l`)
+      while zig ReleaseSafe bounds checks trap.  Can only land together
+      with the `__counted_by` trailing-array audit below.  The comment
+      in meson.build records this.
+- [x] aarch64 `-mbranch-protection=standard` (PAC/BTI) and x86_64
+      `-fcf-protection=full` — both build systems, per-arch.
+- [ ] `-fzero-call-used-regs=used-gpr` — DEFERRED: the benefit on top of
+      the now-complete core mitigations is marginal, and the tree is
+      longjmp-heavy (nvi/tip/sh), the interaction that has bitten this
+      flag before.  Revisit if a threat-model need appears.
+- [x] Trap-mode `-fsanitize=bounds,object-size` ported to meson:
+      `-Dprod_sanitize=true` (clang only, errors on gcc).
 - [ ] Continue `__counted_by` adoption; resolve the `sort/bwstring.h`
       terminator-slot semantics blocker.
-- [ ] Add annocheck/checksec verification to CI so hardening regressions
-      are caught mechanically, not by review. (Partially done: `ci/`
-      has a hardening job; extend it as flags are added.)
-- [ ] Reconsider the global `-Wno-unused-result`: in a codebase where
-      unchecked allocation was a recurring finding, that flag suppresses
-      exactly the signal we want.
+- [x] Mitigation verification enforced in CI — `hardening-check.sh` now
+      *fails* on any binary missing PIE/RELRO/BIND_NOW (was: reported as
+      TODO under HARDENING_STRICT).
+- [ ] Reconsider the global `-Wno-unused-result` — probed: removing the
+      suppression produces 141 warnings tree-wide.  Keeping it for now
+      (fixing 141 sites is a churn-heavy sweep against upstream); the
+      count is recorded and the triage belongs to the P6 long tail.
 
 ## P4 — musl and aarch64 validation — DONE
 
