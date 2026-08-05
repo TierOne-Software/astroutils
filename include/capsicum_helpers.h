@@ -66,6 +66,16 @@ int caph_enter_casper(void);
 int caph_ioctls_limit(int fd, const unsigned long *cmds, size_t ncmds);
 int caph_fcntls_limit(int fd, uint32_t fcntlrights);
 
+/*
+ * Path-scoped mode (port extension, no FreeBSD equivalent): register
+ * directories with caph_allow_path(), then caph_enter_paths() confines
+ * all filesystem access to beneath them (full read/write/create/delete
+ * there, nothing elsewhere) and still denies exec/sockets/process
+ * control.  Used by patch(1).
+ */
+int caph_allow_path(const char *path);
+int caph_enter_paths(void);
+
 #ifdef __cplusplus
 }
 #endif

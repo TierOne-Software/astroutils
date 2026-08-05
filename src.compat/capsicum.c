@@ -73,6 +73,16 @@ sandbox_disabled(void)
  */
 #define MODE_FULL	0
 #define MODE_CASPER	1
+#define MODE_PATHS	2
+
+/*
+ * Path-scoped mode (caph_enter_paths): path-based filesystem access is
+ * confined by Landlock to the directories registered with
+ * caph_allow_path(), with full read/write/create/delete beneath them;
+ * the seccomp filter still denies exec/sockets/process control.
+ */
+static int allow_fds[8];
+static int nallow_fds;
 
 /*
  * Directories whose fd received CAP_LOOKUP via caph_rights_limit()
@@ -83,6 +93,77 @@ sandbox_disabled(void)
 static int lookup_fds[8];
 static int lookup_nfds;
 static int sandbox_entered;
+
+/*
+ * Pre-enter fd-limit registry.  Every caph_*_limit call made before
+ * caph_enter() is accumulated here and flushed as one filter per type
+ * at enter time, instead of installing 1-3 stacked filters per call
+ * (~110us each; tools like tee/hexdump otherwise carry 10-13).
+ * Calls made after entering still install immediately.
+ */
+#define LDENY_RD	0x01	/* read/readv/pread* */
+#define LDENY_WR	0x02	/* write/writev/pwrite* */
+#define LDENY_SEEK	0x04	/* lseek */
+#define LDENY_TRUNC	0x08	/* ftruncate */
+#define LDENY_FSYNC	0x10	/* fsync/fdatasync */
+#define LDENY_SHUT	0x20	/* shutdown */
+#define LDENY_MMAP	0x40	/* mmap with this fd */
+
+struct fd_limit {
+	int fd;
+	uint64_t deny;
+	long ioctls[16];
+	int nioctls;	/* -1: unrestricted */
+	long fcntls[6];
+	int nfcntls;	/* -1: unrestricted */
+};
+static struct fd_limit fd_limits[32];
+static int nfd_limits;
+
+static struct fd_limit *
+lim_find(int fd)
+{
+	int i;
+
+	for (i = 0; i < nfd_limits; i++)
+		if (fd_limits[i].fd == fd)
+			return &fd_limits[i];
+	if (nfd_limits == (int)(sizeof(fd_limits) / sizeof(fd_limits[0])))
+		return NULL;
+	fd_limits[nfd_limits].fd = fd;
+	fd_limits[nfd_limits].deny = 0;
+	fd_limits[nfd_limits].nioctls = -1;
+	fd_limits[nfd_limits].nfcntls = -1;
+	return &fd_limits[nfd_limits++];
+}
+
+/* intersect a registered allowlist with a new one (-1: adopt) */
+static int
+lim_merge(long *dst, int *dn, const long *src, size_t sn)
+{
+	size_t i;
+	size_t j;
+	int n;
+
+	if (*dn < 0) {
+		if (sn > 16)
+			sn = 16;
+		for (i = 0; i < sn; i++)
+			dst[i] = src[i];
+		*dn = (int)sn;
+		return 0;
+	}
+	n = 0;
+	for (i = 0; i < (size_t)*dn; i++) {
+		for (j = 0; j < sn; j++)
+			if (dst[i] == src[j]) {
+				dst[n++] = dst[i];
+				break;
+			}
+	}
+	*dn = n;
+	return 0;
+}
 
 /* ------------------------------------------------------------------ */
 /* rights lists (varargs, CU_CAP_END sentinel appended by the macros)  */
@@ -188,6 +269,8 @@ seccomp_load(const struct bpf_prog *p)
 	 * unprivileged precondition for seccomp and is sticky */
 	if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
 		return -1;
+	if (getenv("CU_SANDBOX_DEBUG") != NULL)
+		(void)!write(2, "seccomp_load\n", 13);
 	return (int)syscall(SYS_seccomp, SECCOMP_SET_MODE_FILTER, 0, &prog);
 }
 
@@ -285,16 +368,18 @@ install_namespace_filter(int mode)
 #ifdef SYS_open
 	if (mode == MODE_CASPER)
 		emit_openflags_check(p, SYS_open, 1);
-	else
+	else if (mode == MODE_FULL)
 		DENY(SYS_open);
 #endif
 #ifdef SYS_openat
 	if (mode == MODE_CASPER)
 		emit_openflags_check(p, SYS_openat, 2);
-	else if (lookup_nfds > 0)
-		emit_lookup_check(p, SYS_openat);
-	else
-		DENY(SYS_openat);
+	else if (mode == MODE_FULL) {
+		if (lookup_nfds > 0)
+			emit_lookup_check(p, SYS_openat);
+		else
+			DENY(SYS_openat);
+	}
 #endif
 	if (mode == MODE_FULL) {
 #ifdef SYS_newfstatat
@@ -311,11 +396,16 @@ install_namespace_filter(int mode)
 #endif
 	}
 #ifdef SYS_openat2
-	DENY(SYS_openat2);
+	if (mode != MODE_PATHS)
+		DENY(SYS_openat2);
 #endif
 #ifdef SYS_creat
-	DENY(SYS_creat);
+	if (mode != MODE_PATHS)
+		DENY(SYS_creat);
 #endif
+	/* path-mutation syscalls: denied except in path-scoped mode,
+	 * where Landlock confines them to the allowed directories */
+	if (mode != MODE_PATHS) {
 #ifdef SYS_link
 	DENY(SYS_link);
 #endif
@@ -415,6 +505,7 @@ install_namespace_filter(int mode)
 #ifdef SYS_futimesat
 	DENY(SYS_futimesat);
 #endif
+	} /* !MODE_PATHS (path mutation) */
 	/* path-read syscalls: denied in full mode, allowed in casper mode */
 	if (mode == MODE_FULL) {
 #ifdef SYS_access
@@ -586,6 +677,8 @@ landlock_lockdown(int mode)
 	/*
 	 * Full mode restricts every fs access the ABI knows; casper mode
 	 * restricts only mutation, leaving reads/lookups/execute free.
+	 * Path-scoped mode restricts everything, with the registered
+	 * directories excepted by rules below.
 	 */
 	if (mode == MODE_CASPER)
 		handled = mutate;
@@ -605,6 +698,8 @@ landlock_lockdown(int mode)
 	 * keep full access beneath them); with no registrations there are
 	 * no rules at all and everything handled is denied.  Casper mode
 	 * needs no rules: reads are not handled, writes are all denied.
+	 * Path-scoped mode: allow everything handled beneath each
+	 * registered directory, deny it elsewhere.
 	 */
 	for (i = 0; mode == MODE_FULL && i < lookup_nfds; i++) {
 		struct landlock_path_beneath_attr pb;
@@ -612,6 +707,20 @@ landlock_lockdown(int mode)
 		memset(&pb, 0, sizeof(pb));
 		pb.allowed_access = handled;
 		pb.parent_fd = lookup_fds[i];
+		if (syscall(SYS_landlock_add_rule, ruleset,
+		    LANDLOCK_RULE_PATH_BENEATH, &pb, 0) < 0) {
+			int e = errno;
+			(void)close(ruleset);
+			errno = e;
+			return -1;
+		}
+	}
+	for (i = 0; mode == MODE_PATHS && i < nallow_fds; i++) {
+		struct landlock_path_beneath_attr pb;
+
+		memset(&pb, 0, sizeof(pb));
+		pb.allowed_access = handled;
+		pb.parent_fd = allow_fds[i];
 		if (syscall(SYS_landlock_add_rule, ruleset,
 		    LANDLOCK_RULE_PATH_BENEATH, &pb, 0) < 0) {
 			int e = errno;
@@ -641,17 +750,18 @@ landlock_lockdown(int mode)
 
 /*
  * Emit entries denying `nr` when its fd argument (arg `argn`) equals
- * `fd`.  Each entry is 3 insns.  A syscall matching no entry falls
- * through to RET_ALLOW; an fd match jumps to the RET_EPERM at the end.
+ * the entry's fd.  Each entry is 3 insns.  A syscall matching no entry
+ * falls through to RET_ALLOW; an fd match jumps to the RET_EPERM at
+ * the end.
  */
 struct deny_ent {
 	int nr;
 	int argn;
+	int fd;
 };
 
 static void
-emit_fd_deny(struct bpf_prog *p, const struct deny_ent *ents, size_t n,
-    int fd)
+emit_fd_deny(struct bpf_prog *p, const struct deny_ent *ents, size_t n)
 {
 	size_t i;
 
@@ -660,7 +770,7 @@ emit_fd_deny(struct bpf_prog *p, const struct deny_ent *ents, size_t n,
 		E_JEQ((uint32_t)ents[i].nr, 0, 2);
 		LD_ARG(ents[i].argn);
 		/* fd matches -> jump to RET_EPERM; else next entry */
-		E_JEQ((uint32_t)fd, (uint8_t)(3 * (n - i) - 2), 0);
+		E_JEQ((uint32_t)ents[i].fd, (uint8_t)(3 * (n - i) - 2), 0);
 	}
 	RET_ALLOW;
 	RET_EPERM;
@@ -668,16 +778,19 @@ emit_fd_deny(struct bpf_prog *p, const struct deny_ent *ents, size_t n,
 
 /* install one filter denying the given syscalls on fd; noop if n == 0 */
 static int
-limit_fd_syscalls(int fd, const struct deny_ent *ents, size_t n)
+limit_fd_syscalls(int fd, struct deny_ent *ents, size_t n)
 {
 	struct bpf_prog pbuf = { .len = 0 };
 	struct bpf_prog *p = &pbuf;
+	size_t i;
 
 	if (n == 0)
 		return 0;
+	for (i = 0; i < n; i++)
+		ents[i].fd = fd;
 	emit_arch_guard(p);
 	LD_NR;
-	emit_fd_deny(p, ents, n, fd);
+	emit_fd_deny(p, ents, n);
 	return seccomp_load(p);
 }
 
@@ -719,17 +832,232 @@ limit_fd_arg1(int fd, int nr, const long *allowed, size_t n)
 	return seccomp_load(p);
 }
 
+/* ------------------------------------------------------------------ */
+/* flushing the pre-enter registry (one filter per type)               */
+/* ------------------------------------------------------------------ */
+
+/* entries are 3 insns each; keep jumps well inside the 8-bit range */
+#define FLUSH_CHUNK 60
+
+static int
+install_entry_chunk(const struct deny_ent *ents, size_t n)
+{
+	struct bpf_prog pbuf = { .len = 0 };
+	struct bpf_prog *p = &pbuf;
+
+	emit_arch_guard(p);
+	LD_NR;
+	emit_fd_deny(p, ents, n);
+	return seccomp_load(p);
+}
+
+/*
+ * One filter for syscall `nr` covering every registered fd with an
+ * allowlist (ioctl or fcntl).  Per fd block: fd mismatch falls to the
+ * next block; a listed arg1 jumps to the shared RET_ALLOW; anything
+ * else on a registered fd is EPERM.
+ */
+static int
+install_arg1_limits(int nr, int which)
+{
+	struct bpf_prog pbuf = { .len = 0 };
+	struct bpf_prog *p = &pbuf;
+	size_t cmd_idx[96];
+	size_t ncmd = 0, allow_idx, nr_idx, prev_fd_idx = (size_t)-1;
+	int i, j, nblocks = 0;
+
+	for (i = 0; i < nfd_limits; i++)
+		if ((which == 0 ? fd_limits[i].nioctls :
+		    fd_limits[i].nfcntls) >= 0)
+			nblocks++;
+	if (nblocks == 0)
+		return 0;
+
+	emit_arch_guard(p);
+	LD_NR;
+	nr_idx = p->len;
+	E_JEQ((uint32_t)nr, 0, 0);	/* jf -> ALLOW, patched */
+	for (i = 0; i < nfd_limits; i++) {
+		const long *list;
+		int nlist;
+
+		nlist = which == 0 ? fd_limits[i].nioctls :
+		    fd_limits[i].nfcntls;
+		if (nlist < 0)
+			continue;
+		list = which == 0 ? fd_limits[i].ioctls :
+		    fd_limits[i].fcntls;
+		/* the previous block's fd-mismatch jump lands here */
+		if (prev_fd_idx != (size_t)-1)
+			p->insns[prev_fd_idx].jf =
+			    (uint8_t)(p->len - prev_fd_idx - 1);
+		LD_ARG(0);
+		prev_fd_idx = p->len;
+		E_JEQ((uint32_t)fd_limits[i].fd, 0, 0); /* jf patched */
+		LD_ARG(1);
+		for (j = 0; j < nlist; j++) {
+			cmd_idx[ncmd++] = p->len;
+			E_JEQ((uint32_t)list[j], 0, 0); /* jt patched */
+		}
+		RET_EPERM;
+	}
+	allow_idx = p->len;
+	RET_ALLOW;
+
+	/* the last block's fd mismatch -> ALLOW */
+	p->insns[prev_fd_idx].jf =
+	    (uint8_t)(allow_idx - prev_fd_idx - 1);
+	p->insns[nr_idx].jf = (uint8_t)(allow_idx - nr_idx - 1);
+	for (i = 0; i < (int)ncmd; i++)
+		p->insns[cmd_idx[i]].jt =
+		    (uint8_t)(allow_idx - cmd_idx[i] - 1);
+
+	if (allow_idx > 200) {
+		/* 8-bit jump budget exhausted: refuse rather than risk a
+		 * mispatched filter (no real tool gets near this) */
+		errno = ENOSPC;
+		return -1;
+	}
+	return seccomp_load(p);
+}
+
+/*
+ * Flush the pre-enter registry: one fd-rights filter (chunked), one
+ * ioctl filter, one fcntl filter, instead of 1-3 stacked filters per
+ * limit call.
+ */
+static int
+flush_registered_limits(void)
+{
+	struct deny_ent ents[FLUSH_CHUNK];
+	size_t n = 0;
+	int i;
+
+	for (i = 0; i < nfd_limits; i++) {
+		int fd = fd_limits[i].fd;
+		uint64_t d = fd_limits[i].deny;
+
+#define ADD(syscall_nr, arg_idx) do { \
+		ents[n].nr = (syscall_nr); \
+		ents[n].argn = (arg_idx); \
+		ents[n].fd = (fd); \
+		if (++n == FLUSH_CHUNK) { \
+			if (install_entry_chunk(ents, n) < 0) \
+				return -1; \
+			n = 0; \
+		} \
+	} while (0)
+
+		if (d & LDENY_RD) {
+#ifdef SYS_read
+			ADD(SYS_read, 0);
+#endif
+#ifdef SYS_readv
+			ADD(SYS_readv, 0);
+#endif
+#ifdef SYS_pread64
+			ADD(SYS_pread64, 0);
+#endif
+#ifdef SYS_preadv
+			ADD(SYS_preadv, 0);
+#endif
+#ifdef SYS_preadv2
+			ADD(SYS_preadv2, 0);
+#endif
+		}
+		if (d & LDENY_WR) {
+#ifdef SYS_write
+			ADD(SYS_write, 0);
+#endif
+#ifdef SYS_writev
+			ADD(SYS_writev, 0);
+#endif
+#ifdef SYS_pwrite64
+			ADD(SYS_pwrite64, 0);
+#endif
+#ifdef SYS_pwritev
+			ADD(SYS_pwritev, 0);
+#endif
+#ifdef SYS_pwritev2
+			ADD(SYS_pwritev2, 0);
+#endif
+		}
+		if (d & LDENY_SEEK) {
+#ifdef SYS_lseek
+			ADD(SYS_lseek, 0);
+#endif
+#ifdef SYS__llseek
+			ADD(SYS__llseek, 0);
+#endif
+		}
+		if (d & LDENY_TRUNC) {
+#ifdef SYS_ftruncate
+			ADD(SYS_ftruncate, 0);
+#endif
+#ifdef SYS_ftruncate64
+			ADD(SYS_ftruncate64, 0);
+#endif
+		}
+		if (d & LDENY_FSYNC) {
+#ifdef SYS_fsync
+			ADD(SYS_fsync, 0);
+#endif
+#ifdef SYS_fdatasync
+			ADD(SYS_fdatasync, 0);
+#endif
+		}
+		if (d & LDENY_SHUT) {
+#ifdef SYS_shutdown
+			ADD(SYS_shutdown, 0);
+#endif
+		}
+		if (d & LDENY_MMAP) {
+#ifdef SYS_mmap
+			ADD(SYS_mmap, 4);
+#endif
+#ifdef SYS_mmap2
+			ADD(SYS_mmap2, 4);
+#endif
+		}
+	}
+#undef ADD
+	if (n > 0 && install_entry_chunk(ents, n) < 0)
+		return -1;
+
+#ifdef SYS_ioctl
+	if (install_arg1_limits(SYS_ioctl, 0) < 0)
+		return -1;
+#endif
+#if defined(SYS_fcntl)
+	if (install_arg1_limits(SYS_fcntl, 1) < 0)
+		return -1;
+#elif defined(SYS_fcntl64)
+	if (install_arg1_limits(SYS_fcntl64, 1) < 0)
+		return -1;
+#endif
+	return 0;
+}
+
 int
 caph_ioctls_limit(int fd, const unsigned long *cmds, size_t ncmds)
 {
 	long allowed[16];
 	size_t i, n;
+	struct fd_limit *L;
 
 	if (sandbox_disabled())
 		return 0;
 	n = ncmds < 16 ? ncmds : 16;
 	for (i = 0; i < n; i++)
 		allowed[i] = (long)cmds[i];
+	if (!sandbox_entered) {
+		L = lim_find(fd);
+		if (L == NULL) {
+			errno = ENOSPC;
+			return -1;
+		}
+		return lim_merge(L->ioctls, &L->nioctls, allowed, n);
+	}
 #ifdef SYS_ioctl
 	return limit_fd_arg1(fd, SYS_ioctl, allowed, n);
 #else
@@ -742,6 +1070,7 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 {
 	long allowed[6];
 	size_t n = 0;
+	struct fd_limit *L;
 
 	if (sandbox_disabled())
 		return 0;
@@ -751,6 +1080,14 @@ caph_fcntls_limit(int fd, uint32_t fcntlrights)
 		allowed[n++] = F_GETFL;
 	if (fcntlrights & CAP_FCNTL_SETFL)
 		allowed[n++] = F_SETFL;
+	if (!sandbox_entered) {
+		L = lim_find(fd);
+		if (L == NULL) {
+			errno = ENOSPC;
+			return -1;
+		}
+		return lim_merge(L->fcntls, &L->nfcntls, allowed, n);
+	}
 #if defined(SYS_fcntl)
 	return limit_fd_arg1(fd, SYS_fcntl, allowed, n);
 #elif defined(SYS_fcntl64)
@@ -812,6 +1149,49 @@ caph_rights_limit(int fd, const cap_rights_t *rights)
 		if (lookup_nfds < (int)(sizeof(lookup_fds) /
 		    sizeof(lookup_fds[0])))
 			lookup_fds[lookup_nfds++] = fd;
+	}
+
+	/*
+	 * Pre-enter: accumulate into the registry; the filters are built
+	 * once, at enter time.  Post-enter: install immediately below.
+	 */
+	if (!sandbox_entered) {
+		struct fd_limit *L = lim_find(fd);
+		long safe_l[8];
+		size_t nsafe, si;
+
+		if (L == NULL) {
+			errno = ENOSPC;
+			return -1;
+		}
+		if ((rights->mask & CAP_READ) == 0)
+			L->deny |= LDENY_RD;
+		if ((rights->mask & (CAP_WRITE | CAP_PWRITE)) == 0)
+			L->deny |= LDENY_WR;
+		if ((rights->mask & CAP_SEEK) == 0)
+			L->deny |= LDENY_SEEK;
+		if ((rights->mask & CAP_FTRUNCATE) == 0)
+			L->deny |= LDENY_TRUNC;
+		if ((rights->mask & CAP_FSYNC) == 0)
+			L->deny |= LDENY_FSYNC;
+		if ((rights->mask & CAP_SHUTDOWN) == 0)
+			L->deny |= LDENY_SHUT;
+		if ((rights->mask & CAP_MMAP_R) == 0)
+			L->deny |= LDENY_MMAP;
+		if ((rights->mask & CAP_IOCTL) == 0) {
+			nsafe = sizeof(safe_ioctls) / sizeof(safe_ioctls[0]);
+			for (si = 0; si < nsafe; si++)
+				safe_l[si] = (long)safe_ioctls[si];
+			lim_merge(L->ioctls, &L->nioctls, safe_l, nsafe);
+		}
+		if ((rights->mask & CAP_FCNTL) == 0) {
+			safe_l[0] = F_GETFD;
+			safe_l[1] = F_SETFD;
+			safe_l[2] = F_GETFL;
+			safe_l[3] = F_SETFL;
+			lim_merge(L->fcntls, &L->nfcntls, safe_l, 4);
+		}
+		return 0;
 	}
 
 #define ENT(sysno) do { ents[n].nr = (sysno); ents[n].argn = 0; n++; } while (0)
@@ -973,6 +1353,8 @@ enter_mode(int mode)
 		return -1;
 	if (install_namespace_filter(mode) < 0)
 		return -1;
+	if (flush_registered_limits() < 0)
+		return -1;
 	sandbox_entered = 1;
 	return 0;
 }
@@ -996,6 +1378,35 @@ caph_enter_casper(void)
 	if (!sandbox_disabled())
 		openlog(NULL, LOG_NDELAY, LOG_USER);
 	return enter_mode(MODE_CASPER);
+}
+
+int
+caph_allow_path(const char *path)
+{
+	int fd;
+
+	if (sandbox_disabled())
+		return 0;
+	if (sandbox_entered) {
+		errno = ENOSYS;
+		return -1;
+	}
+	fd = open(path, O_RDONLY | O_DIRECTORY);
+	if (fd < 0)
+		return -1;
+	if (nallow_fds == (int)(sizeof(allow_fds) / sizeof(allow_fds[0]))) {
+		(void)close(fd);
+		errno = ENOSPC;
+		return -1;
+	}
+	allow_fds[nallow_fds++] = fd;
+	return 0;
+}
+
+int
+caph_enter_paths(void)
+{
+	return enter_mode(MODE_PATHS);
 }
 
 void
