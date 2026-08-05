@@ -717,7 +717,7 @@ const dbcompat_sources = [_][]const u8{
 };
 
 const libfetch_sources = [_][]const u8{
-    "fetch.c", "common.c", "ftp.c", "http.c", "file.c",
+    "fetch.c", "common.c", "ftp.c", "http.c", "file.c", "sandbox.c",
 };
 
 const m4_sources = [_][]const u8{

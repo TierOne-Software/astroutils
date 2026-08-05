@@ -25,7 +25,8 @@ libfetch_inc = include_directories('.')
 
 libfetch = static_library(
     'libfetch',
-    ['fetch.c', 'common.c', 'ftp.c', 'http.c', 'file.c', ftperr_h, httperr_h],
+    ['fetch.c', 'common.c', 'ftp.c', 'http.c', 'file.c', 'sandbox.c',
+     ftperr_h, httperr_h],
     include_directories: [inc, cinc, libfetch_inc],
     dependencies: [libssl, libcrypto],
     link_with: [libcompat],

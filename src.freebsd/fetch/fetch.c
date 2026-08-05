@@ -47,6 +47,7 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <capsicum_helpers.h>
 #include <fetch.h>
 
 #define MINBUFSIZE	16384
@@ -1176,6 +1177,34 @@ main(int argc, char *argv[])
 	if (N_filename != NULL)
 		if (setenv("NETRC", N_filename, 1) == -1)
 			err(1, "setenv: cannot set NETRC=%s", N_filename);
+
+	/*
+	 * Enter the sandbox: the network goes through the broker and the
+	 * filesystem is confined to cwd (+ TMPDIR), so register any
+	 * -o output directory first.
+	 */
+	if (o_flag && !o_stdout) {
+		if (o_directory) {
+			if (caph_allow_path(o_filename) < 0)
+				err(1, "cannot enter sandbox");
+		} else if ((s = strrchr(o_filename, '/')) != NULL) {
+			if (s == o_filename) {
+				if (caph_allow_path("/") < 0)
+					err(1, "cannot enter sandbox");
+			} else {
+				char dirbuf[PATH_MAX];
+
+				if ((size_t)(s - o_filename) >= sizeof(dirbuf))
+					errx(1, "path too long: %s", o_filename);
+				memcpy(dirbuf, o_filename, s - o_filename);
+				dirbuf[s - o_filename] = '\0';
+				if (caph_allow_path(dirbuf) < 0)
+					err(1, "cannot enter sandbox");
+			}
+		}
+	}
+	if (fetch_sandbox_begin(".") < 0)
+		err(1, "cannot enter sandbox");
 
 	while (argc) {
 		if ((p = strrchr(*argv, '/')) == NULL)

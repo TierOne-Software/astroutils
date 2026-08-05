@@ -120,8 +120,10 @@ conn_t		*fetch_reopen(int);
 conn_t		*fetch_ref(conn_t *);
 #ifdef WITH_SSL
 int		 fetch_ssl_cb_verify_crt(int, X509_STORE_CTX*);
+extern SSL_CTX	*fetch_sandbox_ssl_ctx;
 #endif
 int		 fetch_ssl(conn_t *, const struct url *, int);
+void		 fetch_ssl_preload(void);
 ssize_t		 fetch_read(conn_t *, char *, size_t);
 int		 fetch_getln(conn_t *);
 ssize_t		 fetch_write(conn_t *, const char *, size_t);

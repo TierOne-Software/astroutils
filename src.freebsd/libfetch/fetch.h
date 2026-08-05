@@ -127,6 +127,11 @@ FILE		*fetchPut(struct url *, const char *);
 int		 fetchStat(struct url *, struct url_stat *, const char *);
 struct url_ent	*fetchList(struct url *, const char *);
 
+/* sandbox broker (port extension) */
+int		 fetch_sandbox_begin(const char *);
+int		 fetch_sandbox_active(void);
+int		 fetch_sandbox_connect(const char *, int, int);
+
 /* URL parsing */
 struct url	*fetchMakeURL(const char *, const char *, int,
 		     const char *, const char *, const char *);

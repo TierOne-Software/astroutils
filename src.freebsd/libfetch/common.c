@@ -604,6 +604,41 @@ fetch_connect(const char *host, int port, int af, int verbose)
 	DEBUGF("---> %s:%d\n", host, port);
 
 	/*
+	 * Brokered mode (fetch_sandbox_begin): all connects go through
+	 * the broker process, which also resolves.  SOCKS setup stays
+	 * in-process (it is parser code and belongs in the sandbox).
+	 */
+	if (fetch_sandbox_active()) {
+		sockshost = NULL;
+		if (!fetch_socks5_getenv(&sockshost, &socksport))
+			return (NULL);
+		sd = fetch_sandbox_connect(
+		    sockshost != NULL ? sockshost : host,
+		    sockshost != NULL ? socksport : port, af);
+		if (sd < 0) {
+			if (sockshost != NULL)
+				socks5_seterr(SOCKS5_ERR_CONN_REFUSED);
+			else
+				fetch_syserr();
+			free(sockshost);
+			return (NULL);
+		}
+		if ((conn = fetch_reopen(sd)) == NULL) {
+			fetch_syserr();
+			free(sockshost);
+			return (NULL);
+		}
+		if (sockshost != NULL &&
+		    !fetch_socks5_init(conn, host, port, verbose)) {
+			fetch_close(conn);
+			free(sockshost);
+			return (NULL);
+		}
+		free(sockshost);
+		return (conn);
+	}
+
+	/*
 	 * Check if SOCKS5_PROXY env variable is set.  fetch_socks5_getenv
 	 * will either set sockshost = NULL or allocate memory in all cases.
 	 */
@@ -1173,6 +1208,41 @@ fetch_ssl_cb_verify_crt(int verified, X509_STORE_CTX *ctx)
 /*
  * Enable SSL on a connection.
  */
+#ifdef WITH_SSL
+SSL_CTX *fetch_sandbox_ssl_ctx;
+
+/*
+ * Load all TLS trust material (CA certs, client certs) into a
+ * template context while the filesystem is still available; called by
+ * fetch_sandbox_begin() before entering the sandbox.  fetch_ssl()
+ * reuses it instead of hitting disk.
+ */
+void
+fetch_ssl_preload(void)
+{
+	SSL_CTX *ctx;
+
+	if (fetch_sandbox_ssl_ctx != NULL)
+		return;
+	ctx = SSL_CTX_new(TLS_client_method());
+	if (ctx == NULL)
+		return;
+	SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY);
+	fetch_ssl_setup_transport_layer(ctx, 0);
+	if (!fetch_ssl_setup_peer_verification(ctx, 0) ||
+	    !fetch_ssl_setup_client_certificate(ctx, 0)) {
+		SSL_CTX_free(ctx);
+		return;
+	}
+	fetch_sandbox_ssl_ctx = ctx;
+}
+#else
+void
+fetch_ssl_preload(void)
+{
+}
+#endif
+
 int
 fetch_ssl(conn_t *conn, const struct url *URL, int verbose)
 {
@@ -1181,18 +1251,29 @@ fetch_ssl(conn_t *conn, const struct url *URL, int verbose)
 	X509_NAME *name;
 	char *str;
 
-	if ((conn->ssl_ctx = SSL_CTX_new(TLS_client_method())) == NULL) {
+	if (fetch_sandbox_ssl_ctx != NULL) {
+		/* preloaded before entering the sandbox; certs are in memory */
+		conn->ssl_ctx = fetch_sandbox_ssl_ctx;
+		SSL_CTX_up_ref(conn->ssl_ctx);
+	} else {
+		conn->ssl_ctx = SSL_CTX_new(TLS_client_method());
+	}
+	if (conn->ssl_ctx == NULL) {
 		fetch_info("SSL context creation failed");
 		ERR_print_errors_fp(stderr);
 		return (-1);
 	}
 	SSL_CTX_set_mode(conn->ssl_ctx, SSL_MODE_AUTO_RETRY);
 
-	fetch_ssl_setup_transport_layer(conn->ssl_ctx, verbose);
-	if (!fetch_ssl_setup_peer_verification(conn->ssl_ctx, verbose))
-		return (-1);
-	if (!fetch_ssl_setup_client_certificate(conn->ssl_ctx, verbose))
-		return (-1);
+	if (fetch_sandbox_ssl_ctx == NULL) {
+		fetch_ssl_setup_transport_layer(conn->ssl_ctx, verbose);
+		if (!fetch_ssl_setup_peer_verification(conn->ssl_ctx,
+		    verbose))
+			return (-1);
+		if (!fetch_ssl_setup_client_certificate(conn->ssl_ctx,
+		    verbose))
+			return (-1);
+	}
 
 	conn->ssl = SSL_new(conn->ssl_ctx);
 	if (conn->ssl == NULL) {

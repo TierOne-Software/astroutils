@@ -1245,7 +1245,8 @@
     "common.c",
     "ftp.c",
     "http.c",
-    "file.c"
+    "file.c",
+    "sandbox.c"
    ],
    "c_args": [
     "-DFTP_COMBINE_CWDS",
