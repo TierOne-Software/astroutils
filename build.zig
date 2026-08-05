@@ -170,8 +170,8 @@ pub fn build(b: *std.Build) !void {
         .PROJECT_VERSION = "15.1.0",
     });
 
-    // worst case: base + selinux + 2 Wno + 5 harden + 3 prod-sanitize
-    var gflags_buf: [global_c_flags.len + 11][]const u8 = undefined;
+    // worst case: base + selinux + 2 Wno + 7 harden + 3 prod-sanitize
+    var gflags_buf: [global_c_flags.len + 13][]const u8 = undefined;
     var gflags_len: usize = global_c_flags.len;
     @memcpy(gflags_buf[0..global_c_flags.len], &global_c_flags);
     if (deps.selinux) {
@@ -194,6 +194,18 @@ pub fn build(b: *std.Build) !void {
             "-U_FORTIFY_SOURCE",
             "-D_FORTIFY_SOURCE=3",
         }) |f| {
+            gflags_buf[gflags_len] = f;
+            gflags_len += 1;
+        }
+        // Control-flow protection, per architecture.  Executables are
+        // PIE (exe.pie above) and zig links with full RELRO + BIND_NOW
+        // by default (link_z_relro/link_z_lazy).
+        const cf_flag: ?[]const u8 = switch (target.result.cpu.arch) {
+            .x86_64 => "-fcf-protection=full",
+            .aarch64 => "-mbranch-protection=standard",
+            else => null,
+        };
+        if (cf_flag) |f| {
             gflags_buf[gflags_len] = f;
             gflags_len += 1;
         }
@@ -344,6 +356,7 @@ pub fn build(b: *std.Build) !void {
         m.addIncludePath(y.h.dirname());
         m.addConfigHeader(config_compat);
         const exe = b.addExecutable(.{ .name = "expr", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     } else skip(b, "expr", "byacc not found");
 
@@ -362,6 +375,7 @@ pub fn build(b: *std.Build) !void {
         m.linkLibrary(libcompat);
         m.linkSystemLibrary("m", .{});
         const exe = b.addExecutable(.{ .name = "m4", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     } else skip(b, "m4", "byacc/flex not found");
 
@@ -384,6 +398,7 @@ pub fn build(b: *std.Build) !void {
         m.linkLibrary(libutil);
         m.linkSystemLibrary(acl_lib, .{});
         const exe = b.addExecutable(.{ .name = "find", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     } else skip(b, "find", "byacc not found");
 
@@ -410,6 +425,7 @@ pub fn build(b: *std.Build) !void {
         m.addConfigHeader(config_compat);
         m.linkSystemLibrary("m", .{});
         const exe = b.addExecutable(.{ .name = "awk", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     } else skip(b, "awk", "byacc not found");
 
@@ -478,6 +494,7 @@ pub fn build(b: *std.Build) !void {
         m.linkLibrary(libcompat);
         if (deps.edit) m.linkSystemLibrary("edit", .{});
         const exe = b.addExecutable(.{ .name = "sh", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     }
 
@@ -528,6 +545,7 @@ pub fn build(b: *std.Build) !void {
         m.linkLibrary(libdbcompat);
         m.linkSystemLibrary(deps.ncurses.?, .{});
         const exe = b.addExecutable(.{ .name = "vi", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     } else skip(b, "vi", "ncurses not found");
 
@@ -541,6 +559,7 @@ pub fn build(b: *std.Build) !void {
         m.addIncludePath(b.path("include"));
         m.addConfigHeader(config_compat);
         const exe = b.addExecutable(.{ .name = "stdbuf", .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     }
 
@@ -643,6 +662,7 @@ pub fn build(b: *std.Build) !void {
         }
 
         const exe = b.addExecutable(.{ .name = t.name, .root_module = m });
+        exe.pie = harden;
         b.installArtifact(exe);
     }
 

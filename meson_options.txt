@@ -57,3 +57,8 @@ option('selinux',
     type: 'feature', value: 'auto',
     description: 'Whether to enable SELinux awareness'
 )
+
+option('prod_sanitize',
+    type: 'boolean', value: false,
+    description: 'Enable trap-mode bounds/object-size sanitizers (clang)'
+)

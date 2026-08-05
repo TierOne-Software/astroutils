@@ -6,7 +6,8 @@ project(
         'c_std=c99',
         'cpp_rtti=false',
         'warning_level=2',
-        'buildtype=debugoptimized'
+        'buildtype=debugoptimized',
+        'b_pie=true'
     ],
     license: 'BSD-3-Clause',
     meson_version: '>=0.61'
@@ -27,6 +28,13 @@ cpp = meson.get_compiler('cpp')
 add_global_arguments(['-Wno-unused-result'], language: ['c', 'cpp'])
 
 # Hardening flags (where supported)
+#
+# Note: -fstrict-flex-arrays=3 is deliberately absent.  This tree is
+# full of old-style trailing arrays (char buf[1] at the end of a struct,
+# over-allocated); any strict level makes __builtin_object_size treat
+# those as fixed, and _FORTIFY_SOURCE then aborts on ordinary commands
+# (ls -l) and zig's ReleaseSafe bounds checks trap.  It can only be
+# adopted together with the __counted_by trailing-array audit.
 foreach f: [
     '-fstack-protector-strong',
     '-fstack-clash-protection',
@@ -37,6 +45,42 @@ foreach f: [
         add_global_arguments(f, language: ['c', 'cpp'])
     endif
 endforeach
+
+# Full RELRO (partial RELRO is the toolchain default already)
+if cc.has_link_argument('-Wl,-z,now')
+    add_global_link_arguments('-Wl,-z,now', language: ['c', 'cpp'])
+    # build-time generators too, so the hardening check stays uniform
+    add_global_link_arguments('-Wl,-z,now', language: ['c', 'cpp'], native: true)
+endif
+
+# Control-flow protection, per architecture
+if host_machine.cpu_family() == 'x86_64'
+    if cc.has_argument('-fcf-protection=full')
+        add_global_arguments('-fcf-protection=full', language: ['c', 'cpp'])
+    endif
+elif host_machine.cpu_family() == 'aarch64'
+    if cc.has_argument('-mbranch-protection=standard')
+        add_global_arguments('-mbranch-protection=standard', language: ['c', 'cpp'])
+    endif
+endif
+
+# Production trap-mode UB checks (clang only; opt-in)
+if get_option('prod_sanitize')
+    trap_flags = [
+        '-fsanitize=bounds,object-size',
+        '-fsanitize-minimal-runtime',
+        '-fsanitize-trap=bounds,object-size',
+    ]
+    if cc.has_multi_arguments(trap_flags)
+        add_global_arguments(trap_flags, language: ['c', 'cpp'])
+        add_global_link_arguments(
+            ['-fsanitize=bounds,object-size', '-fsanitize-minimal-runtime'],
+            language: ['c', 'cpp']
+        )
+    else
+        error('prod_sanitize requires clang (-fsanitize=bounds,object-size)')
+    endif
+endif
 
 # Avoid a pointless warning in some programs
 if cc.has_argument('-Wstring-plus-int')

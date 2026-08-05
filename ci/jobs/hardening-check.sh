@@ -130,26 +130,25 @@ else
     printf 'ok: fortified entry points present on %s/%s\n' "$n_fortify" "$total"
 fi
 
-# --- roadmap (PLAN.md P3) ---------------------------------------------
+# --- enforced: PIE / RELRO / BIND_NOW (landed in P3) -------------------
 
-report_or_fail() {
+require_all() {
     _label=$1; _have=$2; _missing=$3
     if [ "$_have" -eq "$total" ]; then
         printf 'ok: %s on all %s\n' "$_label" "$total"
-        return
-    fi
-    if [ "$HARDENING_STRICT" = "1" ]; then
+    else
         printf 'FAIL: %s missing on %s binaries:%s\n' \
             "$_label" "$((total - _have))" "$(printf '%s' "$_missing" | cut -c1-200)"
         status=1
-    else
-        printf 'TODO: %s missing on %s binaries (PLAN.md P3; set HARDENING_STRICT=1 to enforce)\n' \
-            "$_label" "$((total - _have))"
     fi
 }
 
-report_or_fail "PIE" "$n_pie" "$no_pie"
-report_or_fail "RELRO" "$n_relro" "$no_relro"
-report_or_fail "BIND_NOW" "$n_now" "$no_now"
+require_all "PIE" "$n_pie" "$no_pie"
+require_all "RELRO" "$n_relro" "$no_relro"
+require_all "BIND_NOW" "$n_now" "$no_now"
+
+# --- roadmap -----------------------------------------------------------
+# Future mitigations land here first: reported as TODO, enforced under
+# HARDENING_STRICT=1, then moved to require_all above once adopted.
 
 exit $status
