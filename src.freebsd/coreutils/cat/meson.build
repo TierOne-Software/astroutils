@@ -3,6 +3,7 @@ cat_prog = executable(
     [ 'cat.c' ],
     include_directories : inc,
     c_args : '-DNO_UDOM_SUPPORT',
+    link_with : libcompat,
     install : true,
 )
 

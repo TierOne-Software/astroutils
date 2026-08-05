@@ -3,6 +3,7 @@ wc_prog = executable(
     [ 'wc.c' ],
     include_directories : [ inc, ],
     dependencies : [ libxo ],
+    link_with : libcompat,
     install : true,
 )
 

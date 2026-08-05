@@ -3,6 +3,7 @@ logger_prog = executable(
     ['logger.c'],
     include_directories: [inc],
     c_args: ['-DINET6'],
+    link_with : libcompat,
     install: true,
 )
 

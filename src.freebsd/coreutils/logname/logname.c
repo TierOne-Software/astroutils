@@ -43,13 +43,18 @@ main(int argc, char *argv[] __unused)
 {
 	char *p;
 
+	/*
+	 * getlogin() opens the utmp database by path, which the sandbox
+	 * forbids; call it before entering (it has no sandboxed state).
+	 */
+	if ((p = getlogin()) == NULL)
+		err(1, NULL);
+
 	if (caph_limit_stdio() < 0 || caph_enter() < 0)
 		err(1, "capsicum");
 
 	if (argc != 1)
 		usage();
-	if ((p = getlogin()) == NULL)
-		err(1, NULL);
 	(void)printf("%s\n", p);
 	exit(0);
 }
