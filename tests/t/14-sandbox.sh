@@ -69,4 +69,47 @@ if have cat; then
 beta" env ASTROUTILS_SANDBOX=NONE "$(tool cat)" input.txt
 fi
 
+group "capsicum shim: patch(1) path-scoped mode"
+
+enforced=1
+[ "$sandbox_available" = 0 ] && enforced=0
+[ "${ASTROUTILS_SANDBOX:-}" = "NONE" ] && enforced=0
+
+if [ "$enforced" = 0 ]; then
+    skip "patch path-scoped mode" "sandbox not enforcing on this runtime"
+elif require "patch" patch; then
+    mkdir -p ptest ptest/tmp
+    printf 'alpha\nbeta\n' > ptest/f.txt
+    cat > ptest/ch.diff <<'EOF'
+--- f.txt.orig	2020-01-01
++++ f.txt	2020-01-01
+@@ -1,2 +1,2 @@
+ alpha
+-beta
++GAMMA
+EOF
+    assert_ok "sandboxed patch applies a patch" \
+        sh -c "cd ptest && TMPDIR=\$PWD/tmp $(tool patch) f.txt < ch.diff"
+    assert_out "patch result correct" "alpha
+GAMMA" "$(tool cat)" ptest/f.txt
+
+    # hostile: an absolute target path outside the allowed roots
+    cat > ptest/evil.diff <<'EOF'
+--- /dev/null	2020-01-01
++++ ../escape-marker.txt	2020-01-01
+@@ -0,0 +1 @@
++pwned
+EOF
+    (
+        cd ptest && TMPDIR="$PWD/tmp" \
+            "$(tool patch)" -t -p0 < evil.diff >/dev/null 2>&1
+    )
+    if [ -e escape-marker.txt ]; then
+        fail "path escape blocked" "escape-marker.txt was created"
+        rm -f escape-marker.txt
+    else
+        pass "path escape blocked"
+    fi
+fi
+
 cu_finish

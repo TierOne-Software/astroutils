@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+#include <capsicum_helpers.h>
 #include <ctype.h>
 #include <getopt.h>
 #include <limits.h>
@@ -216,6 +217,18 @@ main(int argc, char *argv[])
 
 	/* make sure we clean up /tmp in case of disaster */
 	set_signals(0);
+
+	/*
+	 * Everything from here on touches only the already-open patch
+	 * file, the target tree (cwd, after any -d chdir), and the
+	 * temporary files in tmpdir.  Confine the process to exactly
+	 * that: read/write beneath those two directories, no exec, no
+	 * sockets.
+	 */
+	if (caph_allow_path(".") < 0 ||
+	    caph_allow_path(tmpdir) < 0 ||
+	    caph_enter_paths() < 0)
+		fatal("cannot enter sandbox\n");
 
 	patch_seen = false;
 	for (open_patch_file(filearg[1]); there_is_another_patch();
