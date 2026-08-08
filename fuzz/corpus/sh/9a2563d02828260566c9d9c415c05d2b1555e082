@@ -1,0 +1,12 @@
+cat <<EOF
+lin wi
+EOF
+cat <<- 'END'
+	indentded
+	END
+tFFFFFFFFFFFFFFFFho FFFFFFFFFF
+cat <<- 'END'
+	i&ndanted $Íotexpanded
+	END
+F <<-FFubs`
+EOF1

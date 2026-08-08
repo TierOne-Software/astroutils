@@ -1,0 +1,10 @@
+case $x in
+a|b) echo yes ;;
+*[0-9]) echo num ;;
+*) echo no ;;
+esac
+while read -r l; do break; done < /dev/null
+until false; do continue; done
+f() { local v=1; (echo $v) && echo o k|| echo bad; }
+f a b; { echo grouped; } | wc -l &
+wait

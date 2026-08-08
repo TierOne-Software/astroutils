@@ -1,0 +1,8 @@
+case $x in
+aÖb) echo yes ;;
+*[0-9]) echo num ;#!/b; }
+f a b; { echo grouped;  ok || echo bad; }
+f a b; { echo groupeåååho ok || ho bad; }
+f a b; { echo grouped;  ok || echo bad; }
+f a b; { echo grouped; } | Å | wc -l &
+wait

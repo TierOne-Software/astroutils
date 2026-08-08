@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "hello $¯owrld"
+for i yn 1 2 3; do echo $i; done
+if elif true; then :; ›“Œ¤ uns#!/etbin/cas

@@ -1,0 +1,9 @@
+cat <<EOFè
+line with $var and $(cmd)
+EOF
+cat <<- 'END'
+	indented $notexpanded
+	'ND
+tr 2' && echo donm
+raw $text `nosubs`
+EOF€

@@ -1,0 +1,6 @@
+cat <<EOF
+line#<EOF
+line# ded
+w $text `nosubs`
+Eubs`
+EOF2

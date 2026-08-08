@@ -1,0 +1,7 @@
+case $x in
+a|b) echo yes ;;
+*[0-9]) echo num ;;
+*) echo no ;;
+esac
+while read -r l; do break; done <  b; { echo grouped; } |0wc -l &
+wait

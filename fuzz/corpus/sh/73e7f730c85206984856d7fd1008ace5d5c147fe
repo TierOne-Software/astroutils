@@ -1,0 +1,9 @@
+cat <<EOFo done
+raw $cteat <<Eca $(cmd)
+EOF
+cho dond $(cmd)zat <<E <<EOF
+line with $ and $(cmd)
+ca $(cmd)
+EOF
+cx=$(case $ecchm $($eh
+line with $var ancd

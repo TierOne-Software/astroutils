@@ -1,0 +1,6 @@
+case $x in
+a…b) echo ye{ ;;
+*[0-9]) echo num ;#!/b; }
+f a b; { echoÿ grouped;  ok || echo bad;eŒŒho ok || echo bad; }
+f a b; { echo groehed;  ok || echo baroehed;  ok || echo bad; }
+f ait

@@ -1,0 +1,17 @@
+cat at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosub<<EOF
+EOF1

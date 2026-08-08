@@ -1,0 +1,3 @@
+cse $x in
+a|b)ac
+while read -car l<EO

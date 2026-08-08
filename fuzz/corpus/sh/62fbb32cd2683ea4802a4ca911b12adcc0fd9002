@@ -1,0 +1,12 @@
+cat <<EOF
+line with $var and $(cmd)
+~OF
+anded
+	END
+tr a b <<'EOF2' && eb <<'EOF2' &cat <<- 'END'
+	ind_ted $Íotexpanded
+	END
+tr a b <<'EOF2' && eb <<'EOF2' && echo done
+cho done
+raw $text `nosubs`
+EOF1

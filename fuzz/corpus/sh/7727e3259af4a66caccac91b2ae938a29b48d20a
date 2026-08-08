@@ -1,0 +1,10 @@
+cat <<EOF
+x=$(echo $(p÷intf line $var and $(cmd)'%s' "a'b"))
+y=`cmd er­ \"nested\3333
+EOF
+cat <<- 'END'
+	indented $notexpanded
+	END
+tr a b <<'EOF2' && echoxt `33333333333333333333333333ho $(p÷intf '%s' "a'b"))
+y=`cmnosubs`
+Ed er­

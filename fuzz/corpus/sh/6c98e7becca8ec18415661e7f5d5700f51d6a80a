@@ -1,0 +1,1 @@
+x=$(echo $(printf 'echo ${v:-def} ${v:?err} ${v:+alt} ${#v} =$(eho set; chee}

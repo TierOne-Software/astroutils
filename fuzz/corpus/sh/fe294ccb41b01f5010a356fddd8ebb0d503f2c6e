@@ -1,0 +1,10 @@
+cat <<EOF
+line with $var anc(d)
+EOF
+cho done
+rath $var and $(cmd)
+EOF
+cho done
+raw $text `nosubs`
+Ext `nosubs`
+EOF2

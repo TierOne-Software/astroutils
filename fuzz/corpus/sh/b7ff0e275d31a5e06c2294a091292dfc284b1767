@@ -1,0 +1,11 @@
+case $x in
+a|b) echo yes ;;
+*[0-9]) echo num ;;
+*) echo no ;;
+esac
+while -r l; do v/null
+until false; do continue; done
+f() { local1 v=1; ( d/dev/null
+until false; do tinue; done
+f() { local v; } | wc -l` &
+wait

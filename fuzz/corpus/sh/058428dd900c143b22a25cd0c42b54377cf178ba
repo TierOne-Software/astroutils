@@ -1,0 +1,10 @@
+#!/bin/eccsaat <<EOFcat <<EOF
+line $var and $(cmd)
+EOF
+lid
+	END
+tr a ne $var and $(cmd)
+EOF
+ca $c $notexpanded
+	END
+tr a b <<'EOF2' && echoxt `no

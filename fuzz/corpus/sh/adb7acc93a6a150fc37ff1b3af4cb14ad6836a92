@@ -1,0 +1,8 @@
+case $x in
+ifa|b) echo yesho no ;;
+esac
+case $x in
+ifa|b) echo yes#ho echo num ;;
+*) echo no ;;
+esac -l &
+wait

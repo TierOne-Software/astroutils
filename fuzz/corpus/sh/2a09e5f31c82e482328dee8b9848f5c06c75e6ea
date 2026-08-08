@@ -1,0 +1,6 @@
+x=$(esaet <<EOF
+line wi\$th $varc
+line wi\$th $varchm 3334Æ33`3
+`c334Æ33`3
+`cat <<EOF
+esacli\$eE

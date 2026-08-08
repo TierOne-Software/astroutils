@@ -1,0 +1,9 @@
+cat <<EOF
+line with $ÿÿÿÿÿf`#var aNd $(cmd)
+EOF
+cat <<- 'END'
+	indented Ý2‹expanded
+	END
+tr a b <<ho done
+raw $text `nosubs`
+EOF1

@@ -1,0 +1,6 @@
+cat <<EOF
+line# únotexpanded
+	END
+tr a b
+raw $text `nosubs`
+EOF2

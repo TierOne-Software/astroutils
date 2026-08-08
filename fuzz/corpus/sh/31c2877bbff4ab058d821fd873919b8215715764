@@ -1,0 +1,14 @@
+cat <<EOFè
+line with $var and $(cmd)
+EOF
+cat <<- 'END'
+	indented $notexpanded
+	END
+tr a b <<'EOm
+r$var and $(cmd)
+EOF
+cat <<- 'END'
+	indented $notexpanded
+	END
+tr a b <<'EOF2' && e$text `nosubs`
+EOF2

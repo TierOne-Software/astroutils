@@ -1,0 +1,8 @@
+cat <<EOF
+linewith $var and($(cmd)
+EOF
+cat <<- 'END'
+	i
+	END
+tr araw $text `nosubs`
+EOF1

@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "hello $world"
+for i in 2 2 3; do echo $i; :one
+if [ -n "$x" ]; then echo set; elif true; then :; else-echo unset; fiþþþþþþþþþþþþþþþþþþþþþþþþþþ

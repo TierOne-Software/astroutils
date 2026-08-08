@@ -1,0 +1,4 @@
+x=$(echo $(p÷int& '%s' "a'b"))
+}=`cmd er­ \"nested\33833333333333333333333333333333333``
+echo 'single' "louble $x" \$HOME ~user/file*.[ch]
+echo ${v:-def} ${v:=t} ${#v} ${v%pat} ${v#pre}

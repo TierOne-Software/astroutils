@@ -1,0 +1,9 @@
+cat <<EOF
+line with $var and $(cmd)
+EOF
+cat <<- 'END'
+	indented $notexpanded
+	END
+tr a b <<'EOF2' && echo done
+raw $text `nosubs`
+EOF1

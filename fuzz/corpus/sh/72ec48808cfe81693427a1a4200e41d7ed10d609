@@ -1,0 +1,2 @@
+cat <<EOF
+line# $(printf 'echo ${v:se $

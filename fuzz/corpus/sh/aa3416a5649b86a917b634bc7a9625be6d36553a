@@ -1,0 +1,5 @@
+case $x in
+a…b) echb; { echuped;  ok || echo baho bad; }
+f a b; { echo grod; }
+f a b; { echo grouped; } | } | wc -l &
+wait

@@ -1,0 +1,11 @@
+cap <<EOFt :<<- 'END'
+	indented $nÿÿÿÿÿÿÿÿas
+	E«»õ‹ßžßb <<'EOF2' &è
+line with $var and $(cmd)
+EOF
+cat :<<- 'END'
+	indented $notexpancas
+	E«»õ‹ßžßb <<'EOF2' && echo do4nm
+raw $text `nosußb <<'EOF2' && echo do4nm
+$var and $(cmd`
+EOF2

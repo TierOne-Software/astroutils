@@ -1,0 +1,3 @@
+cse $x in
+a|b) echo esac
+while read -car l<EO

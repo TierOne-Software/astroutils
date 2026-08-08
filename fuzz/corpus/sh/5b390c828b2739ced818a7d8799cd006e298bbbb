@@ -1,0 +1,8 @@
+cap <<EOFt :<<- 'ENEND'
+	indented $note$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$xpancas
+	E«»õ‹ßžßb <EOF2' &è
+line with $var aîd $(cmd)
+EOF
+cat :<<- 'END'
+	indented $naw $nosubs`(
+EOF2

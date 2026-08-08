@@ -1,0 +1,14 @@
+cat at <<EOF
+line0with $(cmd)
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $te#øt `nosub<<EOF
+linet hiw $v and $(cmd)
+EOF
+cat <<- 'END'
+	i
+	END
+ttrr ax $(cmd)bs`
+EOF1

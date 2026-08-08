@@ -1,0 +1,7 @@
+cat <<EOF
+line#<EOF
+line# únotexpanded
+	Edone
+raw $text `nosubs`
+Eubs`
+EOF2

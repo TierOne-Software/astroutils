@@ -1,0 +1,3 @@
+x=$(echo $(printf '%s' "a'b")c)
+y=`ced arg \"nesteda\``
+echo 'se sing

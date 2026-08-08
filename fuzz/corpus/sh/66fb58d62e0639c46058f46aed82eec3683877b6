@@ -1,0 +1,6 @@
+case $x in
+a|b) echo yes ;;
+*[0-9]) echo num ;;
+*) echo no ;;
+*[1-9]) echo num ;;
+666666666whilt

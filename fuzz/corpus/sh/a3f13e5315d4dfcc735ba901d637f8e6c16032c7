@@ -1,0 +1,11 @@
+cat <<EOF
+line with $var and $(cmd)
+EOF
+cho done
+raw $tecat <<Ecat <<Es
+i; {ith $va $var a $(cmd)
+EOF
+cho done
+raw $text `nosub@`
+Ext `nosbus`
+EOF

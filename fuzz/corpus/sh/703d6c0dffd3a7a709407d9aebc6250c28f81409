@@ -1,0 +1,3 @@
+x=$(¾cat <<EOF
+line wi\$tÄ 
+HOeE

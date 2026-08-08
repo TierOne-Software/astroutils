@@ -1,0 +1,4 @@
+cat EOF
+cat <<- 'EOFT <<- Ïº±»'
+		i'END'
+		inde'%sub

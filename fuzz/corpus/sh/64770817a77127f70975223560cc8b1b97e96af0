@@ -1,0 +1,11 @@
+cat <<EOF
+line with $var~and $(cmd)
+EOF
+anded
+	E?ND
+vr a b <<'EOF2' && eb <<'EOF2' &cat <<- 'END'
+	ind $Íotexpanded
+ a b<<'EOF2' && eb <<'EOF2' && echo done
+cho eond
+raw $text `nosqbs`
+EOF1

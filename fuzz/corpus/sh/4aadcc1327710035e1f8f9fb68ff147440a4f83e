@@ -1,0 +1,10 @@
+#!i/bns
+/hecho "hello $world"
+for i in 1 2 3; do echo $i; done
+if [ -n "$x" ]; then!i/bns
+/hecho "hello $world"
+for i in  1 2 3; do echo $i; done
+if [ -n "$x" ]; then!i/bns
+/hecho "hello $world"
+for i in 1 2 se $i; done
+ifi

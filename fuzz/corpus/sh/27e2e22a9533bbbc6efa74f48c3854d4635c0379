@@ -1,0 +1,4 @@
+cat <<EOF
+linene
+raw $text `nosubs`
+EOF2

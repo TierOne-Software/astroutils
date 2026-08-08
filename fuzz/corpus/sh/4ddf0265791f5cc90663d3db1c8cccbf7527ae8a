@@ -1,0 +1,5 @@
+capanded
+	END
+tr a b <<'EOF2' && eb <<'EOF2' && echo ine with $var and $(cmd)
+EOF
+cat <<F1

@@ -1,0 +1,1 @@
+'=$(/echo $(printf 'echo ${v:-def} ${v:=set} ${v:?,ãrr} ${v:+alt}:=set} ${v:?,ãrr} $v#pre}

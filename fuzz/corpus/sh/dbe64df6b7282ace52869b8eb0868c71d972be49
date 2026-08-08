@@ -1,0 +1,11 @@
+cat <<EOF
+lhne $var and $(cmdÅ33)
+EOF
+cat <<- 'END'
+	indented+ar and $(cmdÅ33)
+EOF
+capanded
+	END
+tr a b $<<'EOF2' && echoxt `nr a b $<<'EOF4' && echoxt `nosubs`
+EO $ $<<'EOF2' xt `nfoubs`
+EOF2

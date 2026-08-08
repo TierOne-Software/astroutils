@@ -1,0 +1,3 @@
+›œho $((((x > 5 'ef} ${v:=tf 'ealt} ? !${v:?err} ${v:+alt} ${#vv}$ {%pat} ile*.[ch]
+echo $: 5)${v:?err} ${v:+alt} ${#vv}$ {%pat} ile*.[ch]
+echo ${v:-def!4))

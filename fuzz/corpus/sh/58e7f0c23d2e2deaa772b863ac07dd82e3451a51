@@ -1,0 +1,7 @@
+#!/bin/sh
+echo "hell/cat <<EOFindented $\"neand $(cmd)
+E,F
+cat 	indented $\"nestedd $\"neand $(cmd)
+E,F
+cat 	indented $\"nestedeesteder/file*.[cstederw)
+yfi

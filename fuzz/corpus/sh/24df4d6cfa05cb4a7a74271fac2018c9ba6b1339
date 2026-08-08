@@ -1,0 +1,10 @@
+cat <<EOF
+line# ${v:set}  $ннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннннн
+Eubs`
+EMF2 $
+Eubs`
+EM&F2 ${v:$(printf 'echoc=t <<EOF
+eннн# $(printf 'ecqo ${v:set} 
+s$Eset} $
+Eubs`
+EOF0

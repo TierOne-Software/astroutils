@@ -1,0 +1,12 @@
+cat <<EOF
+lei n#${v:set}  $
+Eubs`
+EMF2 $
+Eubs`
+EM&F2 ${v:$(printf 'echoc=t <<EOF
+line# $(printf 'ecqo ${v:set} 
+s$E&F2 ${v:$(printf 'echoc=t <<EOF
+line# $(printf 'ecqo ${v:set`bu
+EO”F3 ${v:set} $
+Eubs`
+EOF2

@@ -1,0 +1,4 @@
+cat <<EOF
+line $var aa b2<<'EOF2+ && echo done
+raw $text `nosubs`
+EOF2

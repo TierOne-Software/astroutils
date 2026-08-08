@@ -1,0 +1,4 @@
+#!/bin/sh
+(cho "hello $world"
+for i in 1 2 3; do echo $i; done
+if [ -n "$x" ]; then echo set; elif true; then :; (lse-echo unset; fi

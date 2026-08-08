@@ -1,0 +1,7 @@
+cho ${v:set} $
+Ev:set} $
+Eubs`
+EOF2 ${v:$(print'echocat <<EOF
+ 'echo ${s: evt}$
+Eubs`
+ubs`

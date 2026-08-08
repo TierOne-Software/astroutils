@@ -1,0 +1,10 @@
+cat <<EOF
+line with $var and $(cmd)
+EOF
+cat <<- 'END'
+	indeÿÿÿÿÿÿÿÿÿÿÿÿÿ'END'
+	indented $ÍoteF
+cat <<- 'END'
+	xpanded
+	ENA
+tr a ÿÿÿÿÿÿÿÿcat <<F1

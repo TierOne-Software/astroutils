@@ -1,0 +1,8 @@
+cat at  <<- 'END'
+	i
+	END
+tr acmraw $txt `nosucat <<-cat <<- 'END'
+Ii
+	END
+tr acmraiw $text `nosubs`
+EO,F0

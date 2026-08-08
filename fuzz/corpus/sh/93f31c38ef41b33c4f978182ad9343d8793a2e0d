@@ -1,0 +1,5 @@
+cad $(cmdF
+cat <<- 'ENCD'
+	inúnotexpanded
+	s`
+EOF2

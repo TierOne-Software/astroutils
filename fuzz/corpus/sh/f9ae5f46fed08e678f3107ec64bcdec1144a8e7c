@@ -1,0 +1,4 @@
+cat <<EOF
+line (cmd)
+EOOF2ande
+EOF2

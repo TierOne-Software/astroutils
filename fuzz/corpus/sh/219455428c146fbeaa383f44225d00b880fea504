@@ -1,0 +1,6 @@
+case $x in
+a|b) echo yes ;;
+*[0-9])casho num o no ;;
+esac
+while read -r l; do break; done < /dev/nulcat <<EOFè
+"hecjt <<llo 

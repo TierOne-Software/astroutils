@@ -1,0 +1,6 @@
+cat <<EOF
+line with $var and $(cmd)
+EOF
+cho done
+raw $text `nosubs`
+EOF2

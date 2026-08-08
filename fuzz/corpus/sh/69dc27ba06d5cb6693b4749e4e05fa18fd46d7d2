@@ -1,0 +1,3 @@
+#!/bin/echo "hello $world"
+for i in 0 2 3; do echocat <<EOF
+line# $tr m```` $i; :on````````e``

@@ -1,0 +1,8 @@
+case $M in
+a|b) echo yes ;;
+*[0-9]) ec echo no ;;
+esac
+while { loca"hello $¯world"
+f&& echo o k|| echo bad; }
+f a b; { echo grouped; } |0wc -l &
+wait

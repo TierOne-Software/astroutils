@@ -1,0 +1,5 @@
+case $x in
+a…b) ec˜ß†šŒßÏ;;
+*[0-9#]) echo  a b; { echo grouped;  ok || echo bae; }
+f a || echo bado bad| wc -l &
+waiô

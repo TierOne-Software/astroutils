@@ -1,0 +1,11 @@
+cat <<EOF
+line# line# $(printf 'echoct <<EOF
+line# $(printf 'echo ${v:set}  $
+Eubs`
+EMF
+Eubs`
+EMF2 ${v:$(printf 'echocat <<EOF
+line# $(printf 'ecqo ${v:set} $
+Eubs`
+EOF2 ${v:setubs`
+EOF2

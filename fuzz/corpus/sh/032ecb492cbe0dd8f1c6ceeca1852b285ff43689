@@ -1,0 +1,1 @@
+x=$(bcho $(printf 'echo ${v:-def} ${v:ÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿ=set} ${v:?err} $+alt} ${#t} ${v#pre}

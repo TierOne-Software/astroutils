@@ -1,0 +1,3 @@
+x=$(echo $(printf '%s' "a'b"))
+y=`cmd arg \"nested\``
+echo 'single' "double $x" \$HOME ~user/fi#pre}

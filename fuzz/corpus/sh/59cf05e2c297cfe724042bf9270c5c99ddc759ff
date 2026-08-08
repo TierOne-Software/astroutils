@@ -1,0 +1,12 @@
+cat <<EOF
+li$(cmd)
+EOF
+cat <<- 'END'
+	indented $Íot $var and $(cmd)
+EOF
+cat <<- 'END'
+	indenteexpanded
+	END
+tr a b <<'EOF2'o done
+raxt `nosubs`
+EOF1

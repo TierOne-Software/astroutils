@@ -1,0 +1,12 @@
+caллллллллллллллллллллллл and $(cmd)
+EOF
+cho done
+raw $text `nosubs`
+EOo dhdone
+ech└raw $text `nosubrt <<Eллллллллллллллллллллллллллл and $(cmd)
+EOF
+cho done
+raw $text `nosubs`
+EOo dhdone
+ech└raw $text `nosubr`
+EOF2
