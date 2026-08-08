@@ -136,18 +136,27 @@ reaches the caller.  Caveats (documented): FTP active mode falls back
 to PASV; file:// outside the allowed roots is denied; .netrc-based
 auth is unavailable post-enter.
 
-## P2 — Fuzz the network and decompression surface
+## P2 — Fuzz the network and decompression surface — MOSTLY DONE
 
 **Why:** the four current targets are good, but the highest-risk parsers
 remain unfuzzed. libfetch is what downloads software onto the device;
 sh is the most security-critical tool in the set.
 
-- [ ] `libfetch` — HTTP/FTP response parsing, chunked transfer decode,
-      `fetchParseURL`, redirect and header handling. Highest priority.
-- [ ] `sh` — parse-only harness (`-n`), never execute.
-- [ ] `compress`/`zopen` LZW decoder and gzip's non-zlib format paths.
-- [ ] `telnet` option negotiation (server-controlled input).
-- [ ] awk's private regex engine (`awk/b.c`) and sed's script compiler.
+- [x] `libfetch` — `fuzz_http` drives chunked-transfer decoding, reply
+      status/header parsing, and the mtime/length/range/lexer/auth
+      parsers (1M execs clean).
+- [x] `sh` — `fuzz_sh` drives `parsecmd()` (the `-n` path) in-process
+      with dash's own longjmp/reset machinery (552k execs clean).
+- [x] `compress`/`zopen` — `fuzz_zopen` decodes fuzzed `.Z` streams and
+      roundtrips writes at maxbits 9-16 (70k execs clean).
+- [x] `telnet` — `fuzz_telnet` drives `telrcv()` IAC negotiation and
+      the TTYPE/TSPEED/LINEMODE/NEW_ENVIRON suboption parsers (1M
+      execs clean).  Not covered: the ENCRYPTION/AUTHENTICATION arms
+      (libtelnet auth/encrypt parsers) — follow-up.
+- [x] awk's regex engine (`b.c`) — `fuzz_awkb` found **six bug
+      classes** (see SECURITY-FINDINGS.md, fuzzing section); fixes and
+      upstream submission are the current work item.  sed's script
+      compiler remains.
 - [ ] Data-path harnesses for awk/sed/grep: fixed program, fuzzed
       *input* — that is how untrusted data actually reaches them.
 - [ ] Add an MSan job (the Infer uninit-read cluster suggests this class

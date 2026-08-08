@@ -465,6 +465,44 @@ everything below was unreachable from it.
 - Final state: all four targets (unvis, getdate, setmode, patch) run
   clean — patch went 2.3M executions with no findings after the fixes.
 
+## Second-wave fuzzing (P2)
+
+Five harnesses added: `fuzz_http` (libfetch reply/header/chunked
+parsers, 1M execs clean), `fuzz_telnet` (telrcv IAC negotiation +
+suboption parsers, 1M execs clean), `fuzz_sh` (dash `parsecmd`, 552k
+execs clean), `fuzz_zopen` (LZW `.Z` decode/roundtrip, 70k execs
+clean), and `fuzz_awkb` (awk's regex engine). All run in CI via
+`ci/jobs/fuzz-regress.sh`; sh and zopen corpora also replay through the
+real binaries in the suite.
+
+### OPEN — fuzz — awk regex engine: six bug classes (fuzz_awkb)
+All reachable from any awk program via `/re/`, `~`, `sub()`, `split()`
+— i.e. user-supplied patterns. Minimized repros in
+`tests/data/crashers/awkb/`. Reported, **fixes in progress**; upstream
+is onetrueawk (b.c lineage), so these go there, not FreeBSD.
+
+1. `replace_repeat` stale/NULL `lastatom` (b.c:1449): repetition with no
+   freshly-lexed atom (`{2,3}`, `x{1}{1,3}`, `({1}){1,3}`) computes a
+   garbage length → signed overflow, huge malloc, OOB memcpy
+   read+write. Heap corruption.
+2. Trailing lone backslash (b.c:1299→372): `quoted()` consumes the NUL
+   and advances past the pattern → OOB read.
+3. Class ending in `[.` or `[=` (b.c:1362-1383): collate/equivalence
+   handling consumes the NUL → OOB read.
+4. Repetition-bound overflow (b.c:1464): `{26666666666666666666}` wraps
+   the int accumulation → huge alloc / undersized buffer.
+5. `cclenter` off-by-one (b.c:473): class expanding to exactly
+   100·2^k elements writes the terminator one int past the buffer.
+6. DoS via large/nested bounds (`{48429}`, `(x{999}){999}`): quadratic
+   DFA construction → minutes of CPU / GBs of RSS.
+
+Note: the `fuzz_awkb` harness currently filters inputs matching the
+known-bug classes so fuzzing can proceed; remove the filters when the
+fixes land. Also seen once: a libFuzzer `-fork=1` driver crash in its
+own reaper (not the target). compress(1) side note: `compress -c` to
+stdout is broken on this port ("No such device or address") — minor,
+worth a look.
+
 ## Remediation approach (Phase 3)
 
 - Confirmed risky `strcpy`/`strcat`/`sprintf`/`strncpy` call sites get
