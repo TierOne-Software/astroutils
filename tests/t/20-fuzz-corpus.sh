@@ -112,6 +112,24 @@ EOF
     replay "getdate corpus replays without a crash" "$(corpus_dir getdate)" ./run-getdate.sh
 fi
 
+if require "sh corpus replay" sh; then
+    cat > run-sh.sh <<EOF
+#!/bin/sh
+'$(tool sh)' -n < "\$1" >/dev/null 2>&1
+EOF
+    chmod +x run-sh.sh
+    replay "sh corpus replays without a crash" "$(corpus_dir sh)" ./run-sh.sh
+fi
+
+if require "zopen corpus replay" compress; then
+    cat > run-zopen.sh <<EOF
+#!/bin/sh
+'$(tool compress)' -dc < "\$1" >/dev/null 2>&1
+EOF
+    chmod +x run-zopen.sh
+    replay "zopen corpus replays without a crash" "$(corpus_dir zopen)" ./run-zopen.sh
+fi
+
 group "saved crash inputs"
 
 # Anything the fuzzer ever produced a crash for lives here permanently,

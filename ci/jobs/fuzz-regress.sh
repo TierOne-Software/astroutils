@@ -27,7 +27,7 @@ sh fuzz/build-fuzz.sh
 status=0
 
 printf '=== replay corpora (-runs=0)\n'
-for t in unvis getdate setmode patch; do
+for t in unvis getdate setmode patch http telnet sh zopen awkb; do
     bin=fuzz/bin/fuzz_$t
     corpus=fuzz/corpus/$t
     [ -x "$bin" ] || { printf 'missing %s\n' "$bin"; status=1; continue; }
@@ -48,7 +48,7 @@ done
 
 if [ "$FUZZ_TIME" -gt 0 ]; then
     printf '=== fuzz for %ss per target\n' "$FUZZ_TIME"
-    for t in unvis getdate setmode patch; do
+    for t in unvis getdate setmode patch http telnet sh zopen awkb; do
         bin=fuzz/bin/fuzz_$t
         [ -x "$bin" ] || continue
         printf -- '--- %s\n' "$t"

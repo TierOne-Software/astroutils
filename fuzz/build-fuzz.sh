@@ -22,7 +22,7 @@ for f in "$GETDATE_C" "$LIBCOMPAT" "$BUILD_DIR/include/config-compat.h"; do
 done
 
 mkdir -p fuzz/bin fuzz/artifacts
-for c in unvis getdate setmode patch; do mkdir -p "fuzz/corpus/$c"; done
+for c in unvis getdate setmode patch http telnet sh zopen awkb; do mkdir -p "fuzz/corpus/$c"; done
 
 set -x
 $CC $CFLAGS $DEF $INC -o fuzz/bin/fuzz_unvis \
@@ -42,5 +42,53 @@ $CC $CFLAGS -fwrapv $DEF $INC -I src.freebsd/patch -Dmain=patch_disabled_main \
     src.freebsd/patch/inp.c src.freebsd/patch/util.c \
     src.freebsd/patch/backupfile.c src.freebsd/patch/mkpath.c \
     "$LIBCOMPAT"
+
+$CC $CFLAGS $DEF -DFTP_COMBINE_CWDS -DINET6 -DWITH_SSL \
+    -Wno-deprecated-declarations \
+    $INC -I src.freebsd/libfetch -I "$BUILD_DIR/src.freebsd/libfetch" \
+    -o fuzz/bin/fuzz_http \
+    fuzz/fuzz_http.c \
+    src.freebsd/libfetch/common.c src.freebsd/libfetch/fetch.c \
+    src.freebsd/libfetch/file.c src.freebsd/libfetch/ftp.c \
+    src.freebsd/libfetch/sandbox.c src.compat/capsicum.c \
+    "$LIBCOMPAT" -lssl -lcrypto
+
+$CC $CFLAGS $DEF \
+    -DUSE_TERMIO -DKLUDGELINEMODE -DENV_HACK -DINET6 -DNOPAM \
+    -DHAVE_NCURSESW_NCURSES_H \
+    $INC -I src.freebsd/telnet -I src.freebsd/telnet/telnet \
+    -o fuzz/bin/fuzz_telnet \
+    fuzz/fuzz_telnet.c src.freebsd/telnet/telnet/ring.c \
+    "$LIBCOMPAT" -lncursesw
+
+$CC $CFLAGS $DEF $INC -I src.freebsd/compress \
+    -o fuzz/bin/fuzz_zopen \
+    fuzz/fuzz_zopen.c src.freebsd/compress/zopen.c \
+    "$LIBCOMPAT"
+
+$CC $CFLAGS $DEF $INC -I src.freebsd/awk -I "$BUILD_DIR/src.freebsd/awk" \
+    -o fuzz/bin/fuzz_awkb \
+    fuzz/fuzz_awkb.c src.freebsd/awk/b.c \
+    "$LIBCOMPAT"
+
+# sh: two compile groups because the bltin sources #define main under
+# -DSHELL, which fights a global -Dmain rename
+mkdir -p fuzz/obj-sh
+SH_INC="$INC -I src.freebsd/sh -I src.freebsd/sh/bltin -I $BUILD_DIR/src.freebsd/sh"
+for f in fuzz/fuzz_sh.c src.freebsd/sh/*.c \
+    "$BUILD_DIR/src.freebsd/sh/nodes.c" "$BUILD_DIR/src.freebsd/sh/syntax.c" \
+    "$BUILD_DIR/src.freebsd/sh/builtins.c"; do
+    case $f in
+        */mknodes.c|*/mksyntax.c) continue ;;
+    esac
+    o="fuzz/obj-sh/$(basename "$f" .c).o"
+    $CC $CFLAGS $DEF -DNO_HISTORY $SH_INC -Dmain=sh_disabled_main -c "$f" -o "$o"
+done
+for f in src.freebsd/sh/bltin/echo.c src.freebsd/miscutils/kill/kill.c \
+    src.freebsd/coreutils/printf/printf.c src.freebsd/coreutils/test/test.c; do
+    o="fuzz/obj-sh/$(basename "$f" .c).o"
+    $CC $CFLAGS $DEF -DNO_HISTORY $SH_INC -DSHELL -c "$f" -o "$o"
+done
+$CC $CFLAGS fuzz/obj-sh/*.o "$LIBCOMPAT" -o fuzz/bin/fuzz_sh
 set +x
 echo "built: $(ls fuzz/bin)"

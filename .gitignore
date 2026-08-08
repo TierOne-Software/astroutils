@@ -13,3 +13,4 @@ fuzz/artifacts/
 build-ci-*/
 build-asan/
 
+fuzz/obj-sh/
