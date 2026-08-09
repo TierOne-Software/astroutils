@@ -229,6 +229,7 @@ fa *mkdfa(const char *s, bool anchor)	/* does the real work of making a dfa */
 
 	firstbasestr = (const uschar *) s;
 	basestr = firstbasestr;
+	lastatom = NULL;	/* no atom seen yet in this parse */
 	p = reparse(s);
 	p1 = op2(CAT, op2(STAR, op2(ALL, NIL, NIL), NIL), p);
 		/* put ALL STAR in front of reg.  exp. */
@@ -342,7 +343,7 @@ void freetr(Node *p)	/* free parse tree */
 int hexstr(const uschar **pp, int max)	/* find and eval hex string at pp, return new p */
 {			/* only pick up one 8-bit byte (2 chars) */
 	const uschar *p;
-	int n = 0;
+	unsigned int n = 0;	/* unsigned: \u takes up to 8 hex digits */
 	int i;
 
 	for (i = 0, p = *pp; i < max && isxdigit(*p); i++, p++) {
@@ -469,6 +470,13 @@ int *cclenter(const char *argp)	/* add a character class */
 		}
 		*bp++ = c;
 		i++;
+	}
+	if (i >= bufsz) {	/* make room for the terminator */
+		bufsz *= 2;
+		buf = (int *) realloc(buf, bufsz * sizeof(int));
+		if (buf == NULL)
+			FATAL("out of space for character class [%.10s...] 2", p);
+		bp = buf + i;
 	}
 	*bp = 0;
 	/* DPRINTF("cclenter: in = |%s|, out = |%s|\n", op, buf); BUG: can't print array of int */
@@ -1198,6 +1206,9 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
 	memcpy(&buf[j], reptok+reptoklen, suffix_length);
 	j += suffix_length;
 	buf[j] = '\0';
+	/* rebase lastatom, which points into the old basestr */
+	if (lastatom != NULL)
+		lastatom = buf + (lastatom - basestr);
 	/* free old basestr */
 	if (firstbasestr != basestr) {
 		if (basestr)
@@ -1215,6 +1226,9 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
 static int repeat(const uschar *reptok, int reptoklen, const uschar *atom,
 		  int atomlen, int firstnum, int secondnum)
 {
+	if (atom == NULL)
+		return 0;
+
 	/*
 	   In general, the repetition specifier or "bound" is replaced here
 	   by an equivalent ERE string, repeating the immediately previous atom
@@ -1296,6 +1310,8 @@ rescan:
 		rlxval = c;
 		return CHAR;
 	case '\\':
+		if (*prestr == '\0')
+			FATAL("backslash at end of regular expression %.20s", lastre);
 		rlxval = quoted(&prestr);
 		return CHAR;
 	default:
@@ -1363,6 +1379,8 @@ rescan:
 				char collate_char;
 				prestr++;
 				collate_char = *prestr++;
+				if (collate_char == '\0')
+					FATAL("nonterminated character class %.20s", lastre);
 				if (*prestr == '.' && prestr[1] == ']') {
 					prestr += 2;
 					/* Found it: map via locale TBD: for
@@ -1380,6 +1398,8 @@ rescan:
 				char equiv_char;
 				prestr++;
 				equiv_char = *prestr++;
+				if (equiv_char == '\0')
+					FATAL("nonterminated character class %.20s", lastre);
 				if (*prestr == '=' && prestr[1] == ']') {
 					prestr += 2;
 					/* Found it: map via locale TBD: for now
@@ -1462,6 +1482,9 @@ rescan:
 					lastre);
 			} else if (isdigit(c)) {
 				num = 10 * num + c - '0';
+				if (num > 255)
+					FATAL("repetition count %.20s too large",
+						lastre);
 				digitfound = true;
 			} else if (c == ',') {
 				if (commafound)
