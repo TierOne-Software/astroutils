@@ -19,6 +19,7 @@
 #   musl        Alpine/musl build, functional suite
 #   sanitizers  ASan+UBSan build, full suite and corpus replay
 #   fuzz        libFuzzer harnesses, corpus replay (FUZZ_TIME=N to fuzz)
+#   msan        MemorySanitizer build of the harnesses + corpus replay
 #   hardening   verify built binaries carry the expected mitigations
 #   zig         zig build (ReleaseSafe), smoke + full suite
 #
@@ -38,7 +39,7 @@ rebuild=0
 keep_going=0
 jobs=
 
-all_jobs="gcc clang musl sanitizers fuzz hardening zig"
+all_jobs="gcc clang musl sanitizers fuzz msan hardening zig"
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -151,6 +152,13 @@ run_job() {
                     CC=clang "FUZZ_TIME=${FUZZ_TIME:-0}"
             else
                 CC=clang FUZZ_TIME=${FUZZ_TIME:-0} sh "$srcdir/ci/jobs/fuzz-regress.sh"
+            fi ;;
+        msan)
+            if [ "$use_container" = "1" ]; then
+                build_image "$img_fedora" Containerfile.fedora
+                in_container "$img_fedora" 'sh ci/jobs/msan.sh' CC=clang
+            else
+                CC=clang sh "$srcdir/ci/jobs/msan.sh"
             fi ;;
         zig)
             if [ "$use_container" = "1" ]; then

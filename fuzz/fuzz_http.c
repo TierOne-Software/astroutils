@@ -18,6 +18,31 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+/*
+ * MSan: glibc's setlocale returns a pointer into uninstrumented libc
+ * data, so its bytes look uninitialized; http_parse_mtime() strlcpy()s
+ * that into a stack buffer and hands it back to setlocale, which MSan
+ * then flags.  Unpoison the return value (harness-local, MSan only).
+ */
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+static char *
+fuzz_setlocale(int category, const char *loc)
+{
+	/*
+	 * glibc's setlocale reads/writes are invisible to MSan (the libc
+	 * is uninstrumented) and produce unfixable noise around
+	 * http_parse_mtime().  The harness only ever wants the C locale
+	 * anyway, so skip libc entirely.
+	 */
+	(void)category;
+	(void)loc;
+	return (char *)"C";
+}
+#define setlocale fuzz_setlocale
+#endif
+#endif
+
 /* NOLINT: pull the parsers in with their static linkage; http.c
  * includes its own fetch.h/common.h first */
 #include "../src.freebsd/libfetch/http.c"

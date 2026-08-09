@@ -11,7 +11,7 @@ CC=${CC:-clang}
 # records absolute paths, so one configured on the host cannot be reused
 # inside a container.
 BUILD_DIR=${BUILD_DIR:-build-meson}
-CFLAGS="-g -O1 -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer"
+CFLAGS=${CFLAGS:-"-g -O1 -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer"}
 DEF="-D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_CHIMERAUTILS_BUILD -Dlint"
 INC="-I include -I src.freebsd/include -I $BUILD_DIR/include"
 GETDATE_C=$BUILD_DIR/src.freebsd/findutils/find/find.p/getdate.c
