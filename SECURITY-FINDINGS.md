@@ -475,33 +475,32 @@ clean), and `fuzz_awkb` (awk's regex engine). All run in CI via
 `ci/jobs/fuzz-regress.sh`; sh and zopen corpora also replay through the
 real binaries in the suite.
 
-### OPEN — fuzz — awk regex engine: six bug classes (fuzz_awkb)
+### FIXED — fuzz — awk regex engine: six bug classes (fuzz_awkb)
 All reachable from any awk program via `/re/`, `~`, `sub()`, `split()`
-— i.e. user-supplied patterns. Minimized repros in
-`tests/data/crashers/awkb/`. Reported, **fixes in progress**; upstream
-is onetrueawk (b.c lineage), so these go there, not FreeBSD.
+— i.e. user-supplied patterns. Fixed in `src.freebsd/awk/b.c`
+(+24/-1 lines); repros in `tests/data/crashers/awkb/` all replay
+clean; a fresh filter-free 60s fuzz run is ASan/UBSan-clean (195k
+execs). Upstream is onetrueawk (b.c lineage) — the four classes that
+still crash upstream master (stale `lastatom`, trailing backslash,
+`[.`/`[=` overreads, `cclenter` off-by-one) are candidates for
+submission there; the bound cap and `repeat()` NULL guard mirror
+upstream's existing fixes.
 
-1. `replace_repeat` stale/NULL `lastatom` (b.c:1449): repetition with no
-   freshly-lexed atom (`{2,3}`, `x{1}{1,3}`, `({1}){1,3}`) computes a
-   garbage length → signed overflow, huge malloc, OOB memcpy
-   read+write. Heap corruption.
-2. Trailing lone backslash (b.c:1299→372): `quoted()` consumes the NUL
-   and advances past the pattern → OOB read.
-3. Class ending in `[.` or `[=` (b.c:1362-1383): collate/equivalence
-   handling consumes the NUL → OOB read.
-4. Repetition-bound overflow (b.c:1464): `{26666666666666666666}` wraps
-   the int accumulation → huge alloc / undersized buffer.
-5. `cclenter` off-by-one (b.c:473): class expanding to exactly
-   100·2^k elements writes the terminator one int past the buffer.
-6. DoS via large/nested bounds (`{48429}`, `(x{999}){999}`): quadratic
-   DFA construction → minutes of CPU / GBs of RSS.
+1. `replace_repeat` stale/NULL `lastatom` (b.c:1449): rebased on buffer
+   replacement, reset per parse, plus upstream's NULL guard.
+2. Trailing lone backslash: clean FATAL instead of reading past the
+   pattern (same behavior as gawk).
+3. Class ending in `[.` or `[=`: clean FATAL on NUL collate/equiv char.
+4. Repetition bounds capped at 255 with an overflow check (POSIX
+   RE_DUP_MAX; mirrors upstream) — kills the overflow, the derived
+   size corruption, and the nested-bound DoS.
+5. `cclenter` terminator off-by-one at 100·2^k elements: buffer grown
+   before the terminator write.
+6. Bonus: `hexstr()` `\u` signed overflow → unsigned accumulation.
 
-Note: the `fuzz_awkb` harness currently filters inputs matching the
-known-bug classes so fuzzing can proceed; remove the filters when the
-fixes land. Also seen once: a libFuzzer `-fork=1` driver crash in its
-own reaper (not the target). compress(1) side note: `compress -c` to
-stdout is broken on this port ("No such device or address") — minor,
-worth a look.
+Note: the `fuzz_awkb` known-bug filters are removed. compress(1) side
+note: `compress -c` to stdout is broken on this port ("No such device
+or address") — minor, worth a look.
 
 ## Remediation approach (Phase 3)
 
