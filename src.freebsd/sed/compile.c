@@ -335,8 +335,13 @@ nonsel:		/* Now parse the command */
 			/* Recompile RE with case sensitivity from "I" flag if any */
 			if (*re == '\0')
 				cmd->u.s->re = NULL;
-			else
+			else {
+				if (cmd->u.s->re != NULL) {
+					regfree(cmd->u.s->re);
+					free(cmd->u.s->re);
+				}
 				cmd->u.s->re = compile_re(re, cmd->u.s->icase);
+			}
 			EATSPACE();
 			if (*p == ';') {
 				p++;
