@@ -130,6 +130,48 @@ EOF
     replay "zopen corpus replays without a crash" "$(corpus_dir zopen)" ./run-zopen.sh
 fi
 
+if require "grepdata corpus replay" grep; then
+    cat > run-grepdata.sh <<EOF
+#!/bin/sh
+'$(tool grep)' -a -E 'foo[0-9]{1,3}(bar|baz)+' < "\$1" >/dev/null 2>&1
+EOF
+    chmod +x run-grepdata.sh
+    replay "grepdata corpus replays without a crash" "$(corpus_dir grepdata)" ./run-grepdata.sh
+fi
+
+if require "seddata corpus replay" sed; then
+    cat > run-seddata.sh <<EOF
+#!/bin/sh
+'$(tool sed)' -e 's/foo/bar/g; /GAME/,/END/d' "\$1" >/dev/null 2>&1
+EOF
+    chmod +x run-seddata.sh
+    replay "seddata corpus replays without a crash" "$(corpus_dir seddata)" ./run-seddata.sh
+fi
+
+if require "awkdata corpus replay" awk; then
+    cat > run-awkdata.sh <<EOF
+#!/bin/sh
+'$(tool awk)' '{n+=NF} END{print n+0}' "\$1" >/dev/null 2>&1
+EOF
+    chmod +x run-awkdata.sh
+    replay "awkdata corpus replays without a crash" "$(corpus_dir awkdata)" ./run-awkdata.sh
+fi
+
+if require "sedcompile corpus replay" sed; then
+    printf 'one\nfoo two\nthree\n' > sample.txt
+    cat > run-sedcompile.sh <<EOF
+#!/bin/sh
+'$(tool sed)' -f "\$1" sample.txt >/dev/null 2>&1
+EOF
+    chmod +x run-sedcompile.sh
+    replay "sedcompile corpus replays without a crash" "$(corpus_dir sedcompile)" ./run-sedcompile.sh
+fi
+
+if require "patch_struct corpus replay" patch; then
+    replay "patch_struct corpus replays without a crash" \
+        "$(corpus_dir patch_struct)" ./run-patch.sh
+fi
+
 group "saved crash inputs"
 
 # Anything the fuzzer ever produced a crash for lives here permanently,

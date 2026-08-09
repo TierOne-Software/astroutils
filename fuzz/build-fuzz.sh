@@ -22,7 +22,7 @@ for f in "$GETDATE_C" "$LIBCOMPAT" "$BUILD_DIR/include/config-compat.h"; do
 done
 
 mkdir -p fuzz/bin fuzz/artifacts
-for c in unvis getdate setmode patch http telnet sh zopen awkb; do mkdir -p "fuzz/corpus/$c"; done
+for c in unvis getdate setmode patch http telnet sh zopen awkb grepdata sedcompile seddata awkdata patch_struct; do mkdir -p "fuzz/corpus/$c"; done
 
 set -x
 $CC $CFLAGS $DEF $INC -o fuzz/bin/fuzz_unvis \
@@ -90,5 +90,45 @@ for f in src.freebsd/sh/bltin/echo.c src.freebsd/miscutils/kill/kill.c \
     $CC $CFLAGS $DEF -DNO_HISTORY $SH_INC -DSHELL -c "$f" -o "$o"
 done
 $CC $CFLAGS fuzz/obj-sh/*.o "$LIBCOMPAT" -o fuzz/bin/fuzz_sh
+
+$CC $CFLAGS $DEF -Dmain=grep_disabled_main \
+    $INC -I src.freebsd/grep \
+    -o fuzz/bin/fuzz_grepdata \
+    fuzz/fuzz_grepdata.c \
+    src.freebsd/grep/grep.c src.freebsd/grep/util.c \
+    src.freebsd/grep/file.c src.freebsd/grep/queue.c \
+    "$LIBCOMPAT"
+
+$CC $CFLAGS $DEF $INC -I src.freebsd/sed \
+    -o fuzz/bin/fuzz_sedcompile \
+    fuzz/fuzz_sedcompile.c \
+    "$LIBCOMPAT"
+
+$CC $CFLAGS $DEF -Dmain=sed_disabled_main -Dexit=fuzz_skip_exit \
+    $INC -I src.freebsd/sed \
+    -o fuzz/bin/fuzz_seddata \
+    fuzz/fuzz_seddata.c \
+    src.freebsd/sed/compile.c src.freebsd/sed/process.c src.freebsd/sed/misc.c \
+    "$LIBCOMPAT"
+
+$CC $CFLAGS $DEF -Dmain=awk_disabled_main -Dexit=fuzz_skip_exit \
+    $INC -I src.freebsd/awk -I "$BUILD_DIR/src.freebsd/awk" \
+    -o fuzz/bin/fuzz_awkdata \
+    fuzz/fuzz_awkdata.c \
+    src.freebsd/awk/lex.c src.freebsd/awk/b.c src.freebsd/awk/lib.c \
+    src.freebsd/awk/main.c src.freebsd/awk/parse.c src.freebsd/awk/run.c \
+    src.freebsd/awk/tran.c \
+    "$BUILD_DIR/src.freebsd/awk/awkgram.tab.c" \
+    "$BUILD_DIR/src.freebsd/awk/proctab.c" \
+    "$LIBCOMPAT" -lm
+
+$CC $CFLAGS -fwrapv $DEF $INC -I src.freebsd/patch \
+    -Dmain=patch_disabled_main -Dexit=fuzz_skip_exit \
+    -o fuzz/bin/fuzz_patch_struct \
+    fuzz/fuzz_patch_struct.c \
+    src.freebsd/patch/patch.c src.freebsd/patch/pch.c \
+    src.freebsd/patch/inp.c src.freebsd/patch/util.c \
+    src.freebsd/patch/backupfile.c src.freebsd/patch/mkpath.c \
+    "$LIBCOMPAT"
 set +x
 echo "built: $(ls fuzz/bin)"
