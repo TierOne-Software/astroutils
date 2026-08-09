@@ -33,6 +33,9 @@
  * SUCH DAMAGE.
  */
 
+#ifndef SED_EXTERN_H
+#define SED_EXTERN_H
+
 extern struct s_command *prog;
 extern struct s_appends *appends;
 extern regmatch_t *match;
@@ -55,3 +58,5 @@ int	 lastline(void);
 void	 process(void);
 void	 resetstate(void);
 char	*strregerror(int, regex_t *);
+
+#endif /* SED_EXTERN_H */

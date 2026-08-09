@@ -33,6 +33,9 @@
  * SUCH DAMAGE.
  */
 
+#ifndef SED_DEFS_H
+#define SED_DEFS_H
+
 /*
  * Types of address specifications
  */
@@ -146,3 +149,5 @@ typedef struct {
 	char *back;		/* Backing memory. */
 	size_t blen;		/* Backing memory length. */
 } SPACE;
+
+#endif /* SED_DEFS_H */
