@@ -484,10 +484,22 @@ clean; the infer compile.c:188 null-deref did not reproduce), and
 coverage depth vs byte-level mutation from minimal seeds; clean).
 Notable side finds: glibc `regcomp()` blows up exponentially on
 quantifier runs (ERE `x*++++…`, >10s) reachable from untrusted sed/awk
-scripts — a libc issue, not ours; sed `compile.c` leaks one `regex_t`
-per `s` command (fixed-size, one-time, not security-relevant); and
-fetch(1)'s mirror-mode exit-status quirk was resolved to the (since
-fixed) broker topology, not an upstream bug.
+scripts — a libc issue, not ours; sed `compile.c` leaked one `regex_t`
+per `s` command (fixed, upstream-patches/0042); and fetch(1)'s
+mirror-mode exit-status quirk was resolved to the (since fixed) broker
+topology, not an upstream bug.
+
+## MSan job (ci/jobs/msan.sh)
+All harnesses are built with `-fsanitize=fuzzer,memory` and every
+corpus replayed. Two build gotchas, both fixed: the support libraries
+must be built with `-Db_sanitize=memory` (an uninstrumented libcompat
+makes its writes invisible to MSan — every read after one flags), and
+C++ needs clang++ (`-Db_lundef=false` too). Runtime: telnet is
+excluded (uninstrumented system libtinfo noise), and libfetch's
+setlocale dance in `http_parse_mtime` is neutralized in the MSan
+harness build (glibc setlocale read/writes are invisible to MSan and
+produce unfixable noise; the harness wants the C locale anyway).
+Everything else replays clean.
 
 ### FIXED — fuzz — awk regex engine: six bug classes (fuzz_awkb)
 All reachable from any awk program via `/re/`, `~`, `sub()`, `split()`

@@ -160,8 +160,12 @@ sh is the most security-critical tool in the set.
 - [x] Data-path harnesses — `fuzz_grepdata` (grep), `fuzz_seddata`
       (sed), `fuzz_awkdata` (awk): fixed program, fuzzed *input* — that
       is how untrusted data actually reaches them.  All clean.
-- [ ] Add an MSan job (the Infer uninit-read cluster suggests this class
-      is live) and llvm-cov reports to find unreached parser code.
+- [x] MSan job — `ci/jobs/msan.sh` builds all harnesses with
+      `-fsanitize=fuzzer,memory` (support libs instrumented via
+      `-Db_sanitize=memory` so their writes are visible — an
+      uninstrumented libcompat produced a convincing false positive on
+      the first run) and replays every corpus.  llvm-cov coverage
+      reports remain.
 - [x] Structure-aware fuzzing for patch — `fuzz_patch_struct`'s grammar
       mutator reaches ~2x edge coverage from minimal seeds; clean.
 

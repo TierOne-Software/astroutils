@@ -30,6 +30,7 @@ they are cached by podman.
 | `musl` | Alpine/musl build and suite — the configuration Astro ships |
 | `sanitizers` | ASan+UBSan build, full suite **and** full corpus replay |
 | `fuzz` | builds the libFuzzer harnesses, replays every corpus |
+| `msan` | MemorySanitizer build of the harnesses + corpus replay |
 | `hardening` | checks built binaries carry the expected mitigations |
 | `zig` | zig build (ReleaseSafe), smoke tests + full suite |
 
