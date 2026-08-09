@@ -1,0 +1,344 @@
+From 1e648c56ea5367c1ec79ed787b375b5315c82e01 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 8 Aug 2026 20:44:37 -0400
+Subject: [PATCH] awk: fix six regex-engine bug classes found by fuzz_awkb
+
+All reachable from any awk program (user-supplied patterns):
+
+- replace_repeat() used a NULL/stale/dangling lastatom to size and
+  fill the rewritten pattern: reset it per parse in mkdfa(), rebase
+  it into the new buffer before freeing the old one, and take
+  upstream's NULL-atom guard in repeat().  Heap overflow from inputs
+  as small as '{2,3}' or 'x{1}{1,3}'.
+- trailing lone backslash consumed the terminating NUL and ran the
+  pattern pointer out of bounds; now a clean FATAL (as gawk).
+- character classes ending in '[.' or '[=' consumed the NUL as the
+  collate/equivalence char; now a clean FATAL.
+- repetition bounds accumulated into an int without a check; cap at
+  255 (POSIX RE_DUP_MAX, mirrors onetrueawk master) -- kills the
+  overflow, the derived size corruption, and the nested-bound DoS.
+- cclenter() wrote the terminator one int past the buffer when a
+  class expanded to exactly 100*2^k elements; grow first.
+- hexstr() signed overflow for \u with 8 digits; accumulate unsigned.
+
+Repros in tests/data/crashers/awkb/ all replay clean; the harness's
+known-bug filters are removed and a fresh 60s run is ASan/UBSan
+clean.  Four of these still crash onetrueawk master and are
+candidates for upstream submission.
+---
+ fuzz/fuzz_awkb.c    | 178 --------------------------------------------
+ src.freebsd/awk/b.c |  25 ++++++-
+ 2 files changed, 24 insertions(+), 179 deletions(-)
+
+diff --git a/fuzz/fuzz_awkb.c b/fuzz/fuzz_awkb.c
+index 89bbdde4..dea084ac 100644
+--- a/fuzz/fuzz_awkb.c
++++ b/fuzz/fuzz_awkb.c
+@@ -20,44 +20,6 @@
+  *
+  * Leak checking should be disabled (-detect_leaks=0): a FATAL longjmp
+  * abandons partially built parse trees/DFAs by design.
+- *
+- * KNOWN-BUG FILTERS (target bugs found by this harness, reported, NOT
+- * fixed — inputs that would hit them are skipped here so fuzzing can
+- * proceed past them):
+- *  1. b.c:1449-1450 / 1202-1207 — a "{n,m}" repetition is expanded by
+- *     replace_repeat(), which frees and replaces basestr without
+- *     updating the static lastatom; a following repetition whose
+- *     preceding token does not re-establish lastatom (start, '|',
+- *     '(', '{', '}', '$', '^') computes atomlen = startreptok -
+- *     lastatom from a NULL/stale/dangling pointer: negative or
+- *     undersized `size` (b.c:1160-1173) then OOB memcpy
+- *     (b.c:1184/1193).  Triggers: "{2,3}…", "x{1}{1,3}",
+- *     "({1}){1,3}", "x{1}${2}".  Filter: skip "{<digit>" preceded by
+- *     one of those tokens.
+- *  2. b.c:1299 — a trailing lone backslash makes quoted() (b.c:372)
+- *     consume the terminating NUL and advance prestr past the end of
+- *     the pattern; the next relex()/u8_rune() reads out of bounds
+- *     (b.c:1271).  Filter: skip patterns ending in an odd number of
+- *     backslashes.
+- *  3. b.c:1382-1383 / 1365-1366 — a pattern ending in "[=" or "[."
+- *     with a character class open makes the equivalence-class/
+- *     collating-symbol handling consume the terminating NUL and read
+- *     past the end of the pattern buffer.
+- *     Filter: skip patterns ending in "[=" or "[.".
+- *  4. b.c:1464 — repetition bounds are accumulated into an int with
+- *     no overflow check (`num = 10 * num + c - '0'`); a bound like
+- *     {26666666666666666666} wraps, then replace_repeat() overflows
+- *     `size` (b.c:1163/1170) and calls malloc with a negative/huge
+- *     size (b.c:1174) or under-allocates and overflows buf in the
+- *     copy loops (b.c:1184/1193).  Even without the wrap, large
+- *     bounds are a CPU/memory DoS (DFA size is quadratic in the
+- *     expansion).  Filter: skip bounds with >2 digits.
+- *  5. b.c:473 — cclenter() keeps its class elements in a static
+- *     buffer grown in 100*2^k steps with the growth check only
+- *     before element writes; a class that expands to exactly a
+- *     boundary count (e.g. 100 elements, "[^\\x17-z]") makes the
+- *     terminating `*bp = 0` write one int past the buffer.
+- *     Filter: emulate the expansion and skip boundary counts.
+  */
+ #include <stdint.h>
+ #include <stddef.h>
+@@ -66,7 +28,6 @@
+ #include <stdio.h>
+ #include <stdarg.h>
+ #include <setjmp.h>
+-#include <ctype.h>
+ 
+ #include "awk.h"
+ #include "awkgram.tab.h"
+@@ -245,99 +206,6 @@ u8_nextlen(const char *s)
+ 	return len;
+ }
+ 
+-/*
+- * Emulate relex()'s class scan + cclenter()'s expansion for one "[...]"
+- * at s, and return true if the expanded element count lands exactly on a
+- * cclenter bufsz boundary (100, 200, 400, ...), which overruns the static
+- * buffer by one int at b.c:473.  Approximates utf-8 runes as single bytes
+- * and allows a +/-1 margin; good enough for a fuzz input filter.
+- */
+-static int
+-class_hits_bufsz(const char *s, size_t n)
+-{
+-	static const struct { const char *name; int (*func)(int); } ccs[] = {
+-		{ "alnum", isalnum }, { "alpha", isalpha }, { "blank", NULL },
+-		{ "cntrl", iscntrl }, { "digit", isdigit }, { "graph", isgraph },
+-		{ "lower", islower }, { "print", isprint }, { "punct", ispunct },
+-		{ "space", isspace }, { "upper", isupper }, { "xdigit", isxdigit },
+-	};
+-	int elems[8192];
+-	long ne = 0;
+-	size_t i = 1;			/* skip '[' */
+-	int first = 1;
+-
+-	if (i < n && s[i] == '^')
+-		i++;
+-	for (; i < n && ne < (long)(sizeof(elems)/sizeof(elems[0]) - 300); ) {
+-		int c = (unsigned char) s[i];
+-
+-		if (c == '\0')
+-			break;
+-		if (c == ']' && !first)
+-			break;
+-		if (c == '\\' && i + 1 < n) {		/* quoted char */
+-			i++;
+-			c = (unsigned char) s[i];
+-			if (c >= '0' && c <= '7') {	/* \ddd octal */
+-				int v = 0, k = 0;
+-				while (k++ < 3 && i < n && s[i] >= '0' && s[i] <= '7')
+-					v = 8 * v + s[i++] - '0';
+-				i--;
+-				c = v;
+-			} else if (c == 'x') {		/* \xhh */
+-				int v = 0, k = 0;
+-				while (k++ < 2 && i + 1 < n && isxdigit((unsigned char) s[i + 1])) {
+-					char h = s[++i];
+-					v = 16 * v + (isdigit((unsigned char) h) ? h - '0' :
+-					    (h | 32) - 'a' + 10);
+-				}
+-				c = v;
+-			}
+-		} else if (c == '[' && i + 1 < n && s[i + 1] == ':') {	/* [[:name:]] */
+-			size_t k;
+-			for (k = 0; k < sizeof(ccs)/sizeof(ccs[0]); k++) {
+-				size_t nl = strlen(ccs[k].name);
+-				if (i + 2 + nl + 1 < n && strncmp(s + i + 2, ccs[k].name, nl) == 0 &&
+-				    s[i + 2 + nl] == ':' && s[i + 2 + nl + 1] == ']') {
+-					for (int ch = 1; ch < 256; ch++) {
+-						int m = ccs[k].func ? ccs[k].func(ch) :
+-						    (ch == ' ' || ch == '\t');
+-						if (m)
+-							elems[ne++] = ch;
+-					}
+-					i += 2 + nl + 2;
+-					break;
+-				}
+-			}
+-			if (k < sizeof(ccs)/sizeof(ccs[0])) {
+-				first = 0;
+-				continue;
+-			}
+-		}
+-		elems[ne++] = c;	/* literal or quoted char */
+-		i++;
+-		first = 0;
+-	}
+-	/* cclenter's range pass over the collected elements (k indexes the
+-	 * raw element array; ne tracks the logical expanded count) */
+-	long raw = ne;
+-	for (long k = 0; k < raw; k++) {
+-		if (elems[k] == '-' && k > 0 && k + 1 < raw && elems[k - 1] != 0) {
+-			int c1 = elems[k - 1], c2 = elems[k + 1];
+-			if (c1 > c2) {		/* empty range: removes previous */
+-				ne -= 3;
+-			} else {
+-				/* '-' and c2 become the expansion c1+1..c2 */
+-				ne += (c2 - c1) - 2;
+-			}
+-		}
+-	}
+-	for (long b = 100; b <= ne + 3 && b < (1 << 24); b *= 2)
+-		if (ne >= b - 3 && ne <= b + 3)
+-			return 1;
+-	return 0;
+-}
+-
+ int
+ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+ {
+@@ -361,51 +229,6 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+ 	memcpy(subj, data + 1 + plen, slen);
+ 	subj[slen] = '\0';
+ 
+-	/* use the effective C-string length, embedded NULs truncate */
+-	size_t elen = strlen(pat);
+-
+-	/* known-bug filters 1+4: "{<digit>" repetition where lastatom is
+-	 * NULL/stale/dangling (b.c:1449): preceded by start, '|', '(',
+-	 * '{', '}', '$' or '^' */
+-	for (size_t i = 0; i + 1 < elen; i++) {
+-		if (pat[i] != '{' || pat[i + 1] < '0' || pat[i + 1] > '9')
+-			continue;
+-		if (i == 0 || strchr("|({}$^", pat[i - 1]) != NULL)
+-			goto out;
+-		/* known-bug filter 5: repetition bound with more than 2
+-		 * digits overflows the int arithmetic in relex/replace_repeat
+-		 * (b.c:1464, b.c:1163-1174) and nested bounds are a CPU DoS
+-		 * even below the overflow (DFA size is quadratic in the
+-		 * expansion) */
+-		for (size_t j = i + 1; j < elen && pat[j] != '}'; j++) {
+-			if (pat[j] == ',')
+-				continue;
+-			if (j - i > 3)	/* >2 digits in one number */
+-				goto out;
+-		}
+-	}
+-	/* known-bug filter 2: trailing lone backslash (b.c:1299/372) */
+-	if (elen > 0 && pat[elen - 1] == '\\') {
+-		size_t nbs = 0;
+-		while (nbs < elen && pat[elen - 1 - nbs] == '\\')
+-			nbs++;
+-		if (nbs % 2 == 1)
+-			goto out;
+-	}
+-	/* known-bug filter 3: pattern ending in "[=" or "[." with a class
+-	 * open (b.c:1362-1366/1379-1383): collate_char/equiv_char consumes
+-	 * the terminating NUL and *prestr reads past the buffer */
+-	if (elen >= 2 && pat[elen - 2] == '[' &&
+-	    (pat[elen - 1] == '=' || pat[elen - 1] == '.'))
+-		goto out;
+-	/* known-bug filter 6: class expanding to exactly 100*2^k elements
+-	 * overruns cclenter's static buffer at the terminator (b.c:473) */
+-	for (size_t i = 0; i < elen; i++) {
+-		if (pat[i] == '[' && (i == 0 || pat[i - 1] != '\\') &&
+-		    class_hits_bufsz(pat + i, elen - i))
+-			goto out;
+-	}
+-
+ 	if (setjmp(fuzz_fatal_jmp) != 0) {
+ 		/* FATAL(): malformed regex (or "regex too big"); done */
+ 		free(pat);
+@@ -424,7 +247,6 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+ 	match(adfa, subj);
+ 	nematch(adfa, subj);
+ 
+-out:
+ 	free(pat);
+ 	free(subj);
+ 	return 0;
+diff --git a/src.freebsd/awk/b.c b/src.freebsd/awk/b.c
+index d7a77791..6fdb3a59 100644
+--- a/src.freebsd/awk/b.c
++++ b/src.freebsd/awk/b.c
+@@ -229,6 +229,7 @@ fa *mkdfa(const char *s, bool anchor)	/* does the real work of making a dfa */
+ 
+ 	firstbasestr = (const uschar *) s;
+ 	basestr = firstbasestr;
++	lastatom = NULL;	/* no atom seen yet in this parse */
+ 	p = reparse(s);
+ 	p1 = op2(CAT, op2(STAR, op2(ALL, NIL, NIL), NIL), p);
+ 		/* put ALL STAR in front of reg.  exp. */
+@@ -342,7 +343,7 @@ void freetr(Node *p)	/* free parse tree */
+ int hexstr(const uschar **pp, int max)	/* find and eval hex string at pp, return new p */
+ {			/* only pick up one 8-bit byte (2 chars) */
+ 	const uschar *p;
+-	int n = 0;
++	unsigned int n = 0;	/* unsigned: \u takes up to 8 hex digits */
+ 	int i;
+ 
+ 	for (i = 0, p = *pp; i < max && isxdigit(*p); i++, p++) {
+@@ -470,6 +471,13 @@ int *cclenter(const char *argp)	/* add a character class */
+ 		*bp++ = c;
+ 		i++;
+ 	}
++	if (i >= bufsz) {	/* make room for the terminator */
++		bufsz *= 2;
++		buf = (int *) realloc(buf, bufsz * sizeof(int));
++		if (buf == NULL)
++			FATAL("out of space for character class [%.10s...] 2", p);
++		bp = buf + i;
++	}
+ 	*bp = 0;
+ 	/* DPRINTF("cclenter: in = |%s|, out = |%s|\n", op, buf); BUG: can't print array of int */
+ 	/* xfree(op);  BUG: what are we freeing here? */
+@@ -1198,6 +1206,9 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
+ 	memcpy(&buf[j], reptok+reptoklen, suffix_length);
+ 	j += suffix_length;
+ 	buf[j] = '\0';
++	/* rebase lastatom, which points into the old basestr */
++	if (lastatom != NULL)
++		lastatom = buf + (lastatom - basestr);
+ 	/* free old basestr */
+ 	if (firstbasestr != basestr) {
+ 		if (basestr)
+@@ -1215,6 +1226,9 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
+ static int repeat(const uschar *reptok, int reptoklen, const uschar *atom,
+ 		  int atomlen, int firstnum, int secondnum)
+ {
++	if (atom == NULL)
++		return 0;
++
+ 	/*
+ 	   In general, the repetition specifier or "bound" is replaced here
+ 	   by an equivalent ERE string, repeating the immediately previous atom
+@@ -1296,6 +1310,8 @@ rescan:
+ 		rlxval = c;
+ 		return CHAR;
+ 	case '\\':
++		if (*prestr == '\0')
++			FATAL("backslash at end of regular expression %.20s", lastre);
+ 		rlxval = quoted(&prestr);
+ 		return CHAR;
+ 	default:
+@@ -1363,6 +1379,8 @@ rescan:
+ 				char collate_char;
+ 				prestr++;
+ 				collate_char = *prestr++;
++				if (collate_char == '\0')
++					FATAL("nonterminated character class %.20s", lastre);
+ 				if (*prestr == '.' && prestr[1] == ']') {
+ 					prestr += 2;
+ 					/* Found it: map via locale TBD: for
+@@ -1380,6 +1398,8 @@ rescan:
+ 				char equiv_char;
+ 				prestr++;
+ 				equiv_char = *prestr++;
++				if (equiv_char == '\0')
++					FATAL("nonterminated character class %.20s", lastre);
+ 				if (*prestr == '=' && prestr[1] == ']') {
+ 					prestr += 2;
+ 					/* Found it: map via locale TBD: for now
+@@ -1462,6 +1482,9 @@ rescan:
+ 					lastre);
+ 			} else if (isdigit(c)) {
+ 				num = 10 * num + c - '0';
++				if (num > 255)
++					FATAL("repetition count %.20s too large",
++						lastre);
+ 				digitfound = true;
+ 			} else if (c == ',') {
+ 				if (commafound)
+-- 
+2.55.0
+
