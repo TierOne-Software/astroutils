@@ -75,6 +75,13 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 - 0040 fetch: initialize url_stat before the transfer loop — the
   mirror-mode check read an uninitialized struct when fetchXGet failed
   before filling it.
+- 0041 awk: six regex-engine bug classes reachable from user patterns —
+  replace_repeat stale/NULL lastatom (heap overflow), trailing-backslash
+  and [. /[= overreads, repetition-bound int overflow + 255 cap,
+  cclenter off-by-one, hexstr signed overflow. HIGH severity. NOTE:
+  awk's b.c is onetrueawk lineage — submit to onetrueawk, not FreeBSD
+  (the bound cap and NULL guard mirror upstream; the other four still
+  crash upstream master).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap
