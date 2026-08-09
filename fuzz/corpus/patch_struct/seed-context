@@ -1,0 +1,17 @@
+*** old.c	Fri Jan  1 00:00:00 2024
+--- new.c	Sat Jan  2 00:00:00 2024
+***************
+*** 1,6 ****
+  context one
+  context two
+- old line
+! changed line
+  context three
+  context four
+--- 1,7 ----
+  context one
+  context two
++ new line
+! changed line harder
+  context three
+  context four

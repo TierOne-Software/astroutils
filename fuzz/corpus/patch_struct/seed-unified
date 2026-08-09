@@ -1,0 +1,10 @@
+--- a/old.c	2024-01-01 00:00:00 +0000
++++ b/new.c	2024-01-02 00:00:00 +0000
+@@ -1,5 +1,6 @@ int main(void)
+ context line one
+-removed line
++added line
++another added line
+ context line two
+ context line three
+\ No newline at end of file

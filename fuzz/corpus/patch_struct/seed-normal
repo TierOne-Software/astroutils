@@ -1,0 +1,13 @@
+5a6,8
+> inserted one
+> inserted two
+> inserted three
+3d2
+< deleted line
+10,12c20,21
+< old ten
+< old eleven
+< old twelve
+---
+> new twenty
+> new twentyone

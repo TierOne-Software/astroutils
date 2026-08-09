@@ -1,0 +1,29 @@
+ *** a/very/long/path/component/name/that/keeps/going/file.c
+ --- 	
+ ***************
+ *** 0,64 ****
+ --- 4,9223372036854775800 ----
+   *A	#rRL,Bu6Y+
+ + }\JLi>xa6^2`9PjV&
+ ***************
+ *** 4294967296,85897 ****
+ \ Wt#O;5w]+'
+ --- 999999999999 ----
+ ! \ s;(-
+  diff --git a/new.c b/f.c.orig
+  Index: b/new.c
+  --- a/old.c
+  +++ a/very/long/path/component/name/that/keeps/going/file.c
+  @@ -289036,322189 +0 @@
+  +j-nõF|}X+u86yìExwM&,q25
+   ç {q)+%Ë
+  @@ -537786,4294967295 +200046,999999999999 @@
+  - U
+  -
+  @Tc*=	G78JL$rCx6<wO6
+  +xY{ΩU 4Z¶hX>{7c
+X907r
+X933r
+X142d
+X117r
+X.

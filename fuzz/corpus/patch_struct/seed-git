@@ -1,0 +1,9 @@
+diff --git a/src/foo.c b/src/foo.c
+index 0123abc..4567def 100644
+--- a/src/foo.c
++++ b/src/foo.c
+@@ -10,3 +10,4 @@ void foo(void)
+ 	line();
+-	old();
++	new();
++	extra();
