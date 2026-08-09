@@ -91,7 +91,7 @@ fn resolveSysDep(dep: []const u8) ?[]const u8 {
     return null; // pam, pam_misc, anything unknown
 }
 
-fn mkModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, is_cpp: bool) *std.Build.Module {
+fn mkModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.lang.OptimizeMode, is_cpp: bool) *std.Build.Module {
     return b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -141,7 +141,7 @@ pub fn build(b: *std.Build) !void {
     // ReleaseFast matches the meson (gcc -O2) reference behavior. Building
     // with -Doptimize=ReleaseSafe or Debug enables zig's UB checks, which
     // currently fire on latent upstream UB — see SECURITY-FINDINGS.md.
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "optimization mode") orelse .ReleaseFast;
+    const optimize = b.option(std.lang.OptimizeMode, "optimize", "optimization mode") orelse .fast;
     const arena = b.allocator;
     loadDeps(b);
 
