@@ -475,6 +475,20 @@ clean), and `fuzz_awkb` (awk's regex engine). All run in CI via
 `ci/jobs/fuzz-regress.sh`; sh and zopen corpora also replay through the
 real binaries in the suite.
 
+Third wave: `fuzz_grepdata` (grep stdin data path, 878k execs clean,
+LSan-clean), `fuzz_sedcompile` (sed compiler + interpreter, ~1M execs
+clean; the infer compile.c:188 null-deref did not reproduce), and
+`fuzz_seddata` (fixed-script interpreter, 286k execs clean),
+`fuzz_awkdata` (interpreter data path incl. CSV/regex-RS/FS flavors,
+75k execs clean), `fuzz_patch_struct` (grammar-mutated diffs; ~2x
+coverage depth vs byte-level mutation from minimal seeds; clean).
+Notable side finds: glibc `regcomp()` blows up exponentially on
+quantifier runs (ERE `x*++++…`, >10s) reachable from untrusted sed/awk
+scripts — a libc issue, not ours; sed `compile.c` leaks one `regex_t`
+per `s` command (fixed-size, one-time, not security-relevant); and
+fetch(1)'s mirror-mode exit-status quirk was resolved to the (since
+fixed) broker topology, not an upstream bug.
+
 ### FIXED — fuzz — awk regex engine: six bug classes (fuzz_awkb)
 All reachable from any awk program via `/re/`, `~`, `sub()`, `split()`
 — i.e. user-supplied patterns. Fixed in `src.freebsd/awk/b.c`

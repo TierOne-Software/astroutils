@@ -157,12 +157,13 @@ sh is the most security-critical tool in the set.
       classes** (see SECURITY-FINDINGS.md, fuzzing section); fixes and
       upstream submission are the current work item.  sed's script
       compiler remains.
-- [ ] Data-path harnesses for awk/sed/grep: fixed program, fuzzed
-      *input* — that is how untrusted data actually reaches them.
+- [x] Data-path harnesses — `fuzz_grepdata` (grep), `fuzz_seddata`
+      (sed), `fuzz_awkdata` (awk): fixed program, fuzzed *input* — that
+      is how untrusted data actually reaches them.  All clean.
 - [ ] Add an MSan job (the Infer uninit-read cluster suggests this class
       is live) and llvm-cov reports to find unreached parser code.
-- [ ] Structure-aware fuzzing for patch (grammar-shaped diffs) to get
-      past the shallow rejection paths.
+- [x] Structure-aware fuzzing for patch — `fuzz_patch_struct`'s grammar
+      mutator reaches ~2x edge coverage from minimal seeds; clean.
 
 ## P3 — Complete the exploit-mitigation set — DONE
 
