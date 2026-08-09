@@ -82,6 +82,8 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   awk's b.c is onetrueawk lineage — submit to onetrueawk, not FreeBSD
   (the bound cap and NULL guard mirror upstream; the other four still
   crash upstream master).
+- 0042 sed: free the first s-command regex compilation — one regex_t
+  leaked per s command per process (fuzz/LSan find; minor).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

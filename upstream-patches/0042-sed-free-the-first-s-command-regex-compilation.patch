@@ -1,0 +1,35 @@
+From f103272d3f7f0b7d155c8abaea675eb2c9a2ed75 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 8 Aug 2026 22:31:07 -0400
+Subject: [PATCH] sed: free the first s-command regex compilation
+
+Found by the fuzz_seddata harness (LSan): the substitute pattern is
+compiled once with icase=0 for backref validation, then recompiled
+with the real icase flag, overwriting the first regex_t without
+regfree/free -- one regex_t leaked per s command per process.
+---
+ src.freebsd/sed/compile.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/sed/compile.c b/src.freebsd/sed/compile.c
+index 47249c38..7ba3f1d0 100644
+--- a/src.freebsd/sed/compile.c
++++ b/src.freebsd/sed/compile.c
+@@ -335,8 +335,13 @@ nonsel:		/* Now parse the command */
+ 			/* Recompile RE with case sensitivity from "I" flag if any */
+ 			if (*re == '\0')
+ 				cmd->u.s->re = NULL;
+-			else
++			else {
++				if (cmd->u.s->re != NULL) {
++					regfree(cmd->u.s->re);
++					free(cmd->u.s->re);
++				}
+ 				cmd->u.s->re = compile_re(re, cmd->u.s->icase);
++			}
+ 			EATSPACE();
+ 			if (*p == ';') {
+ 				p++;
+-- 
+2.55.0
+
