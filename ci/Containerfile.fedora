@@ -19,8 +19,8 @@ RUN dnf -y install --setopt=install_weak_deps=False \
 # zig: pinned dev snapshot (see README.md; distro packages are too old
 # for build.zig).  Old dev snapshots vanish from ziglang.org but are kept
 # on the machengine mirror; the tarball is sha256-verified here.
-ARG ZIG_VERSION=0.17.0-dev.813+2153f8143
-ARG ZIG_SHA256=b0d46ffc4587b9e8dd0b524ee5bc4da1e67f28bba55e7c534cec64af2f2d7a74
+ARG ZIG_VERSION=0.17.0-dev.1737+de207594e
+ARG ZIG_SHA256=a68df95449e152d78ad3940643fb16b925d273411164295cfa12a4621e85b1da
 RUN curl -fsSL -o /tmp/zig.tar.xz \
         "https://pkg.machengine.org/zig/zig-x86_64-linux-${ZIG_VERSION}.tar.xz" \
     && echo "${ZIG_SHA256}  /tmp/zig.tar.xz" | sha256sum -c - \

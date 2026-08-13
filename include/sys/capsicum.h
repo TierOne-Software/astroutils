@@ -58,12 +58,21 @@ extern "C" {
 #define CAP_FSTATFS	(1ULL << 6)
 #define CAP_FTRUNCATE	(1ULL << 7)
 #define CAP_IOCTL	(1ULL << 8)
-#define CAP_MMAP_R	(1ULL << 9)
+#define CAP_MMAP	(1ULL << 9)
 #define CAP_EVENT	(1ULL << 10)
 #define CAP_LOOKUP	(1ULL << 11)
 #define CAP_PWRITE	(1ULL << 12)
 #define CAP_CONNECT	(1ULL << 13)
 #define CAP_SHUTDOWN	(1ULL << 14)
+
+/*
+ * FreeBSD defines the mmap rights as composites: CAP_MMAP_R carries
+ * CAP_SEEK and CAP_READ (mapping a file readably implies you may read
+ * and seek it), and call sites such as tail(1) and cmp(1) rely on that
+ * implication.  Keep the same meaning here or those tools lose read(2)
+ * on the limited fd.
+ */
+#define CAP_MMAP_R	(CAP_MMAP | CAP_SEEK | CAP_READ)
 
 typedef struct cap_rights cap_rights_t;
 

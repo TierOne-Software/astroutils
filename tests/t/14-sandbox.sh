@@ -60,6 +60,22 @@ if [ "$sandbox_available" = 1 ] && require "wc" wc; then
         sh -c "$(tool wc) input.txt | awk '{print \$1\" \"\$2\" \"\$3\" \"\$4}'"
 fi
 
+# CAP_MMAP_R must imply CAP_READ/CAP_SEEK as on FreeBSD: tail limits
+# stdin to FSTAT/FSTATFS/FCNTL/MMAP_R yet reads it, and cmp limits its
+# file descriptors to MMAP_R alone.  A standalone-bit CAP_MMAP_R broke
+# both (read(2) on the fd -> EPERM); first seen in the zig CI smoke test.
+if [ "$sandbox_available" = 1 ] && require "tail" tail; then
+    assert_out "sandboxed tail reads a pipe" "5" \
+        sh -c "seq 1 5 | $(tool tail) -1"
+fi
+
+if [ "$sandbox_available" = 1 ] && require "cmp" cmp; then
+    printf 'same\n' > cmp-a.txt
+    printf 'same\n' > cmp-b.txt
+    assert_status "sandboxed cmp compares mmap'd files" 0 \
+        "$(tool cmp)" cmp-a.txt cmp-b.txt
+fi
+
 group "capsicum shim: escape hatch"
 
 # With NONE the sandbox is a no-op; a named-file read via the casper

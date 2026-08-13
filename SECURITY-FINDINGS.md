@@ -451,6 +451,21 @@ everything below was unreachable from it.
   musl; glibc behavior unchanged (musl-only code path). The XFAIL in
   `tests/t/13-regress-parsers.sh` is now a hard regression test.
 
+### FIXED — sandbox: CAP_MMAP_R did not imply CAP_READ/CAP_SEEK
+- The shim defined `CAP_MMAP_R` as a standalone bit; FreeBSD defines it
+  as `(CAP_MMAP | CAP_SEEK | CAP_READ)`. tail(1) limits stdin to
+  `FSTAT/FSTATFS/FCNTL/MMAP_R` and cmp(1) its file descriptors to
+  `MMAP_R` alone, both relying on the implied CAP_READ — with the
+  standalone bit the shim denied read(2) on those fds, so
+  `seq 5 | tail -1` failed with EPERM. Over-restriction (the safe
+  direction), latent since the shim landed; invisible to the suite
+  because only the zig CI smoke test exercised a sandboxed tool reading
+  a pipe. Found when the zig dev-snapshot pin was bumped far enough for
+  the job to reach the smoke test. Fixed: `CAP_MMAP_R` is now the
+  FreeBSD composite, and the shim's two mmap deny checks key on the
+  standalone `CAP_MMAP` bit so a plain CAP_READ grant is not mistaken
+  for mmap rights. Regression tests in `tests/t/14-sandbox.sh`.
+
 ### Fuzz harness notes
 - `fuzz_patch` runs in-process with patch's `exit()` rewritten to a
   longjmp (`-Dexit=fuzz_skip_exit`) plus `pch_reset()` (new, exported)
@@ -488,6 +503,15 @@ scripts — a libc issue, not ours; sed `compile.c` leaked one `regex_t`
 per `s` command (fixed, upstream-patches/0042); and fetch(1)'s
 mirror-mode exit-status quirk was resolved to the (since fixed) broker
 topology, not an upstream bug.
+
+Harness bug found by the scheduled 300s/target CI fuzz run:
+`fuzz_sedcompile` tracked compiled regexes for its reset pass but did
+not wrap `regfree()`, so sed's own regfree of the first `s`/// regex
+(icase recompile path, f103272d) left the registry holding a dangling
+`regex_t` — ASan heap-use-after-free at reset on the next input
+(repro: `\0sibii`). Harness-only; the sed fix itself is correct. The
+harness now wraps regfree to unregister, and the input lives in
+`fuzz/corpus/sedcompile/`.
 
 ## MSan job (ci/jobs/msan.sh)
 All harnesses are built with `-fsanitize=fuzzer,memory` and every

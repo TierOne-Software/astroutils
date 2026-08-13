@@ -1176,7 +1176,7 @@ caph_rights_limit(int fd, const cap_rights_t *rights)
 			L->deny |= LDENY_FSYNC;
 		if ((rights->mask & CAP_SHUTDOWN) == 0)
 			L->deny |= LDENY_SHUT;
-		if ((rights->mask & CAP_MMAP_R) == 0)
+		if ((rights->mask & CAP_MMAP) == 0)
 			L->deny |= LDENY_MMAP;
 		if ((rights->mask & CAP_IOCTL) == 0) {
 			nsafe = sizeof(safe_ioctls) / sizeof(safe_ioctls[0]);
@@ -1260,7 +1260,7 @@ caph_rights_limit(int fd, const cap_rights_t *rights)
 		ENT(SYS_shutdown);
 #endif
 	}
-	if ((rights->mask & CAP_MMAP_R) == 0) {
+	if ((rights->mask & CAP_MMAP) == 0) {
 #ifdef SYS_mmap
 		ENT_ARG(SYS_mmap, 4);
 #endif

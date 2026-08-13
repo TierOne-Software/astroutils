@@ -181,8 +181,8 @@ jobs:
       # ziglang.org; the machengine mirror keeps them.
       - name: zig
         run: |
-          VER=0.17.0-dev.813+2153f8143
-          SHA=b0d46ffc4587b9e8dd0b524ee5bc4da1e67f28bba55e7c534cec64af2f2d7a74
+          VER=0.17.0-dev.1737+de207594e
+          SHA=a68df95449e152d78ad3940643fb16b925d273411164295cfa12a4621e85b1da
           curl -fsSL -o /tmp/zig.tar.xz \
             "https://pkg.machengine.org/zig/zig-x86_64-linux-${VER}.tar.xz"
           echo "${SHA}  /tmp/zig.tar.xz" | sha256sum -c -

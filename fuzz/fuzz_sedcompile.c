@@ -22,7 +22,9 @@
  * entries left behind by mid-compile errors — can be released on reset
  * without walking data structures whose shape depends on where the
  * error hit.  regcomp() is likewise wrapped so successfully compiled
- * regexes can be regfree()d.  misc.c is included before the allocation
+ * regexes can be regfree()d, and regfree() is wrapped to unregister:
+ * compile.c regfree()s the first s/// compilation itself on the icase
+ * recompile path.  misc.c is included before the allocation
  * macros on purpose: its strregerror() keeps one self-consistent
  * static buffer (oe) across runs.
  *
@@ -187,6 +189,24 @@ fuzz_regcomp(regex_t *preg, const char *pattern, int cflags)
 	return (r);
 }
 
+static void
+fuzz_regfree(regex_t *preg)
+{
+	size_t i;
+
+	/*
+	 * compile.c regfree()s the first s/// regex itself when the I flag
+	 * forces a recompile; drop it from the registry so the reset pass
+	 * does not regfree() the same storage a second time.
+	 */
+	for (i = 0; i < fuzz_nres; i++)
+		if (fuzz_res[i] == preg) {
+			fuzz_res[i] = fuzz_res[--fuzz_nres];
+			i--;
+		}
+	regfree(preg);
+}
+
 static int
 fuzz_open(const char *path, int flags, ...)
 {
@@ -231,6 +251,7 @@ fuzz_fopen(const char *path, const char *mode)
 #define free			fuzz_free
 #define strdup			fuzz_strdup
 #define regcomp			fuzz_regcomp
+#define regfree			fuzz_regfree
 #define open(...)		fuzz_open(__VA_ARGS__)
 #define fopen(...)		fuzz_fopen(__VA_ARGS__)
 
@@ -243,6 +264,7 @@ fuzz_fopen(const char *path, const char *mode)
 #undef free
 #undef strdup
 #undef regcomp
+#undef regfree
 #undef open
 #undef fopen
 
