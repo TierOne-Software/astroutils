@@ -39,7 +39,7 @@ jobs:
             pkgconf-pkg-config flex byacc bison libxo-devel \
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
-            libselinux-devel binutils file git which
+            libselinux-devel binutils file diffutils git which
 
       - uses: actions/checkout@v4
 
@@ -99,7 +99,7 @@ jobs:
             pkgconf-pkg-config flex byacc bison libxo-devel \
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
-            libselinux-devel binutils file git which
+            libselinux-devel binutils file diffutils git which
 
       - uses: actions/checkout@v4
 
@@ -123,7 +123,7 @@ jobs:
             pkgconf-pkg-config flex byacc bison libxo-devel \
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
-            libselinux-devel binutils file git which
+            libselinux-devel binutils file diffutils git which
 
       - uses: actions/checkout@v4
 
@@ -155,7 +155,7 @@ jobs:
             pkgconf-pkg-config flex byacc bison libxo-devel \
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
-            libselinux-devel binutils file git which
+            libselinux-devel binutils file diffutils git which
 
       - uses: actions/checkout@v4
 
@@ -175,7 +175,7 @@ jobs:
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
             libselinux-devel hostname words \
-            git curl ca-certificates which
+            diffutils git curl ca-certificates which
 
       # Same pin as ci/Containerfile.fedora: dev snapshots vanish from
       # ziglang.org; the machengine mirror keeps them.
