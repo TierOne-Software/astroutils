@@ -200,6 +200,11 @@ if require "sed" sed; then
     assert_no_crash "sed empty script" sh -c \
         ": > empty.sed; echo a | $(tool sed) -f empty.sed >/dev/null 2>&1"
     assert_out "sed still substitutes" "b" sh -c "echo a | $(tool sed) 's/a/b/'"
+
+    # cspace() with an untouched hold space passed NULL to memmove (UBSan):
+    # g/G must treat it as empty, matching what x already special-cased.
+    assert_out "sed g with untouched hold space" "" sh -c "echo a | $(tool sed) 'g'"
+    assert_out "sed G with untouched hold space" "a" sh -c "echo a | $(tool sed) 'G'"
 fi
 
 cu_finish

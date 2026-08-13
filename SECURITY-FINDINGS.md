@@ -575,6 +575,19 @@ upstream's existing fixes.
   sed, not a bug. No code change; `slow-unit-*` artifacts no longer
   fail the fuzz job or the corpus suite (they are reported instead).
 
+### FIXED — fuzz — sed: NULL memmove in cspace on untouched hold space
+- Found by the asan+ubsan CI job replaying the grown sedcompile corpus
+  through the real binary (`sed -f`): 11 inputs aborted on
+  `process.c:768` — `memmove(dst, NULL, 0)`, UBSan nonnull violation.
+  `g`/`G` with a never-written hold space pass `hs` (still NULL) to
+  `cspace()`; `x` already special-cases exactly this (process.c:255),
+  `g`/`G` did not. Zero-length, so behavior was correct; UB only.
+- Fixed: `cspace()` skips the memmove when `len == 0`, the same guard
+  idiom as the ed/sort zero-length memcpy fixes. Regression tests in
+  `tests/t/12-regress-tools.sh` (`g`/`G` with untouched hold space);
+  full corpus leg replays clean under ASan/UBSan. Upstream patch
+  queued as upstream-patches/0044.
+
 Note: the `fuzz_awkb` known-bug filters are removed. compress(1) side
 note: `compress -c` to stdout is broken on this port ("No such device
 or address") — minor, worth a look.

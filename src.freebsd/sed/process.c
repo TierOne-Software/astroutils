@@ -765,7 +765,11 @@ cspace(SPACE *sp, const char *p, size_t len, enum e_spflag spflag)
 	if (spflag == REPLACE)
 		sp->len = 0;
 
-	memmove(sp->space + sp->len, p, len);
+	/* len == 0 callers may legitimately pass a NULL p (e.g. g/G with an
+	 * untouched hold space); memmove with a NULL argument is UB even
+	 * when the count is zero. */
+	if (len > 0)
+		memmove(sp->space + sp->len, p, len);
 
 	sp->space[sp->len += len] = '\0';
 }
