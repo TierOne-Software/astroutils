@@ -1,0 +1,4 @@
+cat at  <<- 'END'
+	i
+	END
+tr acmraw $txt t <<-cat <<- O,F0

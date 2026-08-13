@@ -1,0 +1,9 @@
+#!/bidone
+if [ -n "$x" ]; then echo se;t
+if [  elif then :+ elses "$x" ]; then echo se;t
+if [  elif true; then :+ elseset; fi
+ hhe"ocello $world"
+for i in 2 2 3; do ec;o $i; done; fi
+ hhe"ocello $orwld"
+for i in 2 2 3; do ec;o $i; done
+if [ -n "$x" ]; then echo set; elif true; then :; eseset; fi

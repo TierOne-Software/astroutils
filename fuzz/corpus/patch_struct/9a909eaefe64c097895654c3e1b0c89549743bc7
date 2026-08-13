@@ -1,0 +1,53 @@
+ 63d2
+ <cv=v.n0afczFl{^qReifv[2~^)?'8ZWyz
+B~,]XZÛ?~.7J[,`%d#Oe<7|e%BNJE<Zu
+Xdiff --git a/f.c	2024-01-01 00:00:00.000000000 +0000 b/a/old.c
+X--- a/very/long/path/component/name/that/keeps/going/file.c
+X+++ file with spaces.c
+X@@ -255351,85 +91,34 @@
+X _XÙQp<1$,#
+X-uf#--$&t-<uq=
+X @2\C+^y$PNjM×hVH1AX
+X+<m?3\6GSki.à
+X-[d=^G^O_&ld)
+X+5q]:p,)8Y*m{p{~jp.$
+X< u\Z=Hk
+X< xTH<lT7,* "
+X< f=J?yHu~)NN44}>o-jaU–`Æ
+  *** a/old.c
+  --- a/very/long/path/component/name/that/keeps/going/file.c
+  *************
+    .(z€\q\y;yM
+  ! ?OJ69 #ŒPC\
+S³HyRÜQTOU]#(?f.c	2024-01-01 00:00:00.000000000 +0000 b/a/old.c
+X--- a/very/long/path/component/name/that/keeps/going/file.c
+X+++ file with spaces.c
+X@@ -255351,85 +91,34 @@
+X _XÙQp<1$,#
+X-uf#--$&t-<uq=
+X @2\C+^y$PNjM×hVH1AX
+X+<m?3\6GSki.à
+X-[d=^G^O_&ld)
+X+5q]:p,)8Y*m{p{~jp.$
+X< u\Z=Hk
+X< xTH<lT7,* "
+X< f=J?yHu~)NN44}>o-jaU–`Æ
+  *** a/old.c
+  --- a/very/long/path/component/name/that/keeps/going/file.c
+  ***************
+  *** 38,710101 
+  ! m
+    MZæn#5E-
+    HNl}Ia!naNò
+\YkLE¯(oE`6(/+\^Va +-
+ ±
+X  *** file with spaces.c
+X  --- f.c.orig
+X  ***************
+X  *** 2147483648,9223372036854775800 ****
+X  ! 7
+X  ! K"4M~wJ)b*ZidAË=>,wh+(
+X  \ 
+X  ! V2$;}'>+\Õ §:GM)-f~{v
+X  --- 999999999999,4294967296 ----
+/kY_3t}N/\N/7Et3L:30Mz%quBh373%+]$pKjx!b6PA':?Jv|O­M

@@ -1,0 +1,4 @@
+cap <<EOFt :<<- 'END'
+and $(cmd)
+ echw$text `npubs`
+E

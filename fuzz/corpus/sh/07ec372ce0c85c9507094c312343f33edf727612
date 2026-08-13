@@ -1,0 +1,6 @@
+catEcat <<E <<EOF
+li~ne withar and $(cmd)
+ca $(cmd)
+Er anfid $(cmd)o do
+rosubs`
+Ex` tnosEOF3

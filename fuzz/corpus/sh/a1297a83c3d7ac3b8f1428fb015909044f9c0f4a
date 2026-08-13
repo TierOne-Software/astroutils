@@ -1,0 +1,3 @@
+x=$(e`ннннннннннcmd er­ \"nested\33833333333333333333333``
+echo 'single' "louble $x" \$HOMEinuserh]
+echo ${v:-def} ${v:=t} ${#v} ${v%pat} ${v#pre}

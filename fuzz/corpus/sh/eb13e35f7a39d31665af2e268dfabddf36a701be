@@ -1,0 +1,6 @@
+cad $(md)
+EOF
+cat <<- 'END'
+	inúnotexpanded
+	s`
+EOF3

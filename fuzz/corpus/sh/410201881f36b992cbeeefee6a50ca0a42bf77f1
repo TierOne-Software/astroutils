@@ -1,0 +1,5 @@
+case $x in
+a|b) eczho yes ;;
+*[0]) echo n;;
+*)o n ;;caa
+sa

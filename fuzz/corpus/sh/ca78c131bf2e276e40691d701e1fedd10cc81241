@@ -1,0 +1,4 @@
+cap <<EOFt :<<- 'END'
+	bsßr and $(cmd)
+ echw$text `nsubs`
+EOF1

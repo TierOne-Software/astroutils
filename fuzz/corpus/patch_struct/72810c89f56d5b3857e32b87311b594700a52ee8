@@ -1,0 +1,54 @@
+ diff --git a/new.c b/file with spaces.c
+ index 0123abc..4567def 100644
+ --- b/new.c
+ +++ new.c
+ @@ -82,17 +2147483647,45 @@ section heading
+ -1 )Yc="a, - *
+ -*%°4r?+%"%8\_
+  TCx!
+X  597a
+X  Z‘L<-
+X  ;
+X  815a
+X  VX`y
+X  190a
+X  .
+X  --- file with spaces.c
+X  +++ old.c
+X  @@ -00042,380918 +72,52 @@ section heading
+X   T\gc
+X  @@ -84,2 +4294967296,00042 @@
+X  \ No newline at end of file
+X  \ No newline at end of file
+X  +A/
+X  \ No newline at end of file
+X  4294967296,705855a4294967295,99999999999999999999999999
+X  > _>v>?/>.yeÙ-d/ƒT[
+X  > [x!3+Â1!Q@=R=f|
+X  911317,00042c9999999--
+X  > `
+X  > _bd"{L
+X  > }¼K#`SE
+X  > 
+X  > ikW )E8F.b$)$e up)5
+X  > 4UO`%e;t^SfA9xg5_E1irR
+ 2147483647,778622c9223372036854775806,2
+ < U~<KP:[ww
+ < cc=7tpZB zV
+ < qn{a1k@4xx. kWXz#xq‘+ %
+ < ¾w('6
+ ---
+ > +*Õ^M@)\/kbb;2kt
+ > \,
+ > +f
+ > azWIj?+<mQm|p
+ > *j~ã=UÔRy
+ > E	mXAeUF*3*B]
+ 984118,4294967296c44,69
+ < 
+ < 69$¤3	É6?HQB
+ < ut^QG.PDG'#>[nXÇ'D\z
+ < T`}2!d‡!fvjn<#le=F…`f
+ < |(Wml
+ < 7Y:zq\ 
+ ---

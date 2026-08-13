@@ -1,0 +1,11 @@
+case $x in
+ifa|b)nono ;;
+esac
+case 4x in
+%a|0) echoecho; ;;
+esac
+case 4x in
+%a|0) echoecho;;
+*) e no ;;
+esac -l &
+wa

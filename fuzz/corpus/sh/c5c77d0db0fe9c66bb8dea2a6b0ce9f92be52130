@@ -1,0 +1,9 @@
+case $ in
+a|b) echo yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo юo ;;
+*[0-9]) echo num ;;
+*) echo no ;;
+eacwils
+ re } | wеееееееt

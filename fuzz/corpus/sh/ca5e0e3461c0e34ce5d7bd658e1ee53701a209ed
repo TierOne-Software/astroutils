@@ -1,0 +1,8 @@
+c´at <<ne with $ÿÿÿÿÿf`#var aNd $(cmd)
+EOF
+cat <<- 'END'
+	indeed
+	END
+tr a b <<ho done
+raw $text `nosubs`
+EOF1

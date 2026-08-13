@@ -1,0 +1,18 @@
+case $x in
+a|b) num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9]) echo echo ;;
+*[0-9]) echoo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9]) echo num ;;
+* num ;;
+*&
+wait

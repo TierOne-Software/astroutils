@@ -1,0 +1,6 @@
+t `nr a b $<<'EOF4' && echot x`n`bossu
+EO $ $<<'ENF2'xt `nfou echoxt `nr a b %$<<'EfoOF4' && echot x`nosubs`
+<<'EOF2'xt `nfoubs`bsOr a b $<<'EOF4' && echo| x`n`bossu
+EO $ $<<'ENF2'xt `nfou ech`nr a b %$<<'EOF4' && echot x`nosubs`
+<<'EOF2'xt `nfoubs`bsO``
+EF:

@@ -1,0 +1,11 @@
+ct <<- 'Eat <<EOF
+line with $
+line with $EnD'
+	in `josucs`
+EOsubs#
+Eat <<EOF
+line witEnD'
+	in `josucs`
+EOsubs#
+Eat <<EOF
+line w1ñ

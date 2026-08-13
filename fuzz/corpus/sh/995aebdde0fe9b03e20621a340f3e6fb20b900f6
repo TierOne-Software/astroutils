@@ -1,0 +1,11 @@
+catOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $t n`toxsut <<-ca <<- 'END'
+	i
+	END
+tr acmraw $t n`toxsut <<-cat rw $txt `nosub<<EOF
+EOF1

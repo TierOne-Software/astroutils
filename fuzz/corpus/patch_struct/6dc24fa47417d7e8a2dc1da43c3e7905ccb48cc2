@@ -1,0 +1,19 @@
+ *** a/very/long/path/component/name/that/keeps/going/file.c
+ --- 	
+ ***************
+ *** 0,64 ****
+ --- 4,9223372036854775800 ----
+   *A	#rRL,Bu6Y+
+ + }\JLi>xa6^2`9PjV&
+ ***************
+--- 999999999999 ----
+ ! \ s;(-
+  diff --git a/new.c b/f.c.orig
+  Index: b/new.c
+  --- a/old.c
+  +++ a/very/long/patX>{7c
+X907r
+X933r
+X142d
+X117r
+X.

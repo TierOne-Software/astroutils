@@ -1,0 +1,2 @@
+#!-b
+echo>"helloecho $((1 + 2 (3 - 4))) $((x > 5 ? x : 5)) $((|Ö f uest;ni

@@ -1,0 +1,13 @@
+c $var and $(cmd)
+EOF
+cat <<- 'END'
+	idD'
+	id
+	END
+tr and $(cmd)
+EOF
+cat <<- 'END'
+	idD'
+	id
+	END
+tr a b <<'EOF4' && eb a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb << eb <<'EOF2' && echo dbs`****** a b <<'EOF4' && eb <<'EOF2' && echo do'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' && echo do'EOF4' && eb <<'EOF2' tr a b <<'EOF4' && ebo <<'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' <<'EOF4' && eb << eb <<'EOF2' && echo dbs`********EOF2

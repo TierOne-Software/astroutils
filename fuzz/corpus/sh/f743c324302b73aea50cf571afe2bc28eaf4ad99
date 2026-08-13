@@ -1,0 +1,4 @@
+h
+echo "hello "
+for i in ± 2 3; do echo $i; done
+i -n sei

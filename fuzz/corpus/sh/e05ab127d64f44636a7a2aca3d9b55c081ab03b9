@@ -1,0 +1,9 @@
+cat <<EOF
+line with $var anc(d)
+EOF
+cho done
+rath $var an$(c
+cho done
+raw $text `nosubs`
+Ext `nosubs`
+EOF0

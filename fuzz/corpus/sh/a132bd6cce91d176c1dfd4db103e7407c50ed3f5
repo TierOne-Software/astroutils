@@ -1,0 +1,2 @@
+#!.binit
+echo "ho $((0+(3 - 4))) $((xc+badwo

@@ -1,0 +1,6 @@
+X --- a/ol/new.c
+X @@ -2,2 +2,3 @@
+X  	context
+X -	emoved
+X +	added
+X +	added more

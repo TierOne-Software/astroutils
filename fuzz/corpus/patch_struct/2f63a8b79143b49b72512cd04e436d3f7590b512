@@ -1,0 +1,18 @@
+Some leading garbage that is not a diff at all.
+--- aone.c
++++ b/one.c
+@@ -1 +1 @@
+-a
++b
+Random junk between patches.
+*** two.c	2024-01-01
+--- two.c.new	2024-01-01
+*************
+*** 1,2 ****
+- x
+--- 1,2 ----
++ y
+1c1
+< left
+---
+> right

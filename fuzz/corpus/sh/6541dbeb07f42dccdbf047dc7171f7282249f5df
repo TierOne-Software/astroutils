@@ -1,0 +1,5 @@
+e $var and <- 'END'
+	indented $notexpanded
+	END
+tr a cÀıÀ'EOF2' && echoxt `noqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqiqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsubs`
+EOF2

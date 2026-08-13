@@ -1,0 +1,4 @@
+h
+echo "hell"
+for i in ± . 3; do echo $i; done
+i -n sei

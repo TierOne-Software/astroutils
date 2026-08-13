@@ -1,0 +1,5 @@
+c $var and EOF
+cat <<- 'END'
+	id
+	END
+tr a b <<'EOF4' && eb <<'EOF2' && ec && eb <<'EOF2' tr a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb << eb <<'EOF2' && echo dbs`********EOF1

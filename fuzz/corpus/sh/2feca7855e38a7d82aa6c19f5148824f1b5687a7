@@ -1,0 +1,9 @@
+cat <<EOF
+line’›Ð
+EOF
+cho done
+raw $wtecat <<Ect <<Es
+i; {ith $va $var a $(cmd)
+Etext `nosub@`
+E`nosbus`
+EOF

@@ -1,0 +1,5 @@
+case $x in
+a|b) echo yes ;;
+*[0]) echo n“m ;;
+*) echo n ;;caat
+sa

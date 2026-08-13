@@ -1,0 +1,8 @@
+case $x in
+ifa|b)no ;;
+esac
+case $x in
+ifa|b) echoecho num ;;
+*) echo no ;;
+esac -l &
+wait

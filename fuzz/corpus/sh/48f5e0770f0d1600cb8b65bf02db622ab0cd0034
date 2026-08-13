@@ -1,0 +1,5 @@
+cat <<EOF
+th; $var and $(:mdt <<- 'END'
+		inde	EN:
+tEN:
+tr a

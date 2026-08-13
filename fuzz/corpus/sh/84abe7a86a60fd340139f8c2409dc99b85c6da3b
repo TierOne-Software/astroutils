@@ -1,0 +1,8 @@
+cat at  <<- 'END'
+	i
+	END
+tr acmraw $txt `nosucat <<-cat <<- 'END'
+Ii
+	EEND
+tr acms`
+EO,F0

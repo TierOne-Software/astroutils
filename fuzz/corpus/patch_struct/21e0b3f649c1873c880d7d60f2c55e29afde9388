@@ -1,0 +1,11 @@
+*** old.c
+--- new.c
+*************
+*** 2,4
+  keep
+- drop
+  keep too
+--- 2,4
+  keep
++ add
+  keep too

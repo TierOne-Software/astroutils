@@ -1,0 +1,5 @@
+  diff --git a/	 b/f.c.orig
+  --- old.c
+  +++ b/new.c
+  @@ -78 +90,1 @@
+  

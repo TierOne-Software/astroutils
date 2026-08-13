@@ -1,0 +1,24 @@
+ diff --git a/new.c b/file with spaces.c
+ index 0123abc..4567def 100644
+ --- b/new.c
+ +++ new.c
+ @@ -82,17 +2147483647,45 @@ section heading
+ -1 )Yc="a, - *
+ -*%°4r?+%"%8\_
+  TCx!
+X  597a
+X  Z‘L<-
+X  ;
+X  815a
+X  VX`y
+X  190a
+X  .
+X  --- file with spaces.c
+X  +++ old.c
+X  @@ -00042,380918 +72,52 @@ section heading
+X   T\gc
+X  @@ -88,2 +4294967296,00042 @@
+X  \ No newline at end of file
+X  \ No newline at end of file
+X  +A/
+X  \ No newline at end of f--

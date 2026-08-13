@@ -1,0 +1,10 @@
+name,age,city
+foo,42,bar
+x:1:2,99,ame,age,city
+foo,42,bar
+x:1Å2,99,zz
+,,
+7,x,9
+zz
+,,
+7,x,9

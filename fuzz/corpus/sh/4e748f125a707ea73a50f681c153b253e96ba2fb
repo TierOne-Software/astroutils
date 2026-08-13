@@ -1,0 +1,36 @@
+case $x in
+a|b) num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*\0-9]) echo echo ;;
+*[0-9]) echom ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*\0-9]) echo echo ;;
+*[0-9]) echoo no ;;
+*[0-9])choxes yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*\0-9]) echo echo ;;
+*[0-9]) echom ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*\0-9]) echo echo ;;
+*[0-9]) echoo no ;;
+*[0-9])choxes yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9]) echo nuo no ;;
+*[0-9])cho yes ;\xe;
+*&
+\xwaiest

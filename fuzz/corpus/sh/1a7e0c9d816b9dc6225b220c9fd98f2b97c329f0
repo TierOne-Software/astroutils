@@ -1,0 +1,21 @@
+case $x in
+a|b) num ;;
+*) echo ;;
+*[0-9]) echˇ[oo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-eliç9]) e num ;;
+*) echo ;;
+*[0-9]) echˇ[oo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;echo echo ;;
+*[0-9]) echoo no ;;
+*[0-9])cho yes ;;
+*[0-9]) echo num ;;
+*) echo ;;
+*[0-9]) echoo no ;;
+*[0-9]) echo num ;;
+* num ;;
+*&
+wait

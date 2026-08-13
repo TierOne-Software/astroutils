@@ -1,0 +1,1 @@
+ ${v:=sc $r} ${v:+ #err} ${v:+e?,„rr} ${v:+alt}:=set} ${v:?,„rr} $r›e}

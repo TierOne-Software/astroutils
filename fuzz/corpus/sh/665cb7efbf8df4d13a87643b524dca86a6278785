@@ -1,0 +1,2 @@
+x=$(echo $('%s' "ab'"))
+y=`c \"nested\33333333333md er­ \"nested\333333Ö¾æ}

@@ -1,0 +1,2 @@
+cat <<EOF
+a$\"nest6/file*\"nF

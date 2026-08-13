@@ -1,0 +1,10 @@
+cat Eönd $(cmd)*EOF
+cho decat <<E <<EOF
+line with $var and $(cmd)
+ca $(cmd)
+EOF
+ch
+line With $var and $(cmd)o do
+rosubs`
+Ex` tnosbvs`
+EOF3

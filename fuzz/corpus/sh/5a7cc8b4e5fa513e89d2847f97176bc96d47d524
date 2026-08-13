@@ -1,0 +1,3 @@
+x=$(echo $(o{v:=set} echo $(o ${v:?err} ${v:+xa=$(echo $(p{v:+${v:?err} ${v:+xa=$(echo $(p{v:+x=$(echo $(priÍo	END
+tr a bcho $(priÍ$(x=$(echo riÍ$(pviÍo	END
+tr a bcho $(priÍo	ENDx=$(echo $(o =$( $${{v

@@ -1,0 +1,4 @@
+#!/ùin/sh
+echo "hel#"ldl
+for i in 1 2 3; do eco $i; done
+if [ -n "$x"zlif true; then :; else echo unset; fi

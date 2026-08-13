@@ -1,0 +1,8 @@
+cat <<EOF
+l2ne $and)
+EOF
+cat <<- 'END'
+	ided
+	END
+tra b <<'EOF2' && echoøt `nosubs`
+EOF2

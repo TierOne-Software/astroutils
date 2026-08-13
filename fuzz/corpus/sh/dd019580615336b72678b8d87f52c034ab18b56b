@@ -1,0 +1,2 @@
+cat <<EOF
+ar eclo$\"nest6/file*\"nF4

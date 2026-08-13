@@ -1,0 +1,7 @@
+cat <<EOF
+linewith $var and($(cmd)
+EOF
+cat <<- 'END'
+	i
+	END
+tr EOF1

@@ -1,0 +1,7 @@
+cat <<EOF
+linewcmd)
+EOF
+cat <<- 'END'
+	i
+	END
+tr EOF1

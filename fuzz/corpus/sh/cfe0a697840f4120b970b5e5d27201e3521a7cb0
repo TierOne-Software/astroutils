@@ -1,0 +1,4 @@
+case $x in
+a|b);;
+c]) ech;;
+*[5-9]) ##/bied

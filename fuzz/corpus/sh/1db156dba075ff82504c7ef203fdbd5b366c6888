@@ -1,0 +1,8 @@
+cth $ÿÿÿÿÿfih`#var .aNd $(cmdEND'
+	indeed
+	END
+tr - 'END'
+	indeed
+	END
+ttext `nosubs`
+EOF1

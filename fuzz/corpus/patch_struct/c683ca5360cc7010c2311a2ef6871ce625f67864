@@ -1,0 +1,8 @@
+ diffgi a/new.c b/file with spaces.dex 012ew.c
+ @@ -82,17 +2147483647,45 @@ section heading
+ -1 )Yc="Z‘L<-
+X  ;
+X  814a
+X  VX`y
+X  190a
+X  .

@@ -1,0 +1,48 @@
+  diff --git a/f.c	2024-01-01 00:00:00.0000000031c1
+==== âdiff --git< Ÿ 
+1>1 < a
+0c1
+< a
+---11
+>
+>@@ - ca1
+-1
+< a
+---
+>0
+>1 < a
+1c1
+< a
+---11þ
+>
+>0 +0000 b/a/old.c
+  Index: f.c.orig
+  --- file with spaces.c
+  +++ /dev/null
+  @@ -29 +669464,9223372036854775806 @@ section heading
+  \xg[$*ß@?'B|GBXx:M
+   -e
+   #J,,dvL=
+   :KBH	PUGDT~<”E r
+  H1DBEu=6>
+  iQG>+\@@ >1 < a
+1c1
+< a
+---11
+>
+>@@ - ca1
+
+>1
+>-
+1c1
+< a
+---
+>0
+>1 < a
+0c1
+< a
+---11
+>
+>
+ - 0c1
+==== âd:

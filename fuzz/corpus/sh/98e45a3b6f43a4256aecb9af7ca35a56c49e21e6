@@ -1,0 +1,4 @@
+ <<EOFt :<<- 'END'
+and $(cmd)
+ `npubs`
+E

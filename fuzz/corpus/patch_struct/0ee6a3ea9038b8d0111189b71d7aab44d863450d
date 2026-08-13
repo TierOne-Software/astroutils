@@ -1,0 +1,234 @@
+	*** file with spaces.c
+	--- b/new.c
+	***************
+	*** 822701,2 ****
+	\ +
+	- wDy-Kg4
+	- 4yE
+	\ GKO=uEYÎVP
+	! KK`)z{{.<Gd:*l;*'\	xU
+	! |)5#b
+	\ f
+	--- *l;*'\	xU
+	! |)5#b
+	\ f
+	--- 60,858488 ----
+	  64m:,q*
+	  [O¨pSi
+	\ 1al)=sxQ\gVENi>
+	+ 
+	! +x%-=#d_Obj`=c
+	  4>6
++4p<*>0Oz}>IgTP||EPEj%"SqV}+UT˛tUm - NWbptA%aRjH96v}mVa<zb@Qrhw"
+PL0;XcAy/DrWQ6_m)QDnÎ*
+X  *** 426005 
+X  --- 618450,00042 
+X  + Y}~5t«`\#Y=ç
+X  ! ya2(áBn_|9Ax
+X  ! 
+X  + CCKu
+X    /~:@Û,3
+X  + WUS|#d 44Swh#F6Bh
+X  + ^aB-LeAÎâ
+X  \ '4u^IEÇIgxRˆ0&
+X  ! wí$õ%LY
+X  ***************
+X  *** 370082,70 
+X  \ w^L<#Uqh:-*=<fjM*
+X  \ xLE:S+
+X    _Ñ
+X    `h+,X¬*_@'
+X  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=S=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,9223372036854775800
+> G
+> 1>)<D	_z.y#<+w
+  896801,999999999999d157078
+  < m[;
+  < D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999Ej%"SqV}+UT˛tUm - NWbptA%aRjH96v}mVa<zb@Qrhw"
+PL0;XcAy/DrWQ6_m)QDnÎ*
+X  *** 426005 
+X  --- 618450,00042 
+X  + Y}~5t«`\#Y=ç
+X  ! ya2(áBn_|9Ax
+X  ! 
+X  + CCKu
+X    /~:@Û,3
+X  + WUS|#d 44Swh#F6Bh
+X  + ^aB-LeAÎâ
+X  \ '4u^IEÇIgxRˆ0&
+X  ! wí$õ%LY
+X  ***************
+X  *** 370082,70 
+X  \ w^L<#Uqh:-*=<fjM*
+X  \ xLE:S+
+X    _Ñ
+X    `h+,X¬*_@'
+X  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=S=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,9223372036854775800
+> G
+> 1>)<D	_z.y#<+w
+  896801,999999999999d157078
+  < m[;
+  < D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c
+	@@ -9223372036854775800,999999999999 +99999999999999999999999999 @@
+	+G|ZxgT P)SaWy#\	
+	\ No newline at end of fileS=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,9223372036854775800
+> G
+> 1>)<D	_z.y#<+w
+  896801,999999999999d157078
+  < m[;
+  < D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c
+	@@ -9223372036854775800,999999999999 +99999999999999999999999999 @@
+	+G|ZxgT P)SaWy#\	
+	\ No newline at
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=S=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,92233720368547758ˇˇˇ
+623d
+]\
+[Db
+458c
+.
+	--- new.c
+	+++ 	
+	@@ -92233720368547758< D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c67296 @@
+	- E9WDxT?0~
+	-TJADQ	bTZ-
+	 tCs<,(Nr==* R.!P
+	\ No newline at end of file
+999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c
+	@@ -9223372036854775800,999999999999 +99999999999999999999999999 @@
+	+G|ZxgT P)SaWy#\	
+	\ No newline at end of fileS=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,9223372036854775800
+> G
+> 1>)<D	_z.y#<+w
+  896801,999999999999d157078
+  < m[;
+  < D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c
+	@@ -9223372036854775800,999999999999 +99999999999999999999999999 @@
+	+G|ZxgT P)SaWy#\	
+	\ No newline at
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=  --- 999999999999,10 
+X  ! ◊y|6=d7A/f]@y
+X  \ .ØV=S=nR73Jb	ÆG3F e8@^J
+X  \ VL\< "6
+Xß  + 7	8Hc`p9-T5w· m+\\`
+2147483648,999999999999d99999999999999999999999999,999999999999
+8a96,92233720368547758ˇˇˇ
+623d
+]\
+[Db
+458c
+.
+	--- new.c
+	+++ 	
+	@@ -92233720368547758< D; #$.
+  < $eWo\ur{j$/+1ócc<|]sd#-
+  < mr(\Q	>
+  132457d568339,99999999999999999999999999
+  < sy∑Ë@$@
+  < `JbfEof{y!nDCD;	<>yc
+  < CrsP˛
+  < b<7Xe{>K\kh_'
+  < }=˝
+  < ïP)v=^E=
+	Index: a/old.c
+	--- /dev/null
+	+++ a/very/long/path/component/name/that/keeps/going/file.c67296 @@
+	- E9WDxT?0~
+	-TJADQ	bTZ-
+	 tCs<,(Nr==* R.!P
+	\ No newline at end of file
+	 
+	-#+\"f “-
+fZ!qgÓKBi(yh6b6f:
+_/*DENÚ>(o/=[9%m5YG7A)Q
+2j8ù

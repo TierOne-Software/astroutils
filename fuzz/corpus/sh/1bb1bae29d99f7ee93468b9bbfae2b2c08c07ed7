@@ -1,0 +1,54 @@
+cat at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr ecat at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+t<EOF
+li
+EOF
+cat <<- 'END'
+:i
+	END
+tr ecat çt <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmrawtext `nosubs`at <<EOF
+li
+EOF
+cEOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txÖ{Ö¾êÿ\þÿÿÿ\þÿÿ ðD\þÿÿÿÿ <<-cat <<- 'END'
+r acmraw $txt `no
+mEOraw $txt `nosut <<-cat <<- 'END'
+th
+	END
+tr acmraw $text `nosubs`at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosu1

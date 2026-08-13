@@ -1,0 +1,5 @@
+--- a/old.c	2024-01-01 00:00:00 +0000
++++ b/new.c	2024--1200 00:00:00ne
+-removed+added line
++another add line
+\ No newline at end of file

@@ -1,0 +1,1 @@
+’[[:punct:]-[1^a-z]{0,5}foofOofoo_]+

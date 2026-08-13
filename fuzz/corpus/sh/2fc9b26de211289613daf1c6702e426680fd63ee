@@ -1,0 +1,2 @@
+x=„$HOME ~user/f[ch]
+ech${v:-def} ${v:=set} ${v:?err} ${v:+alt} $ o${v:-def} ${v:-set} ${v:?err} ${v:+alt${v#pre}}

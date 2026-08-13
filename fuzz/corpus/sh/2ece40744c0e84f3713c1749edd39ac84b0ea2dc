@@ -1,0 +1,89 @@
+cat at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr ecat at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`aOF
+cat <<- 'bEND'
+	i
+	END
+t<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr eca<<- 'END'
+	i
+	ENDdor acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`at <<EOF
+li
+EOF
+cat <<- 'bEND'
+	i
+	END
+t<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+t'
+	i
+	END
+tr acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`at <<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr a¡’žw $txtsut <<-cat <<- 'END'
+r acmraw $txt `no
+mEOraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `ncat <<- 'END'
+	i
+	END
+tr acmrat at <<EOF
+li
+EOF
+cat <›- 'END'
+	i
+	END
+tr acmraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $te
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr a¡’žwtx $tsut <<-cat <<- 'END'
+r acmraw $txt `no
+mEOraw $txt `nosut <<-cat <<- 'END'
+Ii
+	END
+tr acmraw $text `nosubs`at !<<EOF
+li
+EOF
+cat <<- 'END'
+	i
+	END
+tr acmraw $txt `nosu1

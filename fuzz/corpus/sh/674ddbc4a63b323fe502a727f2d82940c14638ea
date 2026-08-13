@@ -1,0 +1,2 @@
+#!/bi "h do echo $i; done
+if [ -n "$x" ]; then echo set; elif true; then :; elseset; fi

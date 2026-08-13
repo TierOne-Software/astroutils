@@ -1,0 +1,16 @@
+c $var and $(cmd)
+EOF
+cat <<- 'END'
+	idD'
+	id
+	END
+tr and $(cmd)
+EOF
+cat <<- 'END'
+	idD'
+	id
+	ENEND'
+	iD¯'
+	id
+	END
+tr a b <<'EOF4' && eb a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb << eb <<'EOF2' && echo dbs`****** a b <<'EOF4' && eb <<'EOF2' && echo do'EOF4' && e dbs`****** a b <<'EOF4' && ebœ <<'EOF2' && echo do'EOF4' && eb <<'EOF2' tr && eb << eb <<'EOF2' && bgho do'EOF4' && eb <<'EOF2' tr a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb <<'EOF4' tr a b <<'EoF4' && eb << eb <<'EOF2' <<'EOF4' && eb << e<'EoF5' && eb << eb <<'EOF2' <<'EOF4' && eb <<'E' && eb << eb <<'EOF2' && echo dbs`****** a b <<'EOF4' && eb <<'EOF2' && echo do'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' && bgho do'EOF4' && eb < eb << eb <<'EOF2' && echo <<'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' <<'EOF4' && eb eb <<'EOF9' && echo dbs`********EOF2

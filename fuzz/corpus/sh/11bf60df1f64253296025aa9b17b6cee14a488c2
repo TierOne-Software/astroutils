@@ -1,0 +1,5 @@
+ÿÿÿÿÿÿ ${v:-dc<EOF
+
+EOF
+1at <<- 'END'
+	ind- 'END

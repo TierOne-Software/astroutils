@@ -1,0 +1,9 @@
+	112r
+	136r
+	
+Prereq: 1.2.3
+--- old.c
++++ new.c
+@@ -8589934590,4294967296 +172406 @@ section heading
+,< ¢öd {
+ Gy->njLC

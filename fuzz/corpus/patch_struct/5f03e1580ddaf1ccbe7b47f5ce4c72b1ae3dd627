@@ -1,0 +1,72 @@
+X--- f.c.orig
+X–++ f.c	2024-01-01 00:00:00.000000000 +0000
+X@@ -1,58 +419919,73 @@
+X \y]V
+  *** a/old.c
+  --- new.c
+  ***************
+  *** 761247,99999999999999999999999999 ****
+    @ÜH;-'tj*1n‰ A\‘]
+  ! Õ_ç8'v'ﬂr,\~$
+  \ z]A4
+  \ H0!F)<Cx>=cm|#b
+    +1
+  \ tüy>6
+  --- 533122 ----
+  ! 
+  ! @\M\Z
+  \ S¢8&$
+  \ ﬂ8*H[^w=Mök;
+  + +'"e5jG0+ö>B5 	-J~",
+  ! z
+  ***************
+  *** 0,935579 ****
+  ! + T(
+    q
+    ;#w+^m>;C
+    RGP<
+  \ MT])gG…U
+  --- 9223372036854775807 ----
+  ! S˚#?"E`w51
+  ! |a>r+s*lW\tjJ"ifMO9
+  + (VZ"%!
+    J`Z.˚Q!#\0
+  + GlJosj+>C&U]J!8'!
+  ! E^SC+J5BZlLmOL
+  + {s3M[+
+    
+    @ÜH;-'tj*1n‰ A\‘]
+  ! Õ_ç8'v'ﬂr,\~$
+  \ z]A4
+  \ H0!F)<Cx>=cm|#b
+    +1
+  \ tüy>6
+  --- 533122 ----
+  ! 
+  ! @\M\Z
+  \ S¢8&$
+  \ ﬂ8*H[^w=Mök;
+  + +'"e5jG0+ö>B5 	-J~",
+  ! z
+  ***************
+  *** 0,935579 ****
+  ! + T(
+    q
+    ;#w+^m>;C
+    RGP<
+  \ MT])gG…U
+  --- 9223372036854775807 ----
+  ! S˚#?"E`w51
+  ! |a>r+s*lW\tjJ"ifMO9
+  + (VZ"%o.9lG;^;+
+  \ }c3[b^tê*Bygz5‚z7QY∫ 5
+ diff --git a/f.c	2024-01-01 00:00:00.000000000 +0000 b//dev/null
+ Index: a/very/long/path/component/name/that/keeps/going/file.c
+ --- a/old.c
+ +++ 	
+ @@ -799822,99999999999999999999999999 +70 @@
+  _#o=MsiBzV."2e,R*>c8<j
+ +Nqc44GJ_GQjgRD
+Xdiff --git a/a/very/long/path/component/nAme/that/keeps/going/file.c b/file with spacesXh<rJ\ N`z@z<r%
+X+I
+X -8u<!rJuv*

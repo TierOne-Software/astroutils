@@ -1,0 +1,9 @@
+
+ct <<- 'Eat <<EOF
+line with $EnD'
+
+Eat <<EOF
+lin`
+EOsubs#
+Eat <<EOF
+line wite2

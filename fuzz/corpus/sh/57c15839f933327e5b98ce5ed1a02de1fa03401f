@@ -1,0 +1,4 @@
+ <<Et :<<- 'END'
+and $(cmd)
+ `npubs`
+E

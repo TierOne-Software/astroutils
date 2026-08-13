@@ -1,0 +1,4 @@
+case $x in
+a…b)yes ;;
+([0-9]) e ec yes ;;
+(hht <<

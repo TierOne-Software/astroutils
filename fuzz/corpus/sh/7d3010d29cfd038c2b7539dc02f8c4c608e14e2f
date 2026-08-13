@@ -1,0 +1,9 @@
+#!/bin/sh
+echo "hell/cat <<EOFindew$\"neand ewhile$\"neand $(c-d)
+E,FOFindewhile$\"neand ewhile$\"neand $(cmd)
+E,F
+catnestedd $\"ne\"nested\666666er­ \"nestededewhile$\"neand $(cmd)
+E,F
+cat 	indented $\"nest$\"nestedd $\"ne\"nested\333333er­ \"nestededewhile$\"neand $(cmd)
+E,F
+cat 	indented $\"nestedd $\"neanx=$(echd

@@ -1,0 +1,8 @@
+case $x in
+a|b)es ;;
+*[0-9]) um ;;
+*) /cho no;;
+esac
+w;;
+*) ec&
+wait

@@ -1,0 +1,2 @@
+#!/done
+if [ - "$nx" ]; then eho; set; elif true; then :; elseset; fi

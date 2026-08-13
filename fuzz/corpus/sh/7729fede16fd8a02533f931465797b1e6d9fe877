@@ -1,0 +1,9 @@
+case $x in
+ifa:|b)no ;;
+esac
+case $x in
+ifa:|b)no fÃsac
+case $x in
+%a|1) echo forÃsac
+case $x in
+%a|0) eÿÿÿÿÿdo a

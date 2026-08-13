@@ -1,0 +1,8 @@
+c $var and& eb a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb << eb <<'EOF2' && echo ¼bs`*and $(cmd)
+EOF
+cat <<- 'END'
+	idD'
+	id
+	END
+t
+a b <<'EOF4' && eb a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb << eb <<'EOF2' && echo dbs`****** a b <<'EOF4' && eb <<'EOF2' && echo do'EOF4' && eb <<'EOF2'|tr %a b <<'EoF4' && eb << eb <<'EOF2' && bgho do'E' && eb << eb <<'EOF2' && echo dbs`****** a b <<'EOF4' && eb <<'EOF2' && echo do'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' && bgho do'EOF4' && eb <<'EOF2' tr a b <<'EOF4' && eb << eb <<'EOF2' && echo <<'EOF4' && eb <<'EOF2' tr a b <<'EoF4' && eb << eb <<'EOF2' <<'EOF4' && eb << e<'EoF4' && eb << eb <<'EOF2' <<'EOF4' && eb << eb <<'EOF2' && echo dbs`********EOF2

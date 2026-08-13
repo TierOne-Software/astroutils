@@ -1,0 +1,7 @@
+X --- a/old.c
+X +++ b/new.c
+X @@ -2, @@
+X  	context
+X -	removed
+X +	added
+X +dded more

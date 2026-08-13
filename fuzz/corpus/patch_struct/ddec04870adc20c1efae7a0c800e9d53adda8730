@@ -1,0 +1,162 @@
+	*** old.c
+	--- a/very/long/path/component/name/that/keeps/going/file.c
+	***************
+	*** 99 ****
+	- 0}GiV_uK%~
+	  /`4V-_#d/*cH!`~"p;kqKv
+	- t9y		k|'`)-:sr  v~w}
+	! Y)5SOz,
+	\  	=1Ÿ<s-VÄYy
+	- loO;79kÍI>4W*qW\@
+	- t#Ó4`bVp+ª<>8s ]H*N[Ÿ
+	! {`^hVK1
+	\ l\@=­jC\k
+	--- 354881,60 ----
+	! Eg÷HEO
+	! C-!uC+[Fqw;N=[^IZ>
+	   kOt	èN%XxM	=]`f@(?
+	  sp^[5JŒX=WV\E)
+	  o-K
+	+ aKN-%iPh +dLû=W!
+	***************
+	*** 24413 ****
+	  t<pb=§
+	- /Õ=FYT<9805
+	- 4F=%}	*3<V7=uY
+	! @Ql,3x¶>ë9=h<<]+;OX
+	  3(4”=/>0
+	\ >Af=
+	\ vtKJSÑ?h@_	%J.
+	  ;dwp@K¼G|SG©8
+	  \H+] 	Ž*Oj
+	--- 46,989255 ----
+	  QiOW|$'==}-0zÿ=Z.Wm<w
+	  {>La3g
+	\ 4*
+Prereq: 1.2.3
+--- new.c
++++ old.c
+@@ -9223372036854775807,35 +31,0 @@
++ØyV	D4{9CYØyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyp?F.
+sm‚-vM  <
+-u
++T8>S9
+@@ -879033,9223372036854775806 +948885,46 @@
+ Bd*t_¹9=C-
+ +wNZf{)w@8<L@Q"-+vk
+A`v?\[ˆ7uu*
+-3Õ>/SG*à+sN|P/Gl)<1è?FM
+\y$l4[Dy
+Mw3TGTLy#{MC7U!gWY|`?dMR(*"cHzd4dNrJ)$NbI?ok{x 8%+O5v^/!®=%5(
+tn&Tj/5J?+OhM}hËA‰dB 7WG0;P@dv`=2<
+_:
+æLc tÍ&Ia$O~DHýP/UOx3SGW,_ÑAtU&!POKj|Q6nfcdhPs %fc2©#RxUE)
+ --- /dev/null
+ +++ b/new.c
+ @@ -99999999999999999999999999,4294967296 +9223372036854775807,00042 @@
+ + h	
+  	- yi	
+  ?&í˜^CjI‚QŸ<s-VÄYy
+	- loO;79kÍI>4W*qW\@
+	- t#Ó4`bVp+ª<>8s ]H*N[Ÿ
+	! {`^hVK1
+	\ l\@=­jC\k
+	--- 354881,60 ----
+	! Eg÷HEO
+	! C-!uC+[Fqw;N=[^IZ>
+	   kOt	èN%XxM	=]`f@(?
+	  sp^[5JŒX=WV\E)
+	  o-K
+	+ `2?aKN-%iPh +dLû=W!
+	***************
+	*** 24413 ****
+	  t<pb=§
+	- /Õ=FYT<9805
+	- 4F=%}	*3<V7=uY
+	! @Ql,3x¶>ë9=h<<]+;OX
+	  3(4”=/~>0
+	\ >Af=
+	\ vtKJSÑ?h@_	%J.
+	  ;dwp@K¼G|SG©8
+	  \H+] 	Ž*Oj
+	--- 46,989255 ----
+	  QiOW|$'==}-0zÿ=Z.Wm<w
+	  {>La3g
+	\ 4*
+Prereq: 1.2.3
+--- new.c
++++ old.c
+@@ -9223372036854775807#F
+ \']6o()3?>OUj<%#
+ @@ -2147483648,13 +415307,305838 @@ section heading
+ +
+   =D%/|YN4[\! Cfgx
+ --- new.c
+ +++ old.c
+ @@ -4294967296,15 +2147483648 @@
+ 92qb1u‹3-5d>&Fy @ei
+ -C=U=?z[XF=7\*Se(XM
+  .H_ \\F
+ 'ž'=Û\#TU
+ +2$r
+  ix+7e';f>WR^;
+ -U-:~o&(-@9zqS7a5-
+  ^HL0{->h- D>
+  CP`sA4$<~MIPlYu>aI
+ +{&) Q%SbHH6`p
+ &æEP
+X  diff --git a/f.c.orig b/new.c
+X  index 0123abc..4567def 100644
+X  Index: f.c.orig
+X  Prereq: 1.2.3
+X  --- new.c
+X  +++ new.c
+X  @@ -513285 +96,38 @@
+X  \ No newline at end of file
+X  \ No newline at end of file
+X    OÂ*75|g
+X  +Mkd-
+X  .C.[
+X  1@#K=
+X   †pcðRT
+X   &<TjwB4J
+X  f^a<1p[0mp4>
+X  @@ -36 +9223372036854775806,998341 @@
+X  -]
+X   Q	ZS-LT1
+X  -F-wE}O\ª&Y`5CzF'3`m
+X  -=_wSs!!,Q\b"O2=>2'
+X  @@ -4294967295 +0,4294967295 @@
+X   W%b,B|,<E
+X   ';;s97RB|.<!ó%
+X   
+X   NðKGz6
+X  +;s.FD.2V6o\KV/U½
+X   ú~2x/$z6T|®G
+X   6-Ah4orig
+X  Prereq: 1.2.3
+X  --- new.c
+X  +++ new.c
+X  @@ -513285 +96,38 @@
+X  \ No newline at end of file
+X  \ No newline at end of file
+X    OÂ*75|g
+X  +Mkd-
+X  .C.[
+X  1@#K=
+X   †pcðRT
+X   &<TjwB4J
+X  f^a<1p[0mp4>
+X  @@ -36 +9223372036854775806,998341 @@
+X  -]
+X   Q	ZS-LT1
+X  -F-wE}O\ª&Y`5CzF'3`m
+X  -=_wSs!!,Q\b"O2=>2'
+X  @@ -4294967295 +0,4294967295 @@
+X   W%b,B|,<E
+X   ';;s97RB|.<!ó%
+X   
+X   NðKGz6
+X  +;s.FD.2V6o\KV/U½
+X   ú~2x/$z6T|®G
+X   6-Ah4]ap+µXGof

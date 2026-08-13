@@ -1,0 +1,4 @@
+#!i/bns
+/hecho "hello $world"
+for i in 1 2 3; do echo $i; done
+if [ -n x=$(echo $(o ${v:-def}{v:=set} echo $(o ${v ]; then!i/bn'
