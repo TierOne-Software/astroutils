@@ -548,6 +548,33 @@ upstream's existing fixes.
    before the terminator write.
 6. Bonus: `hexstr()` `\u` signed overflow → unsigned accumulation.
 
+### FIXED — fuzz — awk regex: nested-bound compile-time DoS (fuzz_awkb)
+- The per-bound 255 cap (class 4 above) does not bound *nesting*:
+  `replace_repeat()` expands textually, so `((x{215}){215}){7}`
+  multiplies to ~320k copies and the DFA build over the exploded string
+  is superlinear — a 117-byte pattern kept `makedfa()` busy for 111 s.
+  Reachable from any user-supplied awk pattern, same as the six
+  classes. Found by the scheduled 300 s/target CI fuzz run (two
+  slow-unit artifacts; upstream master has the same hole).
+- Fixed: total expansion capped at `MAX_EXPANDED_RE` (16384) bytes in
+  `replace_repeat()` — FATAL fast instead of hanging
+  (`(a{127}){127}` still compiles, ~0.1 s). Regression test in
+  `tests/t/12-regress-tools.sh`; both artifacts replay in
+  `fuzz/corpus/awkb/`.
+
+### ANALYZED, not ours — sed s///g output amplification
+- The other two slow-unit artifacts from the same run: a 1475-byte
+  script of `s/…/…/g` chains that amplifies 60 bytes of input into
+  59 MB of output across 27 commands (each global substitution plants
+  matches for the next). Intrinsically quadratic — regexec re-scans the
+  growing pattern space per match — and glibc's `REG_STARTEND`
+  emulation (full-range setup per call) inflates the constant ~100x
+  over FreeBSD's native regex; ASan/UBSan adds another order of
+  magnitude (99 s in the harness vs 0.9 s unsanitized). GNU sed rejects
+  the script's flag bytes outright; ours accepts and runs it — legal
+  sed, not a bug. No code change; `slow-unit-*` artifacts no longer
+  fail the fuzz job or the corpus suite (they are reported instead).
+
 Note: the `fuzz_awkb` known-bug filters are removed. compress(1) side
 note: `compress -c` to stdout is broken on this port ("No such device
 or address") — minor, worth a look.

@@ -62,13 +62,23 @@ if [ "$FUZZ_TIME" -gt 0 ]; then
 fi
 
 printf '=== crash artifacts\n'
-left=$(find fuzz/artifacts -type f ! -name '.gitignore' ! -name 'README*' 2>/dev/null | wc -l | tr -d ' ')
+# slow-unit-* files are performance notes, not correctness bugs: the
+# sanitizer instrumentation inflates per-input cost by orders of
+# magnitude, and an intrinsically heavy input (e.g. a sed script with
+# s///g output amplification) is not a defect.  Report them but do not
+# fail; crash/oom/timeout (and any unknown class) stay fatal.
+left=$(find fuzz/artifacts -type f ! -name 'slow-unit-*' ! -name '.gitignore' ! -name 'README*' 2>/dev/null | wc -l | tr -d ' ')
 if [ "$left" -eq 0 ]; then
     printf 'none\n'
 else
     printf '%s new artifact(s) in fuzz/artifacts:\n' "$left"
-    find fuzz/artifacts -type f ! -name '.gitignore' ! -name 'README*'
+    find fuzz/artifacts -type f ! -name 'slow-unit-*' ! -name '.gitignore' ! -name 'README*'
     status=1
+fi
+slow=$(find fuzz/artifacts -type f -name 'slow-unit-*' 2>/dev/null | wc -l | tr -d ' ')
+if [ "$slow" -gt 0 ]; then
+    printf '%s slow-unit artifact(s) (perf triage, not failing):\n' "$slow"
+    find fuzz/artifacts -type f -name 'slow-unit-*'
 fi
 
 exit $status

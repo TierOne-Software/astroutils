@@ -119,6 +119,9 @@ if require "awk" awk; then
         "echo test | $(tool awk) '/[a-zA-Z0-9_-]+/{print}' >/dev/null"
     assert_no_crash "awk repetition patterns" sh -c \
         "echo aaaa | $(tool awk) '/a{2,3}/{print}' >/dev/null"
+    # (a{200}){200} would expand to 40000 atoms — FATAL fast, not hang
+    assert_bounded "awk nested repetition bounds rejected fast" 262144 \
+        sh -c "echo aaa | $(tool awk) '/(a{200}){200}/' 2>/dev/null"
     assert_out "awk substr" "bc" sh -c "$(tool awk) 'BEGIN{print substr(\"abcd\",2,2)}'"
 fi
 

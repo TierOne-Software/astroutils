@@ -1154,6 +1154,14 @@ static const struct charclass {
 #define REPEAT_WITH_Q		2
 #define REPEAT_ZERO		3
 
+/*
+ * Bounds are expanded textually, so nested bounds compound
+ * multiplicatively: (x{200}){200} expands to 40000 copies.  Cap the
+ * total expansion — a bigger one is a compile-time DoS, not a real
+ * program (mirrors the 255-per-bound cap in relex).
+ */
+#define MAX_EXPANDED_RE 16384
+
 static int
 replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
 	       int atomlen, int firstnum, int secondnum, int special_case)
@@ -1179,6 +1187,8 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
 	} else if (special_case == REPEAT_ZERO) {
 		size += 2;	/* just a null ERE: () */
 	}
+	if (size > MAX_EXPANDED_RE)
+		FATAL("repetition expansion too large in %.10s..", lastre);
 	if ((buf = (uschar *) malloc(size + 1)) == NULL)
 		FATAL("out of space in reg expr %.10s..", lastre);
 	memcpy(buf, basestr, prefix_length);	/* copy prefix	*/

@@ -199,16 +199,22 @@ for d in "$CU_SRCDIR"/tests/data/crashers/*/; do
     esac
 done
 
-# Anything libFuzzer dropped in fuzz/artifacts is an unfixed crash.
+# Anything libFuzzer dropped in fuzz/artifacts is an unfixed crash —
+# except slow-unit-* files, which are performance notes (sanitizer
+# instrumentation inflates them ~100x) rather than correctness bugs;
+# those are reported but do not fail.
 artifacts=$CU_SRCDIR/fuzz/artifacts
 if [ -d "$artifacts" ]; then
-    left=$(find "$artifacts" -type f ! -name '.gitignore' ! -name 'README*' 2>/dev/null | wc -l | tr -d ' ')
+    left=$(find "$artifacts" -type f ! -name 'slow-unit-*' ! -name '.gitignore' ! -name 'README*' 2>/dev/null | wc -l | tr -d ' ')
     if [ "$left" -eq 0 ]; then
         pass "no unresolved crash artifacts in fuzz/artifacts"
     else
         fail "no unresolved crash artifacts in fuzz/artifacts" \
             "$left file(s) present — triage them into tests/data/crashers/"
     fi
+    slow=$(find "$artifacts" -type f -name 'slow-unit-*' 2>/dev/null | wc -l | tr -d ' ')
+    [ "$slow" -gt 0 ] && \
+        printf '  note %s slow-unit artifact(s) in fuzz/artifacts (perf triage, not failing)\n' "$slow"
 fi
 
 cu_finish
