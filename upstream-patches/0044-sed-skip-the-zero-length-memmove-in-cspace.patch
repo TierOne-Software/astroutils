@@ -1,0 +1,41 @@
+From 5bd815db4eb2e2be09f6ec588d7e00e4550fc60d Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Thu, 13 Aug 2026 11:55:10 -0400
+Subject: [PATCH] sed: skip the zero-length memmove in cspace
+
+g/G with a never-written hold space pass hs (still NULL) with
+hsl == 0 to cspace(), which called memmove(dst, NULL, 0) -- undefined
+behaviour per the nonnull attribute, caught by UBSan when the
+asan+ubsan CI job replayed the grown sedcompile corpus through the
+real binary (11 inputs, status 134).  x already special-cases the
+NULL hold space (process.c:255); g/G relied on the count being zero.
+
+Guard on len > 0, the same idiom as the ed/sort zero-length memcpy
+fixes.  Behaviour unchanged (a zero-length append is a no-op); the
+hold space semantics for g/G/x are covered by new regression tests in
+12-regress-tools.sh, and the full corpus leg replays clean under
+ASan/UBSan.
+---
+ src.freebsd/sed/process.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/sed/process.c b/src.freebsd/sed/process.c
+index 08281a8f9..3257ba6ff 100644
+--- a/src.freebsd/sed/process.c
++++ b/src.freebsd/sed/process.c
+@@ -765,7 +765,11 @@ cspace(SPACE *sp, const char *p, size_t len, enum e_spflag spflag)
+ 	if (spflag == REPLACE)
+ 		sp->len = 0;
+ 
+-	memmove(sp->space + sp->len, p, len);
++	/* len == 0 callers may legitimately pass a NULL p (e.g. g/G with an
++	 * untouched hold space); memmove with a NULL argument is UB even
++	 * when the count is zero. */
++	if (len > 0)
++		memmove(sp->space + sp->len, p, len);
+ 
+ 	sp->space[sp->len += len] = '\0';
+ }
+-- 
+2.43.0
+

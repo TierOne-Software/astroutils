@@ -89,6 +89,10 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   ((x{215}){215}){7} ≈ 320k copies; a 117-byte pattern kept makedfa()
   for 111 s). Compile-time DoS from user patterns; onetrueawk master
   has the same hole (submit there, like 0041).
+- 0044 sed: skip the zero-length memmove in cspace — g/G with an
+  untouched hold space pass NULL with count 0; UBSan nonnull violation
+  (11 corpus inputs abort the asan+ubsan CI job). Same guard idiom as
+  the ed/sort zero-length memcpy fixes.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap
