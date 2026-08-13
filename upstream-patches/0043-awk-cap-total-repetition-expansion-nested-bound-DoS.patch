@@ -1,0 +1,63 @@
+From 3cd5cd0438efa97f2c7c0f3f764f0bdd3d6e6d13 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Thu, 13 Aug 2026 10:37:34 -0400
+Subject: [PATCH] awk: cap total repetition expansion (nested-bound DoS)
+
+replace_repeat() expands {n} bounds textually with no limit on the
+product across nesting, so ((x{215}){215}){7} blows one group into
+~320k copies and a 60-byte program chews CPU for minutes (the
+slow-unit artifacts from the fuzz run: 111s each under ASan).
+
+Cap the fully-expanded form at 16384 bytes (MAX_EXPANDED_RE) and
+fail with FATAL "repetition expansion too large" instead of
+expanding. A maximal single-level (a{127}){127} still compiles
+(~16129 expanded); the pathological artifacts now die in
+milliseconds. Regression test in 12-regress-tools.sh; artifacts
+kept as corpus/awkb/slow-awkb-nested-bounds-{1,2}.
+
+Two other slow-unit artifacts (sedcompile) were analyzed and are
+NOT defects: GNU sed rejects the flag bytes outright, and ours runs
+a legal but pathological s///g amplification (60B -> 59MB,
+quadratic under glibc REG_STARTEND emulation). Documented in
+SECURITY-FINDINGS.md; artifacts dropped.
+
+Policy follow-through: slow-unit-* no longer fails CI in
+20-fuzz-corpus.sh / ci/jobs/fuzz-regress.sh; crash/oom/timeout
+still do, slow units are reported as counts. onetrueawk upstream
+has the same unbounded expansion; patch queued as
+upstream-patches/0043.
+---
+ src.freebsd/awk/b.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src.freebsd/awk/b.c b/src.freebsd/awk/b.c
+index 6fdb3a59..e5256bc2 100644
+--- a/src.freebsd/awk/b.c
++++ b/src.freebsd/awk/b.c
+@@ -1154,6 +1154,14 @@ static const struct charclass {
+ #define REPEAT_WITH_Q		2
+ #define REPEAT_ZERO		3
+ 
++/*
++ * Bounds are expanded textually, so nested bounds compound
++ * multiplicatively: (x{200}){200} expands to 40000 copies.  Cap the
++ * total expansion — a bigger one is a compile-time DoS, not a real
++ * program (mirrors the 255-per-bound cap in relex).
++ */
++#define MAX_EXPANDED_RE 16384
++
+ static int
+ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
+ 	       int atomlen, int firstnum, int secondnum, int special_case)
+@@ -1179,6 +1187,8 @@ replace_repeat(const uschar *reptok, int reptoklen, const uschar *atom,
+ 	} else if (special_case == REPEAT_ZERO) {
+ 		size += 2;	/* just a null ERE: () */
+ 	}
++	if (size > MAX_EXPANDED_RE)
++		FATAL("repetition expansion too large in %.10s..", lastre);
+ 	if ((buf = (uschar *) malloc(size + 1)) == NULL)
+ 		FATAL("out of space in reg expr %.10s..", lastre);
+ 	memcpy(buf, basestr, prefix_length);	/* copy prefix	*/
+-- 
+2.43.0
+

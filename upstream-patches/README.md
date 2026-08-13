@@ -84,6 +84,11 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   crash upstream master).
 - 0042 sed: free the first s-command regex compilation — one regex_t
   leaked per s command per process (fuzz/LSan find; minor).
+- 0043 awk: cap total repetition expansion — nested {n}{m}… bounds
+  compound multiplicatively because replace_repeat() expands textually
+  ((x{215}){215}){7} ≈ 320k copies; a 117-byte pattern kept makedfa()
+  for 111 s). Compile-time DoS from user patterns; onetrueawk master
+  has the same hole (submit there, like 0041).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap
