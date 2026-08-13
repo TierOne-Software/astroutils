@@ -175,12 +175,16 @@ jobs:
       - name: dependencies
         run: |
           dnf -y install --setopt=install_weak_deps=False \
-            pkgconf-pkg-config flex byacc bison libxo-devel \
+            gcc pkgconf-pkg-config flex byacc bison libxo-devel \
             ncurses-devel libedit-devel openssl-devel zlib-devel \
             bzip2-devel xz-devel libzstd-devel libacl-devel \
             libselinux-devel hostname words \
             diffutils git curl ca-certificates which
 
+      # gcc is not what compiles anything here (zig's bundled clang does);
+      # it is needed because `zig build -lc` detects the native libc by
+      # shelling out to `cc -E -Wp,-v`, and with no cc every compile fails
+      # with missing system headers/libraries.
       # Same pin as ci/Containerfile.fedora: dev snapshots vanish from
       # ziglang.org; the machengine mirror keeps them.
       - name: zig
