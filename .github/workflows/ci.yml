@@ -147,6 +147,10 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: registry.fedoraproject.org/fedora:latest
+      # MSan re-execs itself with ASLR disabled; the default container
+      # seccomp profile blocks personality(ADDR_NO_RANDOMIZE), which
+      # aborts every instrumented binary ("unable to disable ASLR").
+      options: --security-opt seccomp=unconfined
     steps:
       - name: dependencies
         run: |
