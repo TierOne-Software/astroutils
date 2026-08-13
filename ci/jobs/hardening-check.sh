@@ -171,8 +171,10 @@ if [ -z "${ASTROUTILS_SANDBOX:-}" ]; then
                     "$(basename "$sb_bin")" "$sb_sec"
                 status=1
             fi
-            kill "$sb_pid" 2>/dev/null
-            wait "$sb_pid" 2>/dev/null
+            kill "$sb_pid" 2>/dev/null || true
+            # wait returns 128+SIGTERM for the killed tool; under set -e
+            # that would abort the script before the successful exit below.
+            wait "$sb_pid" 2>/dev/null || true
         else
             printf 'TODO: sandbox check skipped (tool exited; runtime lacks Landlock/seccomp?)\n'
         fi
