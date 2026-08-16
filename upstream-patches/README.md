@@ -93,6 +93,15 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   untouched hold space pass NULL with count 0; UBSan nonnull violation
   (11 corpus inputs abort the asan+ubsan CI job). Same guard idiom as
   the ed/sort zero-length memcpy fixes.
+- 0045 libfetch: unsigned-wrap strncpy stack smash in fetchListFile —
+  a file: doc path of exactly PATH_MAX-2 leaves l=0 and the loop's
+  strncpy(p, name, l-1) passes (size_t)-1; deterministic stack smash on
+  the first readdir entry, reachable via the public
+  fetchListURL/fetchListFile API (fetch(1) itself never lists).
+- 0046 telnet: three unbounded strcpy calls — ai_canonname into
+  _hostname[64] (network-influenced), a 256-char -l user name into
+  malloc(256) (1-byte heap overflow), a >255-char -n tracefile into
+  NetTraceFile[256] (local-user only). All become strlcpy.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

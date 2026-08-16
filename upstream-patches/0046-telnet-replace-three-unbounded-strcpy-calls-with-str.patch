@@ -1,0 +1,67 @@
+From c6c5ffb874a652af9df67d8f1495b64d0df9d611 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 16 Aug 2026 07:53:47 -0400
+Subject: [PATCH] telnet: replace three unbounded strcpy calls with strlcpy
+
+commands.c: _hostname[] is 64 bytes but ai_canonname is
+network-influenced and unbounded; a long canonical name from
+getaddrinfo overran it.
+
+sra.c: user[] is 256 bytes; a -l argument of exactly 256 chars
+overflowed it by one (the NUL).
+
+utilities.c: NetTraceFile[] is 255 bytes; a -n tracefile argument
+longer than that overran it (local-user only).
+
+All three become strlcpy with the destination size.  Verbatim
+upstream FreeBSD changes.
+
+Upstream patch queued as upstream-patches/0046.
+---
+ src.freebsd/telnet/libtelnet/sra.c    | 2 +-
+ src.freebsd/telnet/telnet/commands.c  | 2 +-
+ src.freebsd/telnet/telnet/utilities.c | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src.freebsd/telnet/libtelnet/sra.c b/src.freebsd/telnet/libtelnet/sra.c
+index e0876707b..6c589f48f 100644
+--- a/src.freebsd/telnet/libtelnet/sra.c
++++ b/src.freebsd/telnet/libtelnet/sra.c
+@@ -276,7 +276,7 @@ sra_reply(Authenticator *ap, unsigned char *data, int cnt)
+ 		}
+ 		telnet_gets(uprompt, tuser, sizeof(tuser) - 1, 1);
+ 		if (tuser[0] == '\n' || tuser[0] == '\r' )
+-			strcpy(user,UserNameRequested);
++			strlcpy(user,UserNameRequested,256);
+ 		else {
+ 			/* telnet_gets leaves the newline on */
+ 			for(i=0;i<sizeof(tuser);i++) {
+diff --git a/src.freebsd/telnet/telnet/commands.c b/src.freebsd/telnet/telnet/commands.c
+index b7c0b4702..377eafe0d 100644
+--- a/src.freebsd/telnet/telnet/commands.c
++++ b/src.freebsd/telnet/telnet/commands.c
+@@ -2429,7 +2429,7 @@ tn(int argc, char *argv[])
+ 	if (srcroute != 0)
+ 	    (void) strncpy(_hostname, hostname, sizeof(_hostname) - 1);
+ 	else if (res->ai_canonname != NULL)
+-	  strcpy(_hostname, res->ai_canonname);
++	  (void) strlcpy(_hostname, res->ai_canonname, sizeof(_hostname));
+ 	else
+ 	  (void) strncpy(_hostname, hostp, sizeof(_hostname) - 1);
+ 	_hostname[sizeof(_hostname)-1] = '\0';
+diff --git a/src.freebsd/telnet/telnet/utilities.c b/src.freebsd/telnet/telnet/utilities.c
+index 79cb591d6..57a2c2867 100644
+--- a/src.freebsd/telnet/telnet/utilities.c
++++ b/src.freebsd/telnet/telnet/utilities.c
+@@ -110,7 +110,7 @@ SetNetTrace(char *file)
+     if (file  && (strcmp(file, "-") != 0)) {
+ 	NetTrace = fopen(file, "w");
+ 	if (NetTrace) {
+-	    strcpy((char *)NetTraceFile, file);
++	    strlcpy((char *)NetTraceFile, file, sizeof(NetTraceFile));
+ 	    return;
+ 	}
+ 	fprintf(stderr, "Cannot open %s.\n", file);
+-- 
+2.43.0
+

@@ -600,6 +600,36 @@ or address") — minor, worth a look.
 - Priority: network/setuid-facing tools (`telnet`, `fetch`, `tip`, `vi`,
   `su`) and every analyzer finding that is confirmed reachable.
 
+### Phase 3 results — telnet and fetch/libfetch string-site audit (P5)
+
+Every `strcpy`/`strcat`/`sprintf`/`strncpy` site in the compiled
+telnet and fetch/libfetch sources was classified with its bounding
+invariant (kerberos telnet sources excluded — not compiled). Of ~60
+sites, all but four are provably bounded (same-constant buffers,
+immediate length guards, byte-valued `%d`, mutually exclusive strcat
+branches); no site warranted the `sstr_*` wrappers — every fix is a
+drop-in with no usable status return.
+
+- FIXED — libfetch: `fetchListFile` unsigned-wrap `strncpy` stack
+  smash (`file.c`). With a `file://` doc path of exactly PATH_MAX-2
+  chars, `l = sizeof(fn) - strlen(fn) - 1` is 0 and the loop's
+  `strncpy(p, de->d_name, l - 1)` passes `(size_t)-1` — a deterministic
+  stack smash on the first `readdir` entry, reachable via the public
+  `fetchListURL`/`fetchListFile` API (fetch(1) itself never lists).
+  PoC-verified pre-fix (fortify abort) and post-fix (clean
+  ENAMETOOLONG/empty listing). Verbatim upstream FreeBSD;
+  upstream-patches/0045.
+- FIXED — telnet: `strcpy(_hostname, res->ai_canonname)` into
+  `_hostname[MAXHOSTNAMELEN]` (64 bytes with glibc) — `ai_canonname`
+  is attacker-influenced network data (DNS CNAME target, unbounded
+  `/etc/hosts` entries) and even benign FQDNs over 63 chars overflow.
+  Replaced with `strlcpy`. Verbatim upstream; upstream-patches/0046.
+- HARDENED (same patch) — telnet: 1-byte heap overflow in
+  `libtelnet/sra.c` with an exactly-256-char `-l` user name (the
+  `uprompt` guard admits 256 into a `malloc(256)`), and a >255-char
+  `-n` tracefile argument overflowing `NetTraceFile[256]`. Both
+  self-inflicted/local-user only; `strlcpy` drop-ins.
+
 ## Hardening status
 
 - Sandboxing (both builds, default on): the Capsicum compatibility layer

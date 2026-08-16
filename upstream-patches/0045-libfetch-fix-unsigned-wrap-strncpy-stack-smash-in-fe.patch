@@ -1,0 +1,57 @@
+From 62fb67799561364b4451e918b69fb6fc07c84862 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 16 Aug 2026 07:48:10 -0400
+Subject: [PATCH] libfetch: fix unsigned-wrap strncpy stack smash in
+ fetchListFile
+
+When the document path in a file: URL listing is exactly PATH_MAX-2
+bytes long, the remaining-space computation yields l=0 and the
+subsequent strncpy(p, name, l-1) passes (size_t)-1 as the length,
+smashing the stack buffer deterministically. Reachable through the
+public fetchListURL/fetchListFile API (the fetch(1) CLI never lists).
+
+Verified with a PoC driver: aborts under fortify pre-fix, returns a
+clean empty listing post-fix; normal directory listing unaffected.
+
+Rework the tail of fetchListFile to strlcpy/strlcat, return
+ENAMETOOLONG when the path no longer fits, and skip entries whose
+names would be truncated. Verbatim upstream FreeBSD change.
+
+Upstream patch queued as upstream-patches/0045.
+---
+ src.freebsd/libfetch/file.c | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/src.freebsd/libfetch/file.c b/src.freebsd/libfetch/file.c
+index 0d46ce38b..9cf1a567e 100644
+--- a/src.freebsd/libfetch/file.c
++++ b/src.freebsd/libfetch/file.c
+@@ -133,15 +133,19 @@ fetchListFile(struct url *u, const char *flags __unused)
+ 	}
+ 
+ 	ue = NULL;
+-	strncpy(fn, u->doc, sizeof(fn) - 2);
+-	fn[sizeof(fn) - 2] = 0;
+-	strcat(fn, "/");
+-	p = strchr(fn, 0);
++	if (strlcpy(fn, u->doc, sizeof(fn)) >= sizeof(fn) - 1 ||
++	    strlcat(fn, "/", sizeof(fn)) >= sizeof(fn)) {
++		errno = ENAMETOOLONG;
++		fetch_syserr();
++		closedir(dir);
++		return (NULL);
++	}
++	p = strchr(fn, '\0');
+ 	l = sizeof(fn) - strlen(fn) - 1;
+ 
+ 	while ((de = readdir(dir)) != NULL) {
+-		strncpy(p, de->d_name, l - 1);
+-		p[l - 1] = 0;
++		if (strlcpy(p, de->d_name, l) >= (size_t)l)
++			continue;	/* overlong name; stat would fail anyway */
+ 		if (fetch_stat_file(fn, &us) == -1)
+ 			/* should I return a partial result, or abort? */
+ 			break;
+-- 
+2.43.0
+
