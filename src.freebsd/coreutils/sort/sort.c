@@ -846,6 +846,10 @@ parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
 
 		len = pmatch[3].rm_eo - pmatch[3].rm_so;
 
+		/* sopts is a 128-byte buffer at both call sites */
+		if (len >= 128)
+			goto end;
+
 		strncpy(sopts, s + pmatch[3].rm_so, len);
 		sopts[len] = '\0';
 	}

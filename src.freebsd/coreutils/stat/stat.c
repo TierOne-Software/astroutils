@@ -614,7 +614,7 @@ format1(const struct stat *st,
     int hilo, int what)
 {
 	u_int64_t data;
-	char *stmp, lfmt[24], tmp[20];
+	char *stmp, lfmt[64], tmp[20];
 	struct passwd *pw = NULL;
 	struct group *gr = NULL;
 	const char *sdata = NULL;
