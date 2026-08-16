@@ -133,15 +133,19 @@ fetchListFile(struct url *u, const char *flags __unused)
 	}
 
 	ue = NULL;
-	strncpy(fn, u->doc, sizeof(fn) - 2);
-	fn[sizeof(fn) - 2] = 0;
-	strcat(fn, "/");
-	p = strchr(fn, 0);
+	if (strlcpy(fn, u->doc, sizeof(fn)) >= sizeof(fn) - 1 ||
+	    strlcat(fn, "/", sizeof(fn)) >= sizeof(fn)) {
+		errno = ENAMETOOLONG;
+		fetch_syserr();
+		closedir(dir);
+		return (NULL);
+	}
+	p = strchr(fn, '\0');
 	l = sizeof(fn) - strlen(fn) - 1;
 
 	while ((de = readdir(dir)) != NULL) {
-		strncpy(p, de->d_name, l - 1);
-		p[l - 1] = 0;
+		if (strlcpy(p, de->d_name, l) >= (size_t)l)
+			continue;	/* overlong name; stat would fail anyway */
 		if (fetch_stat_file(fn, &us) == -1)
 			/* should I return a partial result, or abort? */
 			break;
