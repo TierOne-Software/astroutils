@@ -276,7 +276,7 @@ sra_reply(Authenticator *ap, unsigned char *data, int cnt)
 		}
 		telnet_gets(uprompt, tuser, sizeof(tuser) - 1, 1);
 		if (tuser[0] == '\n' || tuser[0] == '\r' )
-			strcpy(user,UserNameRequested);
+			strlcpy(user,UserNameRequested,256);
 		else {
 			/* telnet_gets leaves the newline on */
 			for(i=0;i<sizeof(tuser);i++) {

@@ -2429,7 +2429,7 @@ tn(int argc, char *argv[])
 	if (srcroute != 0)
 	    (void) strncpy(_hostname, hostname, sizeof(_hostname) - 1);
 	else if (res->ai_canonname != NULL)
-	  strcpy(_hostname, res->ai_canonname);
+	  (void) strlcpy(_hostname, res->ai_canonname, sizeof(_hostname));
 	else
 	  (void) strncpy(_hostname, hostp, sizeof(_hostname) - 1);
 	_hostname[sizeof(_hostname)-1] = '\0';
