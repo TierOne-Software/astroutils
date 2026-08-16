@@ -1649,7 +1649,7 @@ print_buffer(void)
 {
 	char buffer[256];
 
-	sprintf(buffer, ">!%s", print_command);
+	snprintf(buffer, sizeof(buffer), ">!%s", print_command);
 	wmove(com_win, 0, 0);
 	wclrtoeol(com_win);
 	wprintw(com_win, printer_msg_str, print_command);
@@ -1911,7 +1911,7 @@ get_string(char *prompt, int advance)
 			}
 			nam_str--;
 		}
-		else if ((in != 8) && (in != 127) && (in != '\n') && (in != '\r') && (in < 256))
+		else if ((in != 8) && (in != 127) && (in != '\n') && (in != '\r') && (in < 256) && (g_pos < 511))
 		{
 			if (in == '\026')	/* control-v, accept next character verbatim	*/
 			{			/* allows entry of ^m, ^j, and ^h	*/
@@ -4291,7 +4291,7 @@ dump_ee_conf(void)
 
 	if (stat(file_name, &buf) != -1)
 	{
-		sprintf(buffer, "%s.old", file_name);
+		snprintf(buffer, sizeof(buffer), "%s.old", file_name);
 		unlink(buffer);
 		link(file_name, buffer);
 		unlink(file_name);
