@@ -1,0 +1,66 @@
+From d87fd4cf5ae8f67e8984b5df635d5931dcfecc27 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 16 Aug 2026 18:37:00 -0400
+Subject: [PATCH] ee: fix print_buffer stack smash via init-file printcommand
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+print_buffer() does sprintf(buffer[256], ">!%s", print_command) where
+print_command comes from a printcommand line in an init file (up to
+~498 chars under the fgets 512 bound).  Init files are probed in order
+/usr/share/misc/init.ee, $HOME/.init.ee, and .init.ee relative to the
+cwd — an attacker who can drop a file where the victim edits plants a
+long printcommand line; the smash fires when the victim picks
+menu -> file -> print (~245 attacker-controlled bytes past the stack
+buffer).  PoC-verified with a pty driver and a planted .init.ee:
+SIGABRT pre-fix (fortify/stack-protector), clean truncated command
+post-fix.
+
+Also in this patch (hardening, both self-inflicted/local-user only):
+- dump_ee_conf(): sprintf(buffer[512], "%s.old", pw_dir-based path)
+  overflows with a ~500-char home directory; snprintf drop-in.
+- get_string(): the keystroke loop had no bound on its malloc(512)
+  prompt buffer — pasting >511 chars at any prompt overflowed the
+  heap; the loop now stops accepting input at 511 chars.
+
+Still present verbatim in freebsd-src main (contrib/ee/ee.c).
+Upstream patch queued as upstream-patches/0047.
+---
+ src.freebsd/ee/ee.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src.freebsd/ee/ee.c b/src.freebsd/ee/ee.c
+index 03d33b52..5e4a52b1 100644
+--- a/src.freebsd/ee/ee.c
++++ b/src.freebsd/ee/ee.c
+@@ -1649,7 +1649,7 @@ print_buffer(void)
+ {
+ 	char buffer[256];
+ 
+-	sprintf(buffer, ">!%s", print_command);
++	snprintf(buffer, sizeof(buffer), ">!%s", print_command);
+ 	wmove(com_win, 0, 0);
+ 	wclrtoeol(com_win);
+ 	wprintw(com_win, printer_msg_str, print_command);
+@@ -1911,7 +1911,7 @@ get_string(char *prompt, int advance)
+ 			}
+ 			nam_str--;
+ 		}
+-		else if ((in != 8) && (in != 127) && (in != '\n') && (in != '\r') && (in < 256))
++		else if ((in != 8) && (in != 127) && (in != '\n') && (in != '\r') && (in < 256) && (g_pos < 511))
+ 		{
+ 			if (in == '\026')	/* control-v, accept next character verbatim	*/
+ 			{			/* allows entry of ^m, ^j, and ^h	*/
+@@ -4291,7 +4291,7 @@ dump_ee_conf(void)
+ 
+ 	if (stat(file_name, &buf) != -1)
+ 	{
+-		sprintf(buffer, "%s.old", file_name);
++		snprintf(buffer, sizeof(buffer), "%s.old", file_name);
+ 		unlink(buffer);
+ 		link(file_name, buffer);
+ 		unlink(file_name);
+-- 
+2.43.0
+

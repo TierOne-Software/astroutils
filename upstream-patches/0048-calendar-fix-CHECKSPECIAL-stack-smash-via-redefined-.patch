@@ -1,0 +1,67 @@
+From a31367d25d6f7807e258d723790ab94bd37546e7 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 16 Aug 2026 18:37:22 -0400
+Subject: [PATCH] calendar: fix CHECKSPECIAL stack smash via redefined
+ special-day names
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Calendar files can redefine the special-day names ("Easter=<string>"
+etc.); REPLACE() in io.c stores the name and its length with no cap.
+When a later date line consists of the redefined name plus a modifier
+offset, determinestyle()'s CHECKSPECIAL macro takes strlen(s1) != lens2
+and strncpy()s lens2 attacker-controlled bytes into
+specialday[SLEN=100] on parsedaymonth's stack — an unbounded,
+file-content-controlled smash (a 200-char name overwrites 100 bytes
+plus a NUL at [lens2]).  PoC-verified: fortify SIGABRT pre-fix with a
+two-line calendar file, line cleanly rejected post-fix.
+
+Reachability: calendar -f/default runs on an untrusted calendar file
+suffice.  This port's calendar -a child also does not drop privileges
+(no setusercontext — only setenv(HOME) + cal()), so the traditional
+root-run calendar -a cron job would turn any local user's
+~/calendar/calendar into a stack smash in a root process.  (The
+missing privilege drop itself is a separate design-level follow-up.)
+
+Reject over-long names before the copy (return 0 — the same
+unparseable-line idiom as every other malformed date spec).
+Benign redefined names with modifiers still parse (Easter=Ostern /
+Ostern+1 regression-checked).
+
+Also fix a latent wrong-size strlcpy in remember(): extradata entries
+are calloc(1, 20) but the copy passed SLEN=100; not reachable today
+(extra is always floattotime() "HH:MM:SS" output).
+
+Still present verbatim in freebsd-src main (usr.bin/calendar).
+Upstream patch queued as upstream-patches/0048.
+---
+ src.freebsd/miscutils/calendar/parsedata.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/miscutils/calendar/parsedata.c b/src.freebsd/miscutils/calendar/parsedata.c
+index 7b2b4d911..b05130db9 100644
+--- a/src.freebsd/miscutils/calendar/parsedata.c
++++ b/src.freebsd/miscutils/calendar/parsedata.c
+@@ -119,6 +119,8 @@ determinestyle(char *date, int *flags,
+ 			strlcpy(specialday, s1, SLEN);			\
+ 			return (1);					\
+ 		}							\
++		if (lens2 >= SLEN)					\
++			return (0);					\
+ 		strncpy(specialday, s1, lens2);				\
+ 		specialday[lens2] = '\0';				\
+ 		strlcpy(modifieroffset, s1 + lens2, SLEN);		\
+@@ -328,7 +330,8 @@ remember(int *rememberindex, int *y, int *m, int *d, char **ed, int yy, int mm,
+ 	m[*rememberindex] = mm;
+ 	d[*rememberindex] = dd;
+ 	if (extra != NULL)
+-		strlcpy(ed[*rememberindex], extra, SLEN);
++		/* extradata entries are calloc(1, 20) in cal() */
++		strlcpy(ed[*rememberindex], extra, 20);
+ 	else
+ 		ed[*rememberindex][0] = '\0';
+ 	*rememberindex += 1;
+-- 
+2.43.0
+

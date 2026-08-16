@@ -630,6 +630,88 @@ drop-in with no usable status return.
   `-n` tracefile argument overflowing `NetTraceFile[256]`. Both
   self-inflicted/local-user only; `strlcpy` drop-ins.
 
+### Phase 3 results — sh and ee string-site audit (P5)
+
+`sh`: all 12 raw sites provably bounded (compile-time-constant
+sources, exact-fit `stalloc`/`malloc` sizing, per-byte guards) or
+compiled out (`show.c` debug blocks, `NO_HISTORY` exclusions); the
+build-time generators `mknodes`/`mksyntax` run on trusted repo files.
+No changes needed.
+
+`ee`: 23 sites in the compiled `ee.c` (`new_curse.c` excluded — not
+compiled), 21 provably bounded (edited-file lines live in exact-fit
+heap buffers, never fixed ones).
+
+- FIXED — `ee.c` `print_buffer()`: `sprintf(buffer[256], ">!%s",
+  print_command)` where `print_command` holds up to ~498 chars from an
+  init file. Init probing includes `.init.ee` **relative to the cwd**,
+  so an attacker who can drop a file where the victim edits (shared
+  dir, unpacked tarball) plants a long `printcommand` line; the smash
+  fires when the victim picks menu → file → print (~245
+  attacker-controlled bytes past the buffer). Classic `.exrc`-style
+  planted-config vector. PoC-verified with a pty driver + planted
+  `.init.ee`: pre-fix SIGABRT (fortify/stack-protector), post-fix the
+  command is truncated to `sizeof(buffer)`. `snprintf` drop-in. Still
+  present verbatim in freebsd-src main (`contrib/ee/ee.c`);
+  upstream-patches/0047.
+- HARDENED (same patch) — `ee.c` `dump_ee_conf()`:
+  `sprintf(buffer[512], "%s.old", pw_dir + "/.init.ee")` needs a
+  ~500-char home directory (legal under PATH_MAX, unusual); `snprintf`
+  drop-in. Also `get_string()`: the keystroke loop had no bound on its
+  `malloc(512)` prompt buffer — pasting >511 chars at any prompt
+  (search, file name, shell-out) overflowed the heap; the loop now
+  stops accepting at 511 chars. Both self-inflicted/local-user only.
+
+### Phase 3 results — coreutils and miscutils string-site audit (P5)
+
+coreutils: ~46 raw sites across the ~72 compiled tools — all provably
+bounded (malloc-to-strlen exact fits, explicit guards, fixed-format
+sources) except two argv-only unbounded stack writes, both verbatim
+upstream FreeBSD:
+
+- HARDENED — stat `format1()`: `lfmt[24]` can receive up to 31 bytes
+  (`%` + 5 flag chars + 10-digit size + 11-char precision + `ll` +
+  conversion + NUL), e.g. `stat -f '%# +-02147483647.2147483647z'`;
+  fortify builds abort. Widened to `lfmt[64]` — every component was
+  already individually bounded, no logic change.
+  upstream-patches/0049.
+- HARDENED — sort `parse_pos_obs()`: the obsolete `+POS` syntax's
+  option-letter run is `strncpy`'d into the caller's 128-byte stack
+  buffer with no length check (`sort +1.0<300 letters>` smashes the
+  frame; fortify abort). Over-long runs are now rejected (parse fails,
+  arg left untouched — existing error idiom); this also secures the
+  `sopt[304]` sprintfs whose sizing assumes sopts ≤ 127.
+  upstream-patches/0049.
+
+miscutils: 31 raw sites across the 20 compiled tools; 30 provably
+bounded (exact-fit allocations, fixed literals, bounded `fgetws`,
+dead `#if 0` block).
+
+- FIXED — calendar `parsedata.c` `CHECKSPECIAL`: calendar files can
+  redefine the special-day names (`Easter=<string>`, `REPLACE` in
+  io.c has no length cap), and a later date line of
+  `<redefined name><modifier>` then `strncpy`s `lens2`
+  attacker-controlled bytes into `specialday[SLEN=100]` on
+  `parsedaymonth`'s stack — unbounded, file-content controlled
+  (PoC-verified: fortify SIGABRT pre-fix, line cleanly rejected
+  post-fix). Over-long names are now rejected before the copy.
+  Worse, this port's `calendar -a` child does not drop privileges
+  (no setusercontext — only `setenv(HOME)` + `cal()`), so the
+  traditional root-run `calendar -a` cron job turns any local user's
+  `~/calendar/calendar` into a stack smash in a root process; the
+  `-f`/default single-user case needs no privileges at all. Still
+  verbatim in freebsd-src main; upstream-patches/0048.
+- HARDENED (same patch) — calendar `remember()`:
+  `strlcpy(ed[i], extra, SLEN=100)` into `extradata[i] =
+  calloc(1, 20)` — wrong size argument. Latent today (`extra` is
+  always `floattotime()` "HH:MM:SS" output); now passes the real
+  size.
+
+NOTE — open item (not P5 scope): `calendar -a`'s missing privilege
+drop is a design-level issue above and beyond the string bug; it
+should run the parse as the target user (setusercontext). Worth an
+upstream follow-up.
+
 ## Hardening status
 
 - Sandboxing (both builds, default on): the Capsicum compatibility layer

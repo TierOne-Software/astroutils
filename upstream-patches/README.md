@@ -102,6 +102,24 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   _hostname[64] (network-influenced), a 256-char -l user name into
   malloc(256) (1-byte heap overflow), a >255-char -n tracefile into
   NetTraceFile[256] (local-user only). All become strlcpy.
+- 0047 ee: print_buffer() sprintf(buffer[256], ">!%s", print_command)
+  — print_command holds up to ~498 chars from an init file, and init
+  probing includes .init.ee relative to the cwd (.exrc-style planted
+  config); menu -> file -> print smashes the stack. snprintf, plus
+  dump_ee_conf snprintf and a get_string() 511-char input bound
+  (hardening). Present verbatim in freebsd-src main (contrib/ee).
+- 0048 calendar: CHECKSPECIAL stack smash — calendar files can
+  redefine special-day names (Easter=<string>, no length cap in
+  REPLACE); a date line of <name><modifier> strncpys lens2
+  attacker-controlled bytes into specialday[100] on parsedaymonth's
+  stack. Reject over-long names before the copy; also fix a
+  wrong-size strlcpy in remember() (SLEN=100 into calloc(1, 20)).
+  Present verbatim in freebsd-src main (usr.bin/calendar).
+- 0049 stat/sort: two argv-only unbounded stack writes (hardening) —
+  stat format1() lfmt[24] can receive 31 bytes of assembled printf
+  format (widen to 64); sort parse_pos_obs() copies the obsolete +POS
+  letter-run into a 128-byte stack buffer unchecked (reject over-long
+  runs, which also secures the sopt[304] sprintfs).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

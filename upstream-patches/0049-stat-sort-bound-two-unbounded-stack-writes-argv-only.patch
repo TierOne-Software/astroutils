@@ -1,0 +1,61 @@
+From a93f3548feabb683b4f768f17cae216265aa30de Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sun, 16 Aug 2026 18:37:41 -0400
+Subject: [PATCH] stat/sort: bound two unbounded stack writes (argv-only,
+ hardening)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+stat format1(): lfmt[24] can receive up to 31 bytes of assembled
+printf format ('%' + 5 flag chars + 10-digit size + 11-char precision
++ 'll' + conversion + NUL) — stat -f '%# +-02147483647.2147483647z'
+aborts fortify builds.  Widen lfmt to 64; every component was already
+individually bounded, no logic change.
+
+sort parse_pos_obs(): the obsolete +POS syntax's option-letter run is
+strncpy'd into the caller's 128-byte stack buffer with no length check
+(sort +1.0<300 letters> smashes the frame; fortify abort).  Reject
+over-long runs (parse fails, arg left untouched — the existing error
+idiom); this also secures the sopt[304] sprintfs whose sizing assumes
+sopts <= 127.  Legitimate obsolete keys (+1.0n etc.) still work.
+
+Both self-inflicted (argv-only); both verbatim upstream FreeBSD.
+PoC-verified pre/post.  Upstream patch queued as
+upstream-patches/0049.
+---
+ src.freebsd/coreutils/sort/sort.c | 4 ++++
+ src.freebsd/coreutils/stat/stat.c | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/coreutils/sort/sort.c b/src.freebsd/coreutils/sort/sort.c
+index cb8fe882e..b1704cb3e 100644
+--- a/src.freebsd/coreutils/sort/sort.c
++++ b/src.freebsd/coreutils/sort/sort.c
+@@ -846,6 +846,10 @@ parse_pos_obs(const char *s, int *nf, int *nc, char* sopts)
+ 
+ 		len = pmatch[3].rm_eo - pmatch[3].rm_so;
+ 
++		/* sopts is a 128-byte buffer at both call sites */
++		if (len >= 128)
++			goto end;
++
+ 		strncpy(sopts, s + pmatch[3].rm_so, len);
+ 		sopts[len] = '\0';
+ 	}
+diff --git a/src.freebsd/coreutils/stat/stat.c b/src.freebsd/coreutils/stat/stat.c
+index 548d96eaf..2f725d127 100644
+--- a/src.freebsd/coreutils/stat/stat.c
++++ b/src.freebsd/coreutils/stat/stat.c
+@@ -614,7 +614,7 @@ format1(const struct stat *st,
+     int hilo, int what)
+ {
+ 	u_int64_t data;
+-	char *stmp, lfmt[24], tmp[20];
++	char *stmp, lfmt[64], tmp[20];
+ 	struct passwd *pw = NULL;
+ 	struct group *gr = NULL;
+ 	const char *sdata = NULL;
+-- 
+2.43.0
+
