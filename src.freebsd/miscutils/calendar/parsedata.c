@@ -119,6 +119,8 @@ determinestyle(char *date, int *flags,
 			strlcpy(specialday, s1, SLEN);			\
 			return (1);					\
 		}							\
+		if (lens2 >= SLEN)					\
+			return (0);					\
 		strncpy(specialday, s1, lens2);				\
 		specialday[lens2] = '\0';				\
 		strlcpy(modifieroffset, s1 + lens2, SLEN);		\
@@ -328,7 +330,8 @@ remember(int *rememberindex, int *y, int *m, int *d, char **ed, int yy, int mm,
 	m[*rememberindex] = mm;
 	d[*rememberindex] = dd;
 	if (extra != NULL)
-		strlcpy(ed[*rememberindex], extra, SLEN);
+		/* extradata entries are calloc(1, 20) in cal() */
+		strlcpy(ed[*rememberindex], extra, 20);
 	else
 		ed[*rememberindex][0] = '\0';
 	*rememberindex += 1;
