@@ -986,7 +986,7 @@ f_fstypename(dev_t curdev)
 		const char *rfs = NULL;
 		while (getline(&lbuf, &lsize, f) > 0) {
 			struct stat mst;
-			char *mntpt;
+			char *mntpt, *sp;
 			memset(curfstype, 0, sizeof(curfstype));
 			/* extract fstype first; we cannot use the device
 			 * as that refers to a real block device always, and
@@ -1000,10 +1000,17 @@ f_fstypename(dev_t curdev)
 				continue;
 			/* now get the mountpoint root... */
 			mntpt = strchr(lbuf, '/');
+			if (!mntpt)
+				continue;
 			/* skip over it to get the real mountpoint */
 			mntpt = strchr(mntpt + 1, '/');
+			if (!mntpt)
+				continue;
 			/* the path is escaped, terminate at space */
-			*strchr(mntpt, ' ') = '\0';
+			sp = strchr(mntpt, ' ');
+			if (!sp)
+				continue;
+			*sp = '\0';
 			/* now unscape spaces and whatever */
 			mntpt = unesc_mnt(mntpt);
 			/* if this fails it's probably because no access or

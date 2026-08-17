@@ -184,6 +184,8 @@ main_quotedprintable(int argc, char *argv[])
 	while ((ch = getopt_long(argc, argv, "+do:ru", opts, NULL)) != -1) {
 		switch(ch) {
 		case 'o':
+			if (fpo != stdout)
+				fclose(fpo);
 			fpo = fopen(optarg, "w");
 			if (fpo == NULL) {
 				perror(optarg);
@@ -213,6 +215,11 @@ main_quotedprintable(int argc, char *argv[])
 		}
 	}
 	qp(fp, fpo, encode, rfc2047);
+
+	if (fp != stdin)
+		fclose(fp);
+	if (fpo != stdout)
+		fclose(fpo);
 
 	return (EXIT_SUCCESS);
 }

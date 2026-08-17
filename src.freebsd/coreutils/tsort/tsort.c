@@ -107,6 +107,8 @@ static void hash_init(struct hash *h) {
 	h->chunks = NULL;
 	h->top = NULL;
 	h->elems = calloc(1024, sizeof(struct hash_elem *));
+	if (h->elems == NULL)
+		err(1, NULL);
 }
 
 static void hash_destroy(struct hash *h) {
@@ -146,6 +148,8 @@ static struct hash_elem *hash_insert(struct hash *h, char *key) {
 	size_t hash = hash_key(key) & (HASH_BUCKET_COUNT - 1);
 	if (!h->top) {
 		struct hash_chunk *c = calloc(1, sizeof(struct hash_chunk));
+		if (c == NULL)
+			err(1, NULL);
 		c->next = h->chunks;
 		h->chunks = c;
 		for (size_t i = 0; i < (HASH_CHUNK_SIZE - 1); ++i) 
