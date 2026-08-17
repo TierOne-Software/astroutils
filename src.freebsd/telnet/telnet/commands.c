@@ -1438,7 +1438,7 @@ bye(int argc, char *argv[])
 void
 quit(void)
 {
-	(void) call(bye, "bye", "fromquit", 0);
+	(void) call(bye, "bye", "fromquit", (char *)NULL);
 	Exit(0);
 }
 
@@ -1677,8 +1677,8 @@ env_init(void)
 	for (epp = environ; *epp; epp++) {
 		if ((cp = strchr(*epp, '='))) {
 			*cp = '\0';
-			ep = env_define(*epp, cp+1);
-			ep->export = 0;
+			if ((ep = env_define(*epp, cp+1)))
+				ep->export = 0;
 			*cp = '=';
 		}
 	}
@@ -1725,6 +1725,8 @@ env_define(const char *var, char *value)
 			free(ep->value);
 	} else {
 		ep = (struct env_lst *)malloc(sizeof(struct env_lst));
+		if (ep == NULL)
+			return(NULL);
 		ep->next = envlisthead.next;
 		envlisthead.next = ep;
 		ep->prev = &envlisthead;
@@ -2174,7 +2176,7 @@ status(int argc, char *argv[])
 void
 ayt_status(void)
 {
-    (void) call(status, "status", "notmuch", 0);
+    (void) call(status, "status", "notmuch", (char *)NULL);
 }
 #endif
 
@@ -2264,6 +2266,7 @@ tn(int argc, char *argv[])
     int srlen = 0;
     int srcroute = 0, result;
     char *cmd, *hostp = 0, *portp = 0, *user = 0;
+    char *portp_alloc = NULL;
     char *src_addr = NULL;
     struct addrinfo hints, *res, *res0 = NULL, *src_res, *src_res0 = NULL;
     int error = 0, af_error = 0;
@@ -2386,7 +2389,7 @@ tn(int argc, char *argv[])
         hostname = hostp;
     if (!portp) {
       telnetport = 1;
-      portp = strdup("telnet");
+      portp = portp_alloc = strdup("telnet");
     } else if (*portp == '-') {
       portp++;
       telnetport = 1;
@@ -2585,7 +2588,7 @@ tn(int argc, char *argv[])
 	env_define("USER", user);
 	env_export("USER", NULL);
     }
-    (void) call(status, "status", "notmuch", 0);
+    (void) call(status, "status", "notmuch", (char *)NULL);
     telnet(user); 
     (void) NetClose(net);
     if (quiet_mode)
@@ -2598,6 +2601,7 @@ tn(int argc, char *argv[])
         freeaddrinfo(res0);
     if (src_res0 != NULL)
         freeaddrinfo(src_res0);
+    free(portp_alloc);
     return 0;
 }
 
