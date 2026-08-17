@@ -362,6 +362,8 @@ socksetup(const char *src, const char *dst, const char *svcname,
 	}
 	freeaddrinfo(res0);
 
+	free(ss_src[AF_INET]);
+	free(ss_src[AF_INET6]);
 	*socks = sk;
 	return (nsock);
 }

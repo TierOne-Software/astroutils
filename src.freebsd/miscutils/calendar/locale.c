@@ -159,7 +159,8 @@ setnsequences(char *seq)
 		nsequences[i].name = strdup(nsequences[i].name);
 		nsequences[i].len = nsequences[i + 1].name - nsequences[i].name;
 	}
-	nsequences[i].name = strdup(nsequences[i].name);
+	if ((nsequences[i].name = strdup(nsequences[i].name)) == NULL)
+		errx(1, "cannot allocate memory");
 	nsequences[i].len = strlen(nsequences[i].name);
 
 	return;

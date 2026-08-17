@@ -106,6 +106,8 @@ main(int argc, char *argv[])
 			break;
 		case 'g':
 			g = (struct wallgroup *)malloc(sizeof *g);
+			if (g == NULL)
+				err(1, "out of memory");
 			g->next = grouplist;
 			g->name = optarg;
 			g->gid = -1;

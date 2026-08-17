@@ -103,6 +103,8 @@ createdate(int y, int m, int d)
 		struct tm td;
 		time_t t;
 		py = (struct cal_year *)calloc(1, sizeof(struct cal_year));
+		if (py == NULL)
+			errx(1, "createdate: cannot allocate memory");
 		py->year = y + 1900;
 		py->easter = easter(y);
 		py->paskha = paskha(y);
@@ -133,6 +135,8 @@ createdate(int y, int m, int d)
 
 	if (pm == NULL) {
 		pm = (struct cal_month *)calloc(1, sizeof(struct cal_month));
+		if (pm == NULL)
+			errx(1, "createdate: cannot allocate memory");
 		pm->year = py;
 		pm->month = m;
 		cumday = cumdaytab[isleap(y)];
@@ -154,6 +158,8 @@ createdate(int y, int m, int d)
 
 	if (pd == NULL) {	/* Always true */
 		pd = (struct cal_day *)calloc(1, sizeof(struct cal_day));
+		if (pd == NULL)
+			errx(1, "createdate: cannot allocate memory");
 		pd->month = pm;
 		pd->year = py;
 		pd->dayofmonth = d;

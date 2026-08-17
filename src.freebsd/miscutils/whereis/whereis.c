@@ -120,6 +120,8 @@ scanopts(int argc, char **argv)
 		  dolist:
 			i = 0;
 			*dirlist = realloc(*dirlist, (i + 1) * sizeof(char *));
+			if (*dirlist == NULL)
+				abort();
 			(*dirlist)[i] = NULL;
 			while (optind < argc &&
 			       strcmp(argv[optind], "-f") != 0 &&

@@ -46,6 +46,8 @@ escape(const char *str, bool *flush, bool *warned)
 	FILE *fp;
 
 	fp = open_memstream(&tmpstr, &tmplen);
+	if (fp == NULL)
+		err(1, "open_memstream");
 
 	/*
 	 * Copy the str string into a new struct sbuf and return that expanding
