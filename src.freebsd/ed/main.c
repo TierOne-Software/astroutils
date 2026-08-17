@@ -990,7 +990,9 @@ get_shell_command(void)
 				errmsg = "no current filename";
 				return ERR;
 			}
-			j = strlen(s = strip_escapes(old_filename));
+			if ((s = strip_escapes(old_filename)) == NULL)
+				return ERR;
+			j = strlen(s);
 			REALLOC(buf, n, i + j, ERR);
 			while (j--)
 				buf[i++] = *s++;
@@ -1345,7 +1347,7 @@ handle_hup(int signo)
 	    (n = strlen(s)) + 8 <= PATH_MAX &&	/* "ed.hup" + '/' */
 	    (hup = (char *) malloc(n + 10)) != NULL) {
 		strcpy(hup, s);
-		if (hup[n - 1] != '/')
+		if (n == 0 || hup[n - 1] != '/')
 			hup[n] = '/', hup[n+1] = '\0';
 		strcat(hup, "ed.hup");
 		write_file(hup, "w", 1, addr_last);
