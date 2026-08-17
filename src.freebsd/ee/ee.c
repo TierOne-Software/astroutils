@@ -1880,6 +1880,8 @@ get_string(char *prompt, int advance)
 	int esc_flag;
 
 	g_point = tmp_string = malloc(512);
+	if (tmp_string == NULL)
+		err(1, NULL);
 	wmove(com_win,0,0);
 	wclrtoeol(com_win);
 	waddstr(com_win, prompt);
@@ -4301,6 +4303,8 @@ dump_ee_conf(void)
 	init_file = fopen(file_name, "w");
 	if (init_file == NULL)
 	{
+		if (old_init_file != NULL)
+			fclose(old_init_file);
 		wprintw(com_win, "%s", conf_dump_err_msg);
 		wrefresh(com_win);
 		return;
