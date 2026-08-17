@@ -421,6 +421,8 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 	*src_p = vend;
 	namelen = vend - vbegin + 1;
 	vname = malloc(namelen);
+	if (vname == NULL)
+		err(1, "malloc");
 	strlcpy(vname, vbegin, namelen);
 	vvalue = getenv(vname);
 	if (vvalue == NULL || *vvalue == '\0') {
@@ -461,10 +463,14 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
 		**dest_p = '\0';	/* Provide terminator for 'thisarg' */
 		newlen += strlen(*thisarg_p);
 		newstr = malloc(newlen);
+		if (newstr == NULL)
+			err(1, "malloc");
 		strcpy(newstr, *thisarg_p);
 		*thisarg_p = newstr;
 	} else {
 		newstr = malloc(newlen);
+		if (newstr == NULL)
+			err(1, "malloc");
 		*newstr = '\0';
 	}
 	*dest_p = strchr(newstr, '\0');
