@@ -549,8 +549,16 @@ ex_tag_copy(SCR *orig, SCR *sp)
 		if (tagq_copy(sp, aqp, &tqp))
 			return (1);
 		TAILQ_FOREACH(ap, aqp->tagq, q) {
-			if (tag_copy(sp, ap, &tp))
+			if (tag_copy(sp, ap, &tp)) {
+				/*
+				 * The copy carries the original's queue
+				 * linkage; clear it so tagq_free doesn't
+				 * try to remove it from the list.
+				 */
+				tqp->q.tqe_prev = NULL;
+				(void)tagq_free(sp, tqp);
 				return (1);
+			}
 			/* Set the current pointer. */
 			if (aqp->current == ap)
 				tqp->current = tp;

@@ -348,14 +348,17 @@ ex_writefp(SCR *sp, char *name, FILE *fp, MARK *fm, MARK *tm, u_long *nlno, u_lo
 	    S_ISREG(sb.st_mode) && fsync(fileno(fp)))
 		goto err;
 
-	if (fclose(fp))
+	if (fclose(fp)) {
+		fp = NULL;
 		goto err;
+	}
 
 	rval = 0;
 	if (0) {
 err:		if (!F_ISSET(sp->ep, F_MULTILOCK))
 			msgq_str(sp, M_SYSERR, name, "%s");
-		(void)fclose(fp);
+		if (fp != NULL)
+			(void)fclose(fp);
 		rval = 1;
 	}
 

@@ -66,7 +66,8 @@ v_delete(SCR *sp, VICMD *vp)
 	 * that can be a motion component.
 	 */
 	if (db_get(sp, vp->m_final.lno, 0, NULL, &len)) {
-		if (db_get(sp, nlines, DBG_FATAL, NULL, &len))
+		if (db_last(sp, &nlines) ||
+		    db_get(sp, nlines, DBG_FATAL, NULL, &len))
 			return (1);
 		vp->m_final.lno = nlines;
 	}

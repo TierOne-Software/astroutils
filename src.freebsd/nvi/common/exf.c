@@ -894,8 +894,10 @@ success_open:
 		from.lno = 1;
 		from.cno = 0;
 		fm = &from;
-		if (db_last(sp, &to.lno))
+		if (db_last(sp, &to.lno)) {
+			(void)fclose(fp);
 			return (1);
+		}
 		to.cno = 0;
 		tm = &to;
 	}
@@ -989,7 +991,7 @@ success_open:
 	if (len >= sp->cols) {
 		for (s = buf, t = buf + strlen(p); s < t &&
 		    (*s != '/' || len >= sp->cols - 3); ++s, --len);
-		if (s == t)
+		if (s == t || s - buf < 3)
 			s = buf;
 		else {
 			*--s = '.';		/* Leading ellipses. */
@@ -1099,6 +1101,10 @@ file_backup(SCR *sp, char *name, char *bname)
 		INT2CHAR(sp, cmd.argv[0]->bp, cmd.argv[0]->len + 1,
 			 p, nlen); 
 		d = strdup(p);
+		if (d == NULL) {
+			msgq(sp, M_SYSERR, NULL);
+			goto alloc_err;
+		}
 		p = d;
 		for (t = bp, slash = NULL;
 		     p[0] != '\0'; *t++ = *p++)

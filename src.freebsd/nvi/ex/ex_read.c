@@ -249,6 +249,8 @@ ex_read(SCR *sp, EXCMD *cmdp)
 	 */
 	if ((fp = fopen(name, "r")) == NULL || fstat(fileno(fp), &sb)) {
 		msgq_str(sp, M_SYSERR, name, "%s");
+		if (fp != NULL)
+			(void)fclose(fp);
 		return (1);
 	}
 	if (!S_ISFIFO(sb.st_mode) && !S_ISREG(sb.st_mode)) {
@@ -327,8 +329,12 @@ ex_readfp(SCR *sp, char *name, FILE *fp, MARK *fm, recno_t *nlinesp, int silent)
 		ccnt += len;
 	}
 
-	if (ferror(fp) || fclose(fp))
+	if (ferror(fp))
 		goto err;
+	if (fclose(fp)) {
+		fp = NULL;
+		goto err;
+	}
 
 	/* Return the number of lines read in. */
 	if (nlinesp != NULL)
@@ -346,7 +352,10 @@ ex_readfp(SCR *sp, char *name, FILE *fp, MARK *fm, recno_t *nlinesp, int silent)
 	rval = 0;
 	if (0) {
 err:		msgq_str(sp, M_SYSERR, name, "%s");
-		(void)fclose(fp);
+		if (fp != NULL)
+			(void)fclose(fp);
+		if (nlinesp != NULL)
+			*nlinesp = lcnt;
 		rval = 1;
 	}
 

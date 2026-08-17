@@ -80,7 +80,11 @@ ex_at(SCR *sp, EXCMD *cmdp)
 	 */
 	CALLOC_RET(sp, ecp, 1, sizeof(EXCMD));
 	TAILQ_INIT(ecp->rq);
-	CALLOC_RET(sp, rp, 1, sizeof(RANGE));
+	if ((rp = calloc(1, sizeof(RANGE))) == NULL) {
+		msgq(sp, M_SYSERR, NULL);
+		free(ecp);
+		return (1);
+	}
 	rp->start = cmdp->addr1.lno;
 	if (F_ISSET(cmdp, E_ADDR_DEF)) {
 		rp->stop = rp->start;
@@ -102,7 +106,12 @@ ex_at(SCR *sp, EXCMD *cmdp)
 	TAILQ_FOREACH_REVERSE(tp, cbp->textq, _texth, q)
 		len += tp->len + 1;
 
-	MALLOC_RET(sp, ecp->cp, len * 2 * sizeof(CHAR_T));
+	if ((ecp->cp = malloc(len * 2 * sizeof(CHAR_T))) == NULL) {
+		msgq(sp, M_SYSERR, NULL);
+		free(rp);
+		free(ecp);
+		return (1);
+	}
 	ecp->o_cp = ecp->cp;
 	ecp->o_clen = len;
 	ecp->cp[len] = '\0';

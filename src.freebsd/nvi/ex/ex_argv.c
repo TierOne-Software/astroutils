@@ -603,6 +603,7 @@ argv_flt_path(SCR *sp, EXCMD *excp, CHAR_T *path, size_t plen)
 
 	INT2CHAR(sp, np, STRLEN(np), tp, nlen);
 	if ((name = v_strdup(sp, tp, nlen)) == NULL) {
+		(void)closedir(dirp);
 		free(path);
 		return (1);
 	}
@@ -730,7 +731,7 @@ err:		if (ifp != NULL)
 		else if (std_output[0] != -1)
 			close(std_output[0]);
 		if (std_output[1] != -1)
-			close(std_output[0]);
+			close(std_output[1]);
 		return (1);
 	case 0:				/* Utility. */
 		/* Redirect stdout to the write end of the pipe. */
@@ -780,13 +781,19 @@ err:		if (ifp != NULL)
 	*lenp = len;
 	*bpp = bp;		/* *blenp is already updated. */
 
-	if (ferror(ifp))
+	if (ferror(ifp)) {
+		(void)fclose(ifp);
 		goto ioerr;
+	}
 	if (fclose(ifp)) {
 ioerr:		msgq_str(sp, M_ERR, sh, "119|I/O error: %s");
-alloc_err:	rval = SEXP_ERR;
+		rval = SEXP_ERR;
 	} else
 		rval = SEXP_OK;
+	if (0) {
+alloc_err:	(void)fclose(ifp);
+		rval = SEXP_ERR;
+	}
 
 	/*
 	 * Wait for the process.  If the shell process fails (e.g., "echo $q"

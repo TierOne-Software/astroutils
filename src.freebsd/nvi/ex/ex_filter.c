@@ -219,7 +219,7 @@ err:		if (input[0] != -1)
 	case -1:			/* Error. */
 		msgq(sp, M_SYSERR, "fork");
 		(void)close(input[1]);
-		(void)close(output[0]);
+		(void)fclose(ofp);
 		rval = 1;
 		break;
 	case 0:				/* Parent-writer. */

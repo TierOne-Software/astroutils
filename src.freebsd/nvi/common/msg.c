@@ -623,7 +623,7 @@ msgq_status(SCR *sp, recno_t lno, u_int flags)
 	}
 	if (LF_ISSET(MSTAT_SHOWLAST)) {
 		if (db_last(sp, &last))
-			return;
+			goto err;
 		if (last == 0) {
 			t = msg_cat(sp, "028|empty file", &len);
 			memcpy(p, t, len);
@@ -665,12 +665,20 @@ msgq_status(SCR *sp, recno_t lno, u_int flags)
 	if (LF_ISSET(MSTAT_TRUNCATE) && len > sp->cols) {
 		for (; s < np && (*s != '/' || (p - s) > sp->cols - 3); ++s);
 		if (s == np) {
-			s = p - (sp->cols - 5);
-			*--s = ' ';
+			if (sp->cols < 6)
+				s = bp;
+			else {
+				s = p - (sp->cols - 5);
+				*--s = ' ';
+			}
 		}
-		*--s = '.';
-		*--s = '.';
-		*--s = '.';
+		if (s - bp < 3)
+			s = bp;
+		else {
+			*--s = '.';
+			*--s = '.';
+			*--s = '.';
+		}
 		len = p - s;
 	}
 
@@ -680,6 +688,8 @@ msgq_status(SCR *sp, recno_t lno, u_int flags)
 	sp->gp->scr_msg(sp, M_INFO, s, len);
 
 	FREE_SPACE(sp, bp, blen);
+	return;
+err:	FREE_SPACE(sp, bp, blen);
 alloc_err:
 	return;
 }

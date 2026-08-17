@@ -311,14 +311,20 @@ ex_buildargv(SCR *sp, EXCMD *cmdp, char *name)
 		return (NULL);
 
 	if (cmdp == NULL) {
-		if ((*ap = v_strdup(sp, name, strlen(name))) == NULL)
+		if ((*ap = v_strdup(sp, name, strlen(name))) == NULL) {
+			free(s_argv);
 			return (NULL);
+		}
 		++ap;
 	} else
 		for (argv = cmdp->argv; argv[0]->len != 0; ++ap, ++argv) {
 			INT2CHAR(sp, argv[0]->bp, argv[0]->len, np, nlen);
-			if ((*ap = v_strdup(sp, np, nlen)) == NULL)
+			if ((*ap = v_strdup(sp, np, nlen)) == NULL) {
+				while (ap != s_argv)
+					free(*--ap);
+				free(s_argv);
 				return (NULL);
+			}
 		}
 	*ap = NULL;
 	return (s_argv);

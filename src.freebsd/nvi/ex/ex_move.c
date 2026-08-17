@@ -137,29 +137,29 @@ ex_move(SCR *sp, EXCMD *cmdp)
 		mtl = tl;
 		for (cnt = diff; cnt--;) {
 			if (db_get(sp, fl, DBG_FATAL, &p, &len))
-				return (1);
+				goto err;
 			BINC_RETW(sp, bp, blen, len);
 			MEMCPY(bp, p, len);
 			if (db_append(sp, 1, tl, bp, len))
-				return (1);
+				goto err;
 			if (mark_reset)
 				SLIST_FOREACH(lmp, sp->ep->marks, q)
 					if (lmp->name != ABSMARK1 &&
 					    lmp->lno == fl)
 						lmp->lno = tl + 1;
 			if (db_delete(sp, fl))
-				return (1);
+				goto err;
 		}
 	} else {				/* Destination < source. */
 		mfl = tl;
 		mtl = tl + diff;
 		for (cnt = diff; cnt--;) {
 			if (db_get(sp, fl, DBG_FATAL, &p, &len))
-				return (1);
+				goto err;
 			BINC_RETW(sp, bp, blen, len);
 			MEMCPY(bp, p, len);
 			if (db_append(sp, 1, tl++, bp, len))
-				return (1);
+				goto err;
 			if (mark_reset)
 				SLIST_FOREACH(lmp, sp->ep->marks, q)
 					if (lmp->name != ABSMARK1 &&
@@ -167,7 +167,7 @@ ex_move(SCR *sp, EXCMD *cmdp)
 						lmp->lno = tl;
 			++fl;
 			if (db_delete(sp, fl))
-				return (1);
+				goto err;
 		}
 	}
 	FREE_SPACEW(sp, bp, blen);
@@ -185,4 +185,6 @@ ex_move(SCR *sp, EXCMD *cmdp)
 
 	sp->rptlines[L_MOVED] += diff;
 	return (0);
+err:	FREE_SPACEW(sp, bp, blen);
+	return (1);
 }

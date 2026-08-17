@@ -285,10 +285,12 @@ rcv_sync(SCR *sp, u_int flags)
 		}
 		sp->gp->scr_busy(sp,
 		    "061|Copying file for recovery...", BUSY_ON);
-		if (rcv_copy(sp, fd, ep->rcv_path) ||
-		    close(fd) || rcv_mailfile(sp, 1, buf)) {
+		if (rcv_copy(sp, fd, ep->rcv_path)) {
 			(void)unlink(buf);
 			(void)close(fd);
+			rval = 1;
+		} else if (close(fd) || rcv_mailfile(sp, 1, buf)) {
+			(void)unlink(buf);
 			rval = 1;
 		}
 		free(buf);
@@ -469,6 +471,7 @@ wout:		*t2++ = '\n';
 		free(mpath);
 	}
 	if (fclose(fp)) {
+		fp = NULL;
 		free(buf);
 werr:		msgq(sp, M_SYSERR, "065|Recovery file");
 		goto err;
@@ -476,8 +479,11 @@ werr:		msgq(sp, M_SYSERR, "065|Recovery file");
 	free(buf);
 	return (0);
 
-err:	if (!issync)
+err:	if (!issync) {
+		if (ep->rcv_fd != -1)
+			(void)close(ep->rcv_fd);
 		ep->rcv_fd = -1;
+	}
 	if (fp != NULL)
 		(void)fclose(fp);
 	return (1);

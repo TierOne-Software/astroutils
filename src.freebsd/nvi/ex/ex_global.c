@@ -169,7 +169,11 @@ usage:		ex_emsg(sp, cmdp->cmd->usage, EXM_USAGE);
 		len = 1;
 	}
 
-	MALLOC_RET(sp, ecp->cp, (len * 2) * sizeof(CHAR_T));
+	if ((ecp->cp = malloc((len * 2) * sizeof(CHAR_T))) == NULL) {
+		msgq(sp, M_SYSERR, NULL);
+		free(ecp);
+		return (1);
+	}
 	ecp->o_cp = ecp->cp;
 	ecp->o_clen = len;
 	MEMCPY(ecp->cp + len, p, len);

@@ -377,7 +377,7 @@ conv_enc(SCR *sp, int option, char *enc)
 {
 #if defined(USE_WIDECHAR) && defined(USE_ICONV)
 	iconv_t *c2w, *w2c;
-	iconv_t id_c2w, id_w2c;
+	iconv_t id_c2w = (iconv_t)-1, id_w2c = (iconv_t)-1;
 
 	switch (option) {
 	case O_FILEENCODING:
@@ -436,6 +436,10 @@ conv_enc(SCR *sp, int option, char *enc)
 
 	return 0;
 err:
+	if (id_c2w != (iconv_t)-1)
+		iconv_close(id_c2w);
+	if (id_w2c != (iconv_t)-1)
+		iconv_close(id_w2c);
 #endif
 	switch (option) {
 	case O_FILEENCODING:
