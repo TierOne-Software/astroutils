@@ -98,6 +98,8 @@ c_special(int fd1, const char *file1, off_t skip1,
 					    (long long)byte, ch1, ch2);
 			} else {
 				diffmsg(file1, file2, byte, line, ch1, ch2);
+				fclose(fp2);
+				fclose(fp1);
 				return (DIFF_EXIT);
 			}
 		}
@@ -112,11 +114,15 @@ eof:	if (ferror(fp1))
 	if (feof(fp1)) {
 		if (!feof(fp2)) {
 			eofmsg(file1);
+			fclose(fp2);
+			fclose(fp1);
 			return (DIFF_EXIT);
 		}
 	} else {
 		if (feof(fp2)) {
 			eofmsg(file2);
+			fclose(fp2);
+			fclose(fp1);
 			return (DIFF_EXIT);
 		}
 	}

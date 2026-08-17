@@ -92,9 +92,10 @@ main(int argc, char *argv[])
 
 	if (*argv)
 		while (*argv) {
-			if ((fp = fopen(*argv, "r")) != NULL)
+			if ((fp = fopen(*argv, "r")) != NULL) {
 				process(fp, *argv, eflags);
-			else
+				(void)fclose(fp);
+			} else
 				warn("%s", *argv);
 			argv++;
 		}

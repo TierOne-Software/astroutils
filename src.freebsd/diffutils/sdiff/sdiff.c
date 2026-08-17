@@ -431,10 +431,15 @@ main(int argc, char **argv)
 		}
 	fclose(file1);
 	fclose(file2);
+	file1 = file2 = NULL;
 	/* Process unmodified lines. */
 	processq();
 
 done:
+	if (file1 != NULL)
+		fclose(file1);
+	if (file2 != NULL)
+		fclose(file2);
 	/* Delete and free unneeded temporary files. */
 	if (tmp1 != NULL) {
 		if (unlink(tmp1) != 0)
