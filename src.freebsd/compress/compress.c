@@ -217,7 +217,12 @@ compress(const char *in, const char *out, int bits)
 			goto err;
 		}
 
-	if (ferror(ifp) || fclose(ifp)) {
+	if (ferror(ifp)) {
+		cwarn("%s", in);
+		goto err;
+	}
+	if (fclose(ifp)) {
+		ifp = NULL;
 		cwarn("%s", in);
 		goto err;
 	}
@@ -322,7 +327,12 @@ decompress(const char *in, const char *out, int bits)
 			goto err;
 		}
 
-	if (ferror(ifp) || fclose(ifp)) {
+	if (ferror(ifp)) {
+		cwarn("%s", in);
+		goto err;
+	}
+	if (fclose(ifp)) {
+		ifp = NULL;
 		cwarn("%s", in);
 		goto err;
 	}
