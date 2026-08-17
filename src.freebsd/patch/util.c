@@ -370,6 +370,8 @@ fetchname(const char *at, bool *exists, int strip_leading)
 		return NULL;
 	}
 	name = fullname = t = savestr(at);
+	if (t == NULL)
+		return NULL;
 
 	tab = strchr(t, '\t') != NULL;
 	/* Strip off up to `strip_leading' path components and NUL terminate. */
@@ -395,6 +397,8 @@ fetchname(const char *at, bool *exists, int strip_leading)
 	}
 	name = savestr(name);
 	free(fullname);
+	if (name == NULL)
+		return NULL;
 
 	*exists = stat(name, &filestat) == 0;
 	return name;
