@@ -47,7 +47,7 @@
 #define __SCCSID(x)
 #define __RCSID(x)
 
-#define __dead2
+#define __dead2 __attribute__((__noreturn__))
 #define __printf0like(x, y)
 #define __printflike(x, y) __attribute__((format(printf, x, y)))
 #define __DECONST(a, v) ((a)(v))
