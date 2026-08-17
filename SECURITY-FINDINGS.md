@@ -712,6 +712,93 @@ drop is a design-level issue above and beyond the string bug; it
 should run the parse as the target user (setusercontext). Worth an
 upstream follow-up.
 
+### Phase 4 results — second-wave analyzer triage (P6)
+
+gcc `-fanalyzer` full-tree build (223 warnings), Infer
+`MEMORY_LEAK_C` (56 reports, long-lived tools only) and the scan-build
+stream "Resource leak" cluster (21 reports) were all triaged to
+verdicts. Two dominant false-positive families: (1) the port defined
+`__dead2` empty (`include/sys/cdefs.h`), so every
+`err/errx/verrx/error/FATAL` path was modeled as returning — FIXED
+systemically by defining `__dead2` as `__attribute__((__noreturn__))`
+(matches FreeBSD semantics; tree-wide rebuild under gcc and clang
+produced zero noreturn violations, so no `__dead2` function actually
+returns); (2) stream-identity / branch-pairing losses (`f != stdin`
+re-tests, fopen/pclose ternaries, dup2 targets "leaking" fds 0-2).
+
+FIXED — memory safety (all PoC- or review-verified, all still present
+verbatim in freebsd-src main unless noted):
+
+- nvi `file_write` (exf.c) and nvi `msgq_status` (msg.c): the "long
+  path names" ellipsis logic underwrites the buffer by up to 3 bytes
+  when `sp->cols <= 2` (`cols - 3` wraps, size_t) — stack underwrite
+  in exf.c, heap underwrite in msg.c, plus a wild-pointer variant via
+  `p - (cols - 5)` for `cols < 5`. Reachable with a 2-column terminal
+  (initial TIOCGWINSZ/SIGWINCH path skips the `MINIMUM_SCREEN_COLS=20`
+  validation that `:set columns` has). PoC-verified under ASan with a
+  pty at cols=2: msg.c aborts at startup, exf.c aborts on `:w`; both
+  clean post-fix. The msg.c instance was found by the PoC, not by any
+  analyzer. upstream-patches/0050.
+- nvi double-fclose/double-free on failed `fclose` (error paths):
+  `ex_readfp`, `ex_writefp`, `rcv_mailfile` — glibc abort on a
+  delayed-write-error path (NFS, EINTR). Fixed by NULLing the FILE*
+  on the failed-fclose branch + guarded err close. Same patch.
+- nvi fd typo in `argv_sexp`: the error path closes `std_output[0]`
+  twice (second close can hit a reused fd) and leaks `std_output[1]`;
+  one-line `close(std_output[1])`. Same patch.
+- patch `fetchname`: `savestr` returns NULL (doesn't exit) under
+  plan-A OOM and the result is immediately `strchr`'d/`stat`'d —
+  crash-only DoS when parsing a hostile patch under memory pressure.
+  NULL now propagates (all callers already handle it).
+  upstream-patches/0054.
+- ed `handle_hup`: `HOME=""` (empty, not unset) makes `hup[n-1]` read
+  `hup[-1]` — 1-byte heap under-read on the SIGHUP path.
+  upstream-patches/0053.
+- compress: `ferror(ifp) || fclose(ifp)` error branch left `ifp`
+  dangling → double-fclose at `err:` when fclose fails (both
+  `compress()` and `decompress()`). upstream-patches/0052.
+- telnet `call()`: three call sites terminate the variadic list with
+  int `0` where `va_arg(ap, char *)` is read — UB (benign on LP64);
+  now `(char *)NULL`. Plus the `portp` leak per failed `open` in the
+  REPL. upstream-patches/0051.
+- dbcompat btree `__bt_first`: two NULL derefs — cherry-picked
+  upstream freebsd-src 4bcc5a3cdc05 (the `hprev` fix plus the
+  `RET_SPECIAL` fix the analyzer didn't flag). No in-tree btree
+  consumer (nvi uses recno, tip uses hash) — latent library code.
+  upstream-patches/0059 (cherry-pick).
+- tsort hash chunk/element callocs unchecked → NULL deref on OOM
+  (chimerautils-local hash; local fix, not upstreamable).
+
+FIXED — leaks and OOM hygiene (long-lived tools prioritized; all
+still upstream unless noted): nvi error-path leaks (msgq_status,
+ex_move ×6 paths, exf.c:897, ex_read fopen/fstat, ex_argv
+ferror/alloc/closedir, ex_filter FILE*, recover rcv_fd, conv iconv_t,
+ex_buildargv, ex_tag_copy, ex_at/ex_global), unvis per-file fopen
+loop leak (one fd per input file), ee dump_ee_conf old_init_file,
+telnet portp (above), tip pipefile fork-failure fds, cmp/sdiff/qp
+exit-path closes, logger `ss_src`, and unchecked allocations in env
+`expand_vars` ×3 (follow-up to 0006), calendar `createdate` ×3 +
+`setnsequences`, wall, whereis, find `-printf` `open_memstream`, ee
+`get_string`, ed `get_shell_command`, telnet `env_define`.
+upstream-patches/0050, 0051, 0055, 0056, 0057, 0058, 0060.
+Port-local robustness (not upstreamable): find mountinfo parser
+strchr-chain guards.
+
+Infer MEMORY_LEAK_C long-lived verdicts: nvi main.c v_obsolete is a
+false positive (argv memory intentionally lives for the process,
+SC_ARGNOFREE); tip getremcap is a one-time startup leak (cosmetic,
+unfixed); the nvi msg.c/ex_move.c reports are real and fixed above.
+
+Documented, not fixed (accepted upstream practice): tip/write signal
+handlers calling stdio/exit (decades-old BSD design; proper fix is
+invasive flag+longjmp); gencat one-shot pre-exit leak; sed
+realloc-then-err once-per-OOM-exit leaks; env -S one-shot pre-exec
+orphan; whereis realloc-then-abort. m4 flex tokenizer leaks flagged
+for a future pass.
+
+Open P6 items: CodeQL taint tracking and Coverity Scan (both need
+network/hosting; Coverity needs the repo public).
+
 ## Hardening status
 
 - Sandboxing (both builds, default on): the Capsicum compatibility layer

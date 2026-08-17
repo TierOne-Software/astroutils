@@ -120,6 +120,45 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   format (widen to 64); sort parse_pos_obs() copies the obsolete +POS
   letter-run into a 128-byte stack buffer unchecked (reject over-long
   runs, which also secures the sopt[304] sprintfs).
+- 0050 nvi: error-path memory safety, leaks, and tiny-screen
+  underwrites — the long-path ellipsis logic underwrites its buffer by
+  3 bytes at sp->cols <= 2 in file_write (stack) and msgq_status
+  (heap; PoC-verified with a 2-column pty under ASan, startup and :w);
+  double-fclose on failed fclose in ex_readfp/ex_writefp/rcv_mailfile;
+  argv_sexp err-path fd typo (double-close + leak); uninit nlines from
+  ex_readfp error paths; plus the error-path leak set (ex_move,
+  msgq_status, exf:897, ex_read, ex_argv, ex_filter, recover, conv,
+  ex_args, ex_tag, ex_at, ex_global) and OOM checks (file_backup,
+  v_delete). All verbatim upstream in contrib/nvi.
+- 0051 telnet: call() variadic terminator is int 0 at three sites but
+  read as char * (UB, benign on LP64) → (char *)NULL; tn() leaks the
+  strdup'd default port per failed `open` in the REPL (track
+  portp_alloc, free at fail:); env_define malloc check.
+- 0052 compress: double-fclose of ifp on fclose failure in both
+  compress() and decompress() (ferror||fclose leaves ifp dangling into
+  err:). Splits the branches, NULLs ifp on the failed-fclose path.
+- 0053 ed: handle_hup() reads hup[-1] when HOME is set-but-empty
+  (1-byte heap under-read on SIGHUP) — guard n == 0; plus a
+  strip_escapes NULL check in get_shell_command.
+- 0054 patch: fetchname() strchr/stat'd savestr() results unchecked —
+  savestr returns NULL (no exit) under plan-A OOM during header
+  parsing; crash-only DoS on a hostile patch under memory pressure.
+  Propagate NULL (all callers already handle it).
+- 0055 env: check the three expand_vars() mallocs — completes the
+  malloc-check coverage 0006 started in split_spaces.
+- 0056 ee: get_string() malloc(512) unchecked (OOM null-deref at any
+  prompt); dump_ee_conf() leaks old_init_file when the new config
+  can't be opened after the rename.
+- 0057 misc OOM sweep: calendar createdate() ×3 + setnsequences(),
+  wall -g, whereis scanopts realloc, find -printf open_memstream — all
+  unchecked-allocation derefs, fixed in each file's own idiom.
+- 0058 unvis/cmp/sdiff: stream closes — unvis leaked one fd per input
+  file (per-file fopen loop, never closed); cmp's feof-mismatch and
+  sdiff's binary paths skipped their fcloses.
+- 0059 dbcompat btree: cherry-pick of freebsd-src 4bcc5a3cdc05
+  (bt_seq __bt_first NULL derefs — hprev assignment + RET_SPECIAL).
+  No in-tree btree consumer; keeps the file in step with upstream.
+- 0060 tip: pipefile() leaks both pipe fds on fork failure.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

@@ -1,0 +1,46 @@
+From ed49c88fe4a78702da7835eb2d8c1388e3b92bd8 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:16 -0400
+Subject: [PATCH] ee: check get_string() malloc; close old_init_file on save
+ failure
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+get_string()'s malloc(512) was unchecked (OOM null-deref at any
+prompt); err(1, NULL) per ee's idiom.
+
+dump_ee_conf() leaked old_init_file when the new config file could
+not be opened after the rename — close it in the error branch.
+
+Present verbatim in freebsd-src main (contrib/ee).
+Upstream patch queued as upstream-patches/0056.
+---
+ src.freebsd/ee/ee.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src.freebsd/ee/ee.c b/src.freebsd/ee/ee.c
+index 5e4a52b1..debfc51a 100644
+--- a/src.freebsd/ee/ee.c
++++ b/src.freebsd/ee/ee.c
+@@ -1880,6 +1880,8 @@ get_string(char *prompt, int advance)
+ 	int esc_flag;
+ 
+ 	g_point = tmp_string = malloc(512);
++	if (tmp_string == NULL)
++		err(1, NULL);
+ 	wmove(com_win,0,0);
+ 	wclrtoeol(com_win);
+ 	waddstr(com_win, prompt);
+@@ -4301,6 +4303,8 @@ dump_ee_conf(void)
+ 	init_file = fopen(file_name, "w");
+ 	if (init_file == NULL)
+ 	{
++		if (old_init_file != NULL)
++			fclose(old_init_file);
+ 		wprintw(com_win, "%s", conf_dump_err_msg);
+ 		wrefresh(com_win);
+ 		return;
+-- 
+2.43.0
+

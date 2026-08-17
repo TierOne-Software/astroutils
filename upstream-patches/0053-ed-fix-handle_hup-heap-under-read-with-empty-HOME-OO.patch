@@ -1,0 +1,49 @@
+From eb444536a485e272cdddf36f165687fc184199be Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:50:47 -0400
+Subject: [PATCH] ed: fix handle_hup heap under-read with empty HOME, OOM check
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+With HOME="" (empty, not unset), handle_hup() computes n=0 and reads
+hup[n-1] == hup[-1] — a 1-byte heap under-read on the SIGHUP path.
+Guard with n == 0.
+
+Also check strip_escapes()'s NULL (realloc-failure) return in
+get_shell_command() before strlen — the failing REALLOC already set
+the out-of-memory errmsg.
+
+handle_hup is verbatim in freebsd-src main (bin/ed).
+Upstream patch queued as upstream-patches/0053.
+---
+ src.freebsd/ed/main.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/ed/main.c b/src.freebsd/ed/main.c
+index bf80f9a5..52b63685 100644
+--- a/src.freebsd/ed/main.c
++++ b/src.freebsd/ed/main.c
+@@ -990,7 +990,9 @@ get_shell_command(void)
+ 				errmsg = "no current filename";
+ 				return ERR;
+ 			}
+-			j = strlen(s = strip_escapes(old_filename));
++			if ((s = strip_escapes(old_filename)) == NULL)
++				return ERR;
++			j = strlen(s);
+ 			REALLOC(buf, n, i + j, ERR);
+ 			while (j--)
+ 				buf[i++] = *s++;
+@@ -1345,7 +1347,7 @@ handle_hup(int signo)
+ 	    (n = strlen(s)) + 8 <= PATH_MAX &&	/* "ed.hup" + '/' */
+ 	    (hup = (char *) malloc(n + 10)) != NULL) {
+ 		strcpy(hup, s);
+-		if (hup[n - 1] != '/')
++		if (n == 0 || hup[n - 1] != '/')
+ 			hup[n] = '/', hup[n+1] = '\0';
+ 		strcat(hup, "ed.hup");
+ 		write_file(hup, "w", 1, addr_last);
+-- 
+2.43.0
+

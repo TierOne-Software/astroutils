@@ -1,0 +1,93 @@
+From 6a7aa577fa143570aaa7c1f7425c8260c3c2ca24 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:49 -0400
+Subject: [PATCH] unvis/cmp/sdiff: close file streams on all paths
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+unvis: the per-file loop fopen'd each input and never closed it — one
+fd leaked per input file (RLIMIT_NOFILE on long lists); fclose after
+process().
+
+cmp -s special.c: the feof-mismatch early returns skipped the fp1/fp2
+fcloses; sdiff: the binary-path 'goto done' skipped the file1/file2
+fcloses (exit-path-only, but the fixes are trivial).
+
+All present verbatim in freebsd-src main.
+Upstream patch queued as upstream-patches/0058.
+---
+ src.freebsd/diffutils/cmp/special.c | 6 ++++++
+ src.freebsd/diffutils/sdiff/sdiff.c | 5 +++++
+ src.freebsd/unvis/unvis.c           | 5 +++--
+ 3 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/diffutils/cmp/special.c b/src.freebsd/diffutils/cmp/special.c
+index e25e82b17..9da26c212 100644
+--- a/src.freebsd/diffutils/cmp/special.c
++++ b/src.freebsd/diffutils/cmp/special.c
+@@ -98,6 +98,8 @@ c_special(int fd1, const char *file1, off_t skip1,
+ 					    (long long)byte, ch1, ch2);
+ 			} else {
+ 				diffmsg(file1, file2, byte, line, ch1, ch2);
++				fclose(fp2);
++				fclose(fp1);
+ 				return (DIFF_EXIT);
+ 			}
+ 		}
+@@ -112,11 +114,15 @@ eof:	if (ferror(fp1))
+ 	if (feof(fp1)) {
+ 		if (!feof(fp2)) {
+ 			eofmsg(file1);
++			fclose(fp2);
++			fclose(fp1);
+ 			return (DIFF_EXIT);
+ 		}
+ 	} else {
+ 		if (feof(fp2)) {
+ 			eofmsg(file2);
++			fclose(fp2);
++			fclose(fp1);
+ 			return (DIFF_EXIT);
+ 		}
+ 	}
+diff --git a/src.freebsd/diffutils/sdiff/sdiff.c b/src.freebsd/diffutils/sdiff/sdiff.c
+index debbd08ad..3d841ab39 100644
+--- a/src.freebsd/diffutils/sdiff/sdiff.c
++++ b/src.freebsd/diffutils/sdiff/sdiff.c
+@@ -431,10 +431,15 @@ main(int argc, char **argv)
+ 		}
+ 	fclose(file1);
+ 	fclose(file2);
++	file1 = file2 = NULL;
+ 	/* Process unmodified lines. */
+ 	processq();
+ 
+ done:
++	if (file1 != NULL)
++		fclose(file1);
++	if (file2 != NULL)
++		fclose(file2);
+ 	/* Delete and free unneeded temporary files. */
+ 	if (tmp1 != NULL) {
+ 		if (unlink(tmp1) != 0)
+diff --git a/src.freebsd/unvis/unvis.c b/src.freebsd/unvis/unvis.c
+index 52614f8b1..e2ec9e1bd 100644
+--- a/src.freebsd/unvis/unvis.c
++++ b/src.freebsd/unvis/unvis.c
+@@ -92,9 +92,10 @@ main(int argc, char *argv[])
+ 
+ 	if (*argv)
+ 		while (*argv) {
+-			if ((fp = fopen(*argv, "r")) != NULL)
++			if ((fp = fopen(*argv, "r")) != NULL) {
+ 				process(fp, *argv, eflags);
+-			else
++				(void)fclose(fp);
++			} else
+ 				warn("%s", *argv);
+ 			argv++;
+ 		}
+-- 
+2.43.0
+

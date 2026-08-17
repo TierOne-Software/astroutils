@@ -1,0 +1,64 @@
+From 33970cca902c14c0110c07f08e1ed937fb39a294 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:49 -0400
+Subject: [PATCH] dbcompat: cherry-pick upstream btree NULL-deref fixes
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+freebsd-src 4bcc5a3cdc05f217a8adf2f5f97a2e922663f741
+("btree/bt_seq.c: Fix two NULL pointer dereferences",
+Bojan Novkovic): __bt_first() clobbered h with the mpool_get result
+then dereferenced it on the error branch (now uses hprev), and a
+__bt_search failure returned 0 (RET_SUCCESS) making callers consume a
+bogus EPG (now RET_SPECIAL).
+
+No in-tree btree consumer (nvi uses recno, tip uses hash) — latent
+library code, cherry-picked verbatim to stay in step with upstream.
+Queued as upstream-patches/0059 for series bookkeeping.
+---
+ src.freebsd/dbcompat/btree/bt_seq.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/dbcompat/btree/bt_seq.c b/src.freebsd/dbcompat/btree/bt_seq.c
+index b41088cc7..d36afd53c 100644
+--- a/src.freebsd/dbcompat/btree/bt_seq.c
++++ b/src.freebsd/dbcompat/btree/bt_seq.c
+@@ -325,7 +325,7 @@ usecurrent:		F_CLR(c, CURS_AFTER | CURS_BEFORE);
+ static int
+ __bt_first(BTREE *t, const DBT *key, EPG *erval, int *exactp)
+ {
+-	PAGE *h;
++	PAGE *h, *hprev;
+ 	EPG *ep, save;
+ 	pgno_t pg;
+ 
+@@ -338,7 +338,7 @@ __bt_first(BTREE *t, const DBT *key, EPG *erval, int *exactp)
+ 	 * page) and return it.
+ 	 */
+ 	if ((ep = __bt_search(t, key, exactp)) == NULL)
+-		return (0);
++		return (RET_SPECIAL);
+ 	if (*exactp) {
+ 		if (F_ISSET(t, B_NODUPS)) {
+ 			*erval = *ep;
+@@ -369,14 +369,14 @@ __bt_first(BTREE *t, const DBT *key, EPG *erval, int *exactp)
+ 					break;
+ 				if (h->pgno != save.page->pgno)
+ 					mpool_put(t->bt_mp, h, 0);
+-				if ((h = mpool_get(t->bt_mp,
++				if ((hprev = mpool_get(t->bt_mp,
+ 				    h->prevpg, 0)) == NULL) {
+ 					if (h->pgno == save.page->pgno)
+ 						mpool_put(t->bt_mp,
+ 						    save.page, 0);
+ 					return (RET_ERROR);
+ 				}
+-				ep->page = h;
++				ep->page = h = hprev;
+ 				ep->index = NEXTINDEX(h);
+ 			}
+ 			--ep->index;
+-- 
+2.43.0
+

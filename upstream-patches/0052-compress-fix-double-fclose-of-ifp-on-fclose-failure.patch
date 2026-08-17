@@ -1,0 +1,56 @@
+From b8e783508f825ab7417fe7bd032685967439a32b Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:50:47 -0400
+Subject: [PATCH] compress: fix double-fclose of ifp on fclose failure
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+compress() and decompress() share the shape
+'if (ferror(ifp) || fclose(ifp)) { cwarn(...); goto err; }' — when
+fclose itself fails, ifp is left dangling and err: closes it again
+(glibc double-free abort on a delayed-write-error path, e.g. NFS or
+EINTR).  Split the branches; NULL ifp on the fclose-failed branch.
+The ofp twins were fixed earlier; these are the ifp halves.
+
+Present verbatim in freebsd-src main (usr.bin/compress).
+Upstream patch queued as upstream-patches/0052.
+---
+ src.freebsd/compress/compress.c | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/compress/compress.c b/src.freebsd/compress/compress.c
+index a9f6fbb6d..056db319d 100644
+--- a/src.freebsd/compress/compress.c
++++ b/src.freebsd/compress/compress.c
+@@ -217,7 +217,12 @@ compress(const char *in, const char *out, int bits)
+ 			goto err;
+ 		}
+ 
+-	if (ferror(ifp) || fclose(ifp)) {
++	if (ferror(ifp)) {
++		cwarn("%s", in);
++		goto err;
++	}
++	if (fclose(ifp)) {
++		ifp = NULL;
+ 		cwarn("%s", in);
+ 		goto err;
+ 	}
+@@ -322,7 +327,12 @@ decompress(const char *in, const char *out, int bits)
+ 			goto err;
+ 		}
+ 
+-	if (ferror(ifp) || fclose(ifp)) {
++	if (ferror(ifp)) {
++		cwarn("%s", in);
++		goto err;
++	}
++	if (fclose(ifp)) {
++		ifp = NULL;
+ 		cwarn("%s", in);
+ 		goto err;
+ 	}
+-- 
+2.43.0
+

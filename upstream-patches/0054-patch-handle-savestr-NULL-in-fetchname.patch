@@ -1,0 +1,47 @@
+From 2ddd97472e02295a1b9013caaf16cb827e3de4b3 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:16 -0400
+Subject: [PATCH] patch: handle savestr() NULL in fetchname()
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+savestr() returns NULL (setting out_of_mem) rather than exiting when
+using_plan_a is set, and plan A is in effect during all fetchname()
+calls (patch-header parsing).  The result was strchr()'d and stat()'d
+unchecked — a crash-only DoS when memory pressure lands on a patch
+parse (attacker-influenced via a huge hostile patch under rlimits).
+Propagate NULL; every caller already handles it (the plan-A retry in
+patch.c still engages via out_of_mem).
+
+Present verbatim in freebsd-src main (usr.bin/patch).
+Upstream patch queued as upstream-patches/0054.
+---
+ src.freebsd/patch/util.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src.freebsd/patch/util.c b/src.freebsd/patch/util.c
+index 17e652836..aca1b13bd 100644
+--- a/src.freebsd/patch/util.c
++++ b/src.freebsd/patch/util.c
+@@ -370,6 +370,8 @@ fetchname(const char *at, bool *exists, int strip_leading)
+ 		return NULL;
+ 	}
+ 	name = fullname = t = savestr(at);
++	if (t == NULL)
++		return NULL;
+ 
+ 	tab = strchr(t, '\t') != NULL;
+ 	/* Strip off up to `strip_leading' path components and NUL terminate. */
+@@ -395,6 +397,8 @@ fetchname(const char *at, bool *exists, int strip_leading)
+ 	}
+ 	name = savestr(name);
+ 	free(fullname);
++	if (name == NULL)
++		return NULL;
+ 
+ 	*exists = stat(name, &filestat) == 0;
+ 	return name;
+-- 
+2.43.0
+

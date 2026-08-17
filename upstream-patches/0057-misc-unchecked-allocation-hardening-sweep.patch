@@ -1,0 +1,126 @@
+From 2863b918b6efa0acf04f7488cf820c5702cf5d3c Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:48 -0400
+Subject: [PATCH] misc: unchecked-allocation hardening sweep
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+calendar createdate() (py/pm/pd callocs) and setnsequences() (strdup),
+wall -g (malloc), whereis scanopts (realloc), find -printf
+(open_memstream) — all dereferenced unchecked allocation results
+(OOM-only null-deref crashes).  Add NULL checks using each file's own
+error idiom (errx "cannot allocate memory" / err / abort in whereis,
+whose allocation-failure idiom is abort()).
+
+All present verbatim in freebsd-src main.
+Upstream patch queued as upstream-patches/0057.
+---
+ src.freebsd/findutils/find/printf.c     | 2 ++
+ src.freebsd/miscutils/calendar/dates.c  | 6 ++++++
+ src.freebsd/miscutils/calendar/locale.c | 3 ++-
+ src.freebsd/miscutils/logger/logger.c   | 2 ++
+ src.freebsd/miscutils/wall/wall.c       | 2 ++
+ src.freebsd/miscutils/whereis/whereis.c | 2 ++
+ 6 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/findutils/find/printf.c b/src.freebsd/findutils/find/printf.c
+index 8713fe784..f3f7336db 100644
+--- a/src.freebsd/findutils/find/printf.c
++++ b/src.freebsd/findutils/find/printf.c
+@@ -46,6 +46,8 @@ escape(const char *str, bool *flush, bool *warned)
+ 	FILE *fp;
+ 
+ 	fp = open_memstream(&tmpstr, &tmplen);
++	if (fp == NULL)
++		err(1, "open_memstream");
+ 
+ 	/*
+ 	 * Copy the str string into a new struct sbuf and return that expanding
+diff --git a/src.freebsd/miscutils/calendar/dates.c b/src.freebsd/miscutils/calendar/dates.c
+index cdcd565dd..6ee02b344 100644
+--- a/src.freebsd/miscutils/calendar/dates.c
++++ b/src.freebsd/miscutils/calendar/dates.c
+@@ -103,6 +103,8 @@ createdate(int y, int m, int d)
+ 		struct tm td;
+ 		time_t t;
+ 		py = (struct cal_year *)calloc(1, sizeof(struct cal_year));
++		if (py == NULL)
++			errx(1, "createdate: cannot allocate memory");
+ 		py->year = y + 1900;
+ 		py->easter = easter(y);
+ 		py->paskha = paskha(y);
+@@ -133,6 +135,8 @@ createdate(int y, int m, int d)
+ 
+ 	if (pm == NULL) {
+ 		pm = (struct cal_month *)calloc(1, sizeof(struct cal_month));
++		if (pm == NULL)
++			errx(1, "createdate: cannot allocate memory");
+ 		pm->year = py;
+ 		pm->month = m;
+ 		cumday = cumdaytab[isleap(y)];
+@@ -154,6 +158,8 @@ createdate(int y, int m, int d)
+ 
+ 	if (pd == NULL) {	/* Always true */
+ 		pd = (struct cal_day *)calloc(1, sizeof(struct cal_day));
++		if (pd == NULL)
++			errx(1, "createdate: cannot allocate memory");
+ 		pd->month = pm;
+ 		pd->year = py;
+ 		pd->dayofmonth = d;
+diff --git a/src.freebsd/miscutils/calendar/locale.c b/src.freebsd/miscutils/calendar/locale.c
+index 57394232b..4c5c68ab0 100644
+--- a/src.freebsd/miscutils/calendar/locale.c
++++ b/src.freebsd/miscutils/calendar/locale.c
+@@ -159,7 +159,8 @@ setnsequences(char *seq)
+ 		nsequences[i].name = strdup(nsequences[i].name);
+ 		nsequences[i].len = nsequences[i + 1].name - nsequences[i].name;
+ 	}
+-	nsequences[i].name = strdup(nsequences[i].name);
++	if ((nsequences[i].name = strdup(nsequences[i].name)) == NULL)
++		errx(1, "cannot allocate memory");
+ 	nsequences[i].len = strlen(nsequences[i].name);
+ 
+ 	return;
+diff --git a/src.freebsd/miscutils/logger/logger.c b/src.freebsd/miscutils/logger/logger.c
+index 53d9144ee..7e584050a 100644
+--- a/src.freebsd/miscutils/logger/logger.c
++++ b/src.freebsd/miscutils/logger/logger.c
+@@ -362,6 +362,8 @@ socksetup(const char *src, const char *dst, const char *svcname,
+ 	}
+ 	freeaddrinfo(res0);
+ 
++	free(ss_src[AF_INET]);
++	free(ss_src[AF_INET6]);
+ 	*socks = sk;
+ 	return (nsock);
+ }
+diff --git a/src.freebsd/miscutils/wall/wall.c b/src.freebsd/miscutils/wall/wall.c
+index 60e555b68..ad7e47f69 100644
+--- a/src.freebsd/miscutils/wall/wall.c
++++ b/src.freebsd/miscutils/wall/wall.c
+@@ -106,6 +106,8 @@ main(int argc, char *argv[])
+ 			break;
+ 		case 'g':
+ 			g = (struct wallgroup *)malloc(sizeof *g);
++			if (g == NULL)
++				err(1, "out of memory");
+ 			g->next = grouplist;
+ 			g->name = optarg;
+ 			g->gid = -1;
+diff --git a/src.freebsd/miscutils/whereis/whereis.c b/src.freebsd/miscutils/whereis/whereis.c
+index 527047b62..116f6a06a 100644
+--- a/src.freebsd/miscutils/whereis/whereis.c
++++ b/src.freebsd/miscutils/whereis/whereis.c
+@@ -120,6 +120,8 @@ scanopts(int argc, char **argv)
+ 		  dolist:
+ 			i = 0;
+ 			*dirlist = realloc(*dirlist, (i + 1) * sizeof(char *));
++			if (*dirlist == NULL)
++				abort();
+ 			(*dirlist)[i] = NULL;
+ 			while (optind < argc &&
+ 			       strcmp(argv[optind], "-f") != 0 &&
+-- 
+2.43.0
+

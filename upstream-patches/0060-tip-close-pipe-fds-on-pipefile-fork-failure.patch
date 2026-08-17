@@ -1,0 +1,29 @@
+From d3959c707167ed0ada6c9ff40e0c2c826b791989 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:49 -0400
+Subject: [PATCH] tip: close pipe fds on pipefile() fork failure
+
+fork() < 0 returned leaking pdes[0]/pdes[1]; in a long-lived tip
+session under resource exhaustion these accumulate.
+
+Present verbatim in freebsd-src main (usr.bin/tip).
+Upstream patch queued as upstream-patches/0060.
+---
+ src.freebsd/tip/tip/cmds.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src.freebsd/tip/tip/cmds.c b/src.freebsd/tip/tip/cmds.c
+index 62da148d2..982ada18f 100644
+--- a/src.freebsd/tip/tip/cmds.c
++++ b/src.freebsd/tip/tip/cmds.c
+@@ -219,6 +219,7 @@ pipefile(int c)
+ 
+ 	if ((cpid = fork()) < 0) {
+ 		printf("can't fork!\r\n");
++		close(pdes[0]), close(pdes[1]);
+ 		return;
+ 	} else if (cpid) {
+ 		if (prompt("List command for remote system? ", buf, sizeof(buf))) {
+-- 
+2.43.0
+

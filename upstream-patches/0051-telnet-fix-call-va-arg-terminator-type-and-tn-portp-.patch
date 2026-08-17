@@ -1,0 +1,105 @@
+From 1fae6f6f8938fc345fd0f3c3bc31c0a8f0f698b7 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:50:46 -0400
+Subject: [PATCH] telnet: fix call() va-arg terminator type and tn() portp leak
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Three call sites terminate call()'s variadic list with int 0 while
+call() reads va_arg(ap, char *) — UB (benign on LP64).  Use
+(char *)NULL at quit(), ayt_status(), and tn().
+
+tn() leaks the strdup'd default port string on every failed
+open host (no port arg) — the fail: label returns to the REPL without
+freeing it.  Track the allocation separately (portp may be
+prefix-bumped or point into argv) and free it at fail:.
+
+Also check the env_define() malloc and guard its dereferencing caller
+in env_init() (OOM hygiene).
+
+All present verbatim in freebsd-src main (contrib/telnet).
+Upstream patch queued as upstream-patches/0051.
+---
+ src.freebsd/telnet/telnet/commands.c | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/src.freebsd/telnet/telnet/commands.c b/src.freebsd/telnet/telnet/commands.c
+index 377eafe0..99855f80 100644
+--- a/src.freebsd/telnet/telnet/commands.c
++++ b/src.freebsd/telnet/telnet/commands.c
+@@ -1438,7 +1438,7 @@ bye(int argc, char *argv[])
+ void
+ quit(void)
+ {
+-	(void) call(bye, "bye", "fromquit", 0);
++	(void) call(bye, "bye", "fromquit", (char *)NULL);
+ 	Exit(0);
+ }
+ 
+@@ -1677,8 +1677,8 @@ env_init(void)
+ 	for (epp = environ; *epp; epp++) {
+ 		if ((cp = strchr(*epp, '='))) {
+ 			*cp = '\0';
+-			ep = env_define(*epp, cp+1);
+-			ep->export = 0;
++			if ((ep = env_define(*epp, cp+1)))
++				ep->export = 0;
+ 			*cp = '=';
+ 		}
+ 	}
+@@ -1725,6 +1725,8 @@ env_define(const char *var, char *value)
+ 			free(ep->value);
+ 	} else {
+ 		ep = (struct env_lst *)malloc(sizeof(struct env_lst));
++		if (ep == NULL)
++			return(NULL);
+ 		ep->next = envlisthead.next;
+ 		envlisthead.next = ep;
+ 		ep->prev = &envlisthead;
+@@ -2174,7 +2176,7 @@ status(int argc, char *argv[])
+ void
+ ayt_status(void)
+ {
+-    (void) call(status, "status", "notmuch", 0);
++    (void) call(status, "status", "notmuch", (char *)NULL);
+ }
+ #endif
+ 
+@@ -2264,6 +2266,7 @@ tn(int argc, char *argv[])
+     int srlen = 0;
+     int srcroute = 0, result;
+     char *cmd, *hostp = 0, *portp = 0, *user = 0;
++    char *portp_alloc = NULL;
+     char *src_addr = NULL;
+     struct addrinfo hints, *res, *res0 = NULL, *src_res, *src_res0 = NULL;
+     int error = 0, af_error = 0;
+@@ -2386,7 +2389,7 @@ tn(int argc, char *argv[])
+         hostname = hostp;
+     if (!portp) {
+       telnetport = 1;
+-      portp = strdup("telnet");
++      portp = portp_alloc = strdup("telnet");
+     } else if (*portp == '-') {
+       portp++;
+       telnetport = 1;
+@@ -2585,7 +2588,7 @@ tn(int argc, char *argv[])
+ 	env_define("USER", user);
+ 	env_export("USER", NULL);
+     }
+-    (void) call(status, "status", "notmuch", 0);
++    (void) call(status, "status", "notmuch", (char *)NULL);
+     telnet(user); 
+     (void) NetClose(net);
+     if (quiet_mode)
+@@ -2598,6 +2601,7 @@ tn(int argc, char *argv[])
+         freeaddrinfo(res0);
+     if (src_res0 != NULL)
+         freeaddrinfo(src_res0);
++    free(portp_alloc);
+     return 0;
+ }
+ 
+-- 
+2.43.0
+

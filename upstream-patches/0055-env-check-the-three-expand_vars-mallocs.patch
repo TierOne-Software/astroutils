@@ -1,0 +1,46 @@
+From 1e002b77fd9d48d1d0d950c1d4bca8c4c1130d76 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Mon, 17 Aug 2026 10:51:16 -0400
+Subject: [PATCH] env: check the three expand_vars() mallocs
+
+vname = malloc(namelen) and both newstr = malloc(newlen) sites were
+dereferenced unchecked.  Same fix idiom as 0006 (split_spaces); this
+completes malloc-check coverage in envopts.c.
+
+Present verbatim in freebsd-src main (usr.bin/env).
+Upstream patch queued as upstream-patches/0055.
+---
+ src.freebsd/coreutils/env/envopts.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src.freebsd/coreutils/env/envopts.c b/src.freebsd/coreutils/env/envopts.c
+index ae09b3fe0..8653e1225 100644
+--- a/src.freebsd/coreutils/env/envopts.c
++++ b/src.freebsd/coreutils/env/envopts.c
+@@ -421,6 +421,8 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
+ 	*src_p = vend;
+ 	namelen = vend - vbegin + 1;
+ 	vname = malloc(namelen);
++	if (vname == NULL)
++		err(1, "malloc");
+ 	strlcpy(vname, vbegin, namelen);
+ 	vvalue = getenv(vname);
+ 	if (vvalue == NULL || *vvalue == '\0') {
+@@ -461,10 +463,14 @@ expand_vars(int in_thisarg, char **thisarg_p, char **dest_p, const char **src_p)
+ 		**dest_p = '\0';	/* Provide terminator for 'thisarg' */
+ 		newlen += strlen(*thisarg_p);
+ 		newstr = malloc(newlen);
++		if (newstr == NULL)
++			err(1, "malloc");
+ 		strcpy(newstr, *thisarg_p);
+ 		*thisarg_p = newstr;
+ 	} else {
+ 		newstr = malloc(newlen);
++		if (newstr == NULL)
++			err(1, "malloc");
+ 		*newstr = '\0';
+ 	}
+ 	*dest_p = strchr(newstr, '\0');
+-- 
+2.43.0
+
