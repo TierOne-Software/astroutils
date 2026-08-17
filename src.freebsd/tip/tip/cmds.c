@@ -219,6 +219,7 @@ pipefile(int c)
 
 	if ((cpid = fork()) < 0) {
 		printf("can't fork!\r\n");
+		close(pdes[0]), close(pdes[1]);
 		return;
 	} else if (cpid) {
 		if (prompt("List command for remote system? ", buf, sizeof(buf))) {
