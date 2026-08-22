@@ -279,6 +279,14 @@ Fixed:
   Required the `_GOTO` macro rework: `BINC_GOTO` (nvi/common/mem.h) now
   nulls the grown pointer on failure, mirroring `BINC_RET`, so `bp` and
   `gp->tmp_bp` are never left dangling after `binc()` frees them.
+- `nvi/ex/ex_subst.c` `re_sub()` OOM double-free (found during the
+  `_GOTO` rework): `NEEDSP`'s `REALLOC` freed the build buffer while
+  the caller's `lb` still pointed at it, so `s()`'s error path freed it
+  again — fixed with an `alloc_err` label that clears the caller's
+  `lb`/`lbclen`/`lblen`. Same pass: `BUILD` OOM now releases the
+  confirm-mode line cache via `err`, and `NEEDNEWLINE` OOM zeroes
+  `sp->newl_cnt` (kept the newl state consistent).
+  upstream-patches/0062.
 
 (Also fixed in the same pass: `nvi/common/line.c` `db_get()`/`db_last()`
 did `MEMCPY(ep->c_lp, wp, 0)` with `ep->c_lp == NULL` when caching an
@@ -287,12 +295,6 @@ empty line — trapped on loading an all-empty-lines file; and
 including the NUL, planting `'\0'` in templates and causing a 1-byte
 global over-read on the EEXIST carry path — ASan-verified, fixed with
 `% (sizeof(padchar) - 1)` matching upstream libc.)
-
-Still open:
-- `nvi/ex/ex_subst.c` `re_sub()` grows its own copy of the build buffer
-  via `NEEDSP`; on OOM that frees the buffer while the caller's `lb`
-  still points at it, so `s()`'s error path would double-free. An
-  upstream nvi pattern; latent, found during the `_GOTO` rework.
 
 ### Cross-analyzer agreement — RESOLVED
 The clusters reported by BOTH infer and scan-build are all closed:
@@ -597,8 +599,14 @@ upstream's existing fixes.
   queued as upstream-patches/0044.
 
 Note: the `fuzz_awkb` known-bug filters are removed. compress(1) side
-note: `compress -c` to stdout is broken on this port ("No such device
-or address") — minor, worth a look.
+note RESOLVED: `compress -c` to stdout silently wrote 0 bytes on Linux
+(exit 0), and failed with ENXIO for socket stdout — `/dev/stdout` is a
+`/proc/self/fd` symlink here, not an fdescfs device node, so stat() saw
+the redirected file as S_ISREG and tripped the overwrite-protection
+path (with `-f` it even unlinked the input file). Port-local fix:
+treat `/dev/stdout`/`/dev/stdin` as magic cookies — `fdopen(dup(fd))`
+in `stdopen()`/`zopen()`, never managed as a regular output file.
+Regression tests in `tests/t/12-regress-tools.sh`.
 
 ## Remediation approach (Phase 3)
 
@@ -627,6 +635,11 @@ drop-in with no usable status return.
   PoC-verified pre-fix (fortify abort) and post-fix (clean
   ENAMETOOLONG/empty listing). Verbatim upstream FreeBSD;
   upstream-patches/0045.
+- FIXED — libfetch: `http_next_header()` realloc OOM-leaks
+  (`http.c:550,579`): `hbuf->buf = realloc(hbuf->buf, ...)` clobbered
+  the old pointer on failure — fixed with the file's own
+  tmp-then-assign idiom (`http_growbuf`). OOM-path only, low severity;
+  verbatim pattern still present upstream. upstream-patches/0065.
 - FIXED — telnet: `strcpy(_hostname, res->ai_canonname)` into
   `_hostname[MAXHOSTNAMELEN]` (64 bytes with glibc) — `ai_canonname`
   is attacker-influenced network data (DNS CNAME target, unbounded
@@ -794,18 +807,26 @@ strchr-chain guards.
 
 Infer MEMORY_LEAK_C long-lived verdicts: nvi main.c v_obsolete is a
 false positive (argv memory intentionally lives for the process,
-SC_ARGNOFREE); tip getremcap is a one-time startup leak (cosmetic,
-unfixed); the nvi msg.c/ex_move.c reports are real and fixed above.
+SC_ARGNOFREE); tip getremcap's one-time startup leak is fixed
+(`free(bp)` at end of `getremcap()`, matching the documented getcap
+contract; ASan/LSan-verified — upstream-patches/0064); the nvi
+msg.c/ex_move.c reports are real and fixed above.
 
 Documented, not fixed (accepted upstream practice): tip/write signal
 handlers calling stdio/exit (decades-old BSD design; proper fix is
 invasive flag+longjmp); gencat one-shot pre-exit leak; sed
 realloc-then-err once-per-OOM-exit leaks; env -S one-shot pre-exec
-orphan; whereis realloc-then-abort. m4 flex tokenizer leaks flagged
-for a future pass.
+orphan; whereis realloc-then-abort. m4's accumulating flex tokenizer
+leak is fixed: `expr()` never deleted the `yy_scan_string()` buffer
+(string copy + buffer state, 2 allocs per `eval`/`expr`/`substr` call);
+ASan on a 2000-iteration eval loop went from 146,893 bytes in 4,000
+allocations leaked to zero. upstream-patches/0063.
 
-Open P6 items: CodeQL taint tracking and Coverity Scan (both need
-network/hosting; Coverity needs the repo public).
+Open P6 items: Coverity Scan (repo is public; needs a Coverity account
+and manual submission). CodeQL workflow added
+(`.github/workflows/codeql.yml`); custom taint queries for
+libfetch/telnet are a possible follow-up once the default suite's
+results are in.
 
 ## Hardening status
 
