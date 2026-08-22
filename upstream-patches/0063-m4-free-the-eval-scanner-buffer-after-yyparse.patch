@@ -1,0 +1,47 @@
+From 2d93e716d36b9829b65b8c384e05fa29493606b8 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 08:43:06 -0400
+Subject: [PATCH] m4: free the eval scanner buffer after yyparse
+
+expr() called yy_scan_string() per eval/expr/substr builtin and never
+deleted the buffer: two orphaned heap allocations (string copy +
+yy_buffer_state) per call, unbounded on loop-heavy input. Capture the
+YY_BUFFER_STATE and yy_delete_buffer() it after yyparse(); also fix
+the wrong extern declaration (void return). ASan on a 2000-iteration
+eval loop: 146,893 bytes in 4,000 allocations leaked -> 0. Verbatim
+upstream bug (FreeBSD usr.bin/m4, inherited from OpenBSD).
+---
+ src.freebsd/m4/expr.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/m4/expr.c b/src.freebsd/m4/expr.c
+index 859be1557..1cb5911b8 100644
+--- a/src.freebsd/m4/expr.c
++++ b/src.freebsd/m4/expr.c
+@@ -25,7 +25,9 @@ int32_t end_result;
+ static const char *copy_toeval;
+ int yyerror(const char *msg);
+ 
+-extern void yy_scan_string(const char *);
++typedef struct yy_buffer_state *YY_BUFFER_STATE;
++extern YY_BUFFER_STATE yy_scan_string(const char *);
++extern void yy_delete_buffer(YY_BUFFER_STATE);
+ extern int yyparse(void);
+ 
+ int
+@@ -38,8 +40,11 @@ yyerror(const char *msg)
+ int
+ expr(const char *toeval)
+ {
++	YY_BUFFER_STATE buf;
++
+ 	copy_toeval = toeval;
+-	yy_scan_string(toeval);
++	buf = yy_scan_string(toeval);
+ 	yyparse();
++	yy_delete_buffer(buf);
+ 	return end_result;
+ }
+-- 
+2.43.0
+

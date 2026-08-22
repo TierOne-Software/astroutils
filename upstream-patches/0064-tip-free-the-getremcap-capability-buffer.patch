@@ -1,0 +1,27 @@
+From a8a96a72286ee83b425a430bfd3c7867c8fac2ac Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 08:43:06 -0400
+Subject: [PATCH] tip: free the getremcap capability buffer
+
+cgetent()'s record buffer was unreachable after getremcap() returned;
+the getcap contract keeps it live through the cget* extraction calls
+but allows freeing after. ASan/LSan-verified on a pty-driven startup.
+---
+ src.freebsd/tip/tip/remote.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src.freebsd/tip/tip/remote.c b/src.freebsd/tip/tip/remote.c
+index ecb2ecadb..5183f29db 100644
+--- a/src.freebsd/tip/tip/remote.c
++++ b/src.freebsd/tip/tip/remote.c
+@@ -193,6 +193,7 @@ getremcap(char *host)
+ 		CL = 0;
+ 	if (cgetnum(bp, "et", &ET) == -1)
+ 		ET = 10;
++	free(bp);
+ }
+ 
+ char *
+-- 
+2.43.0
+

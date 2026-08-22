@@ -1,0 +1,72 @@
+From a876804130952e007e9ea2e970bcb6ad762b722c Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 08:43:05 -0400
+Subject: [PATCH] nvi: fix re_sub() OOM double-free and two sibling error paths
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+NEEDSP's REALLOC frees the build buffer on failure, but re_sub() only
+nulled its local copy — the caller's lb still pointed at the freed
+buffer, so s()'s err: path freed it a second time. Route NEEDSP
+failure through a new alloc_err label in re_sub() that clears the
+caller's lb/lbclen/lblen.
+
+Same audit, same file: BUILD OOM abandoned the confirm-mode line cache
+bp (leak, or G_TMP_INUSE stuck set for the global temp buffer) — now
+goes through err: which releases it correctly; and NEEDNEWLINE OOM
+zeroed newl_len but left newl_cnt nonzero, breaking the
+newl_cnt == 0-on-entry invariant a later substitute relies on (would
+index sp->newl[cnt] through NULL).
+---
+ src.freebsd/nvi/ex/ex_subst.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_subst.c b/src.freebsd/nvi/ex/ex_subst.c
+index e130535c..774f264c 100644
+--- a/src.freebsd/nvi/ex/ex_subst.c
++++ b/src.freebsd/nvi/ex/ex_subst.c
+@@ -306,6 +306,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
+ 		    sp->newl_len * sizeof(size_t));			\
+ 		if (sp->newl == NULL) {					\
+ 			sp->newl_len = 0;				\
++			sp->newl_cnt = 0;				\
+ 			return (1);					\
+ 		}							\
+ 	}								\
+@@ -317,7 +318,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
+ 		REALLOC(sp, lb, CHAR_T *, lblen * sizeof(CHAR_T));	\
+ 		if (lb == NULL) {					\
+ 			lbclen = 0;					\
+-			return (1);					\
++			goto err;					\
+ 		}							\
+ 	}								\
+ 	if (len != 0) {							\
+@@ -332,7 +333,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
+ 		REALLOC(sp, lb, CHAR_T *, lblen * sizeof(CHAR_T));	\
+ 		if (lb == NULL) {					\
+ 			lbclen = 0;					\
+-			return (1);					\
++			goto alloc_err;					\
+ 		}							\
+ 		pnt = lb + lbclen;					\
+ 	}								\
+@@ -1454,4 +1455,14 @@ subzero:			if (match[no].rm_so == -1 ||
+ 	*lbclenp = lbclen;
+ 	*lblenp = lblen;
+ 	return (0);
++
++	/*
++	 * !!!
++	 * Allocation failure: REALLOC freed the build buffer; clear the
++	 * caller's copies so it can't be freed a second time.
++	 */
++alloc_err:
++	*lbp = NULL;
++	*lbclenp = *lblenp = 0;
++	return (1);
+ }
+-- 
+2.43.0
+

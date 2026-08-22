@@ -165,6 +165,20 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   (common/mem.h) to null the grown pointer after binc() frees it,
   mirroring BINC_RET (previously left dangling — a latent double-free
   for the txt_err users in v_txt/ex_txt).
+- 0062 nvi: re_sub() OOM double-free — NEEDSP's REALLOC freed the
+  build buffer while the caller's lb still pointed at it, so s()'s
+  error path freed it again; plus two sibling OOM paths (BUILD leaked
+  the confirm-mode line cache, NEEDNEWLINE left newl_cnt inconsistent).
+- 0063 m4: expr() never deleted the yy_scan_string() buffer — two
+  orphaned allocations per eval/expr/substr call, unbounded on
+  loop-heavy input (ASan: 146,893 bytes/4,000 allocs on a 2000-iteration
+  eval loop, now zero). Verbatim upstream, inherited from OpenBSD.
+- 0064 tip: getremcap() never freed the cgetent() record buffer
+  (one-time startup leak; the getcap contract permits freeing after
+  the cget* extraction calls).
+- 0065 libfetch: http_next_header() realloc OOM-leaks at both header
+  growth sites — tmp-then-assign per the file's own http_growbuf
+  idiom. The same pattern is still present verbatim upstream.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

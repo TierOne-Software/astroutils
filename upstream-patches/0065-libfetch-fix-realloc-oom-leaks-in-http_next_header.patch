@@ -1,0 +1,51 @@
+From bfea260cd089c507db1d0b475610912536b8f106 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 08:43:07 -0400
+Subject: [PATCH] libfetch: fix realloc OOM-leaks in http_next_header
+
+hbuf->buf = realloc(hbuf->buf, ...) clobbered the old pointer on
+failure at both growth sites (initial line and continuation lines).
+Reallocate into a temp and assign on success, the file's own
+http_growbuf idiom. OOM-path only; the same pattern is still present
+verbatim in upstream FreeBSD libfetch.
+---
+ src.freebsd/libfetch/http.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/src.freebsd/libfetch/http.c b/src.freebsd/libfetch/http.c
+index 2690fac4b..620d61856 100644
+--- a/src.freebsd/libfetch/http.c
++++ b/src.freebsd/libfetch/http.c
+@@ -536,6 +536,7 @@ static hdr_t
+ http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
+ {
+ 	unsigned int i, len;
++	char *tmp;
+ 
+ 	/*
+ 	 * Have to do the stripping here because of the first line. So
+@@ -547,8 +548,9 @@ http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
+ 
+ 	/* Copy the line to the headerbuf */
+ 	if (hbuf->bufsize < conn->buflen + 1) {
+-		if ((hbuf->buf = realloc(hbuf->buf, conn->buflen + 1)) == NULL)
++		if ((tmp = realloc(hbuf->buf, conn->buflen + 1)) == NULL)
+ 			return (hdr_syserror);
++		hbuf->buf = tmp;
+ 		hbuf->bufsize = conn->buflen + 1;
+ 	}
+ 	strcpy(hbuf->buf, conn->buf);
+@@ -576,8 +578,9 @@ http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
+ 		len = hbuf->buflen + conn->buflen;
+ 		if (hbuf->bufsize < len + 1) {
+ 			len *= 2;
+-			if ((hbuf->buf = realloc(hbuf->buf, len + 1)) == NULL)
++			if ((tmp = realloc(hbuf->buf, len + 1)) == NULL)
+ 				return (hdr_syserror);
++			hbuf->buf = tmp;
+ 			hbuf->bufsize = len + 1;
+ 		}
+ 		strcpy(hbuf->buf + hbuf->buflen, conn->buf);
+-- 
+2.43.0
+
