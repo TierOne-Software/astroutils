@@ -159,6 +159,12 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   (bt_seq __bt_first NULL derefs — hprev assignment + RET_SPECIAL).
   No in-tree btree consumer; keeps the file in step with upstream.
 - 0060 tip: pipefile() leaks both pipe fds on fork failure.
+- 0061 nvi: s() leaked the partially built line buffer on OOM
+  (GET_SPACE_RETW/ADD_SPACE_RETW returned without freeing) — converted
+  to the _GOTOW variants behind an alloc_err label; required BINC_GOTO
+  (common/mem.h) to null the grown pointer after binc() frees it,
+  mirroring BINC_RET (previously left dangling — a latent double-free
+  for the txt_err users in v_txt/ex_txt).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

@@ -1,0 +1,88 @@
+From a690ca8b42567fa63932a714ed79a9885bafc699 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Fri, 21 Aug 2026 21:12:55 -0400
+Subject: [PATCH] nvi: free the s() build buffer on OOM via the _GOTO rework
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The last open finding: GET_SPACE_RETW/ADD_SPACE_RETW in ex_subst.c s()
+returned on binc() failure without freeing the partially built lb.
+Convert the three calls to the _GOTOW variants behind an alloc_err
+label that frees only lb. This required the _GOTO macro rework the
+finding predicted: BINC_GOTO (nvi/common/mem.h) now nulls the grown
+pointer before jumping, mirroring BINC_RET, since binc() has already
+freed it — previously bp and gp->tmp_bp were left dangling (a latent
+double-free for txt_err users in v_txt/ex_txt). All existing _GOTO
+users audited; success-path expansion is byte-identical to BINC_RET.
+
+SECURITY-FINDINGS.md: entry moved to Fixed, a newly spotted latent
+re_sub() OOM double-free recorded as still open, and the doc's
+self-name moves to astroutils.
+---
+ src.freebsd/nvi/common/mem.h  |  5 ++++-
+ src.freebsd/nvi/ex/ex_subst.c | 16 +++++++++++++---
+ 2 files changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/nvi/common/mem.h b/src.freebsd/nvi/common/mem.h
+index 10a96efc..c047b9a6 100644
+--- a/src.freebsd/nvi/common/mem.h
++++ b/src.freebsd/nvi/common/mem.h
+@@ -21,8 +21,11 @@
+ 	CHECK_TYPE(type *, lp)						\
+ 	void *L__bincp;							\
+ 	if ((nlen) > llen) {						\
+-		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL)	\
++		if ((L__bincp = binc(sp, lp, &(llen), nlen)) == NULL) {	\
++			/* binc() freed lp; don't leave it dangling. */	\
++			lp = NULL;					\
+ 			goto alloc_err;					\
++		}							\
+ 		/*							\
+ 		 * !!!							\
+ 		 * Possible pointer conversion.				\
+diff --git a/src.freebsd/nvi/ex/ex_subst.c b/src.freebsd/nvi/ex/ex_subst.c
+index b25c57ee..e130535c 100644
+--- a/src.freebsd/nvi/ex/ex_subst.c
++++ b/src.freebsd/nvi/ex/ex_subst.c
+@@ -505,9 +505,9 @@ noargs:	if (F_ISSET(sp, SC_VI) && sp->c_suffix && (lflag || nflag || pflag)) {
+ 		 */
+ 		if (sp->c_suffix) {
+ 			if (bp == NULL) {
+-				GET_SPACE_RETW(sp, bp, blen, llen);
++				GET_SPACE_GOTOW(sp, bp, blen, llen);
+ 			} else
+-				ADD_SPACE_RETW(sp, bp, blen, llen);
++				ADD_SPACE_GOTOW(sp, bp, blen, llen);
+ 			if (llen != 0) {
+ 				MEMCPY(bp, s, llen);
+ 				s = bp;
+@@ -745,7 +745,7 @@ skip:		offset += match[0].rm_eo;
+ 				goto err;
+ 			if (db_get(sp, lno, DBG_FATAL, &s, &llen))
+ 				goto err;
+-			ADD_SPACE_RETW(sp, bp, blen, llen);
++			ADD_SPACE_GOTOW(sp, bp, blen, llen);
+ 			MEMCPY(bp, s, llen);
+ 			s = bp;
+ 			len = llen - offset;
+@@ -875,6 +875,16 @@ err:		rval = 1;
+ 		FREE_SPACEW(sp, bp, blen);
+ 	free(lb);
+ 	return (rval);
++
++	/*
++	 * !!!
++	 * Allocation failure: binc() has already released the buffer it was
++	 * growing (bp, or the global temporary buffer) and nulled the pointer,
++	 * so bp must not be touched here; only lb is still ours to free.
++	 */
++alloc_err:
++	free(lb);
++	return (1);
+ }
+ 
+ /*
+-- 
+2.43.0
+
