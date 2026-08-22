@@ -1,0 +1,85 @@
+name: CodeQL
+
+# Code scanning for the C/C++ tree (PLAN.md P6): CodeQL's taint tracking
+# from network input through libfetch and telnet models bugs that
+# Infer/scan-build do not.
+#
+# CodeQL needs to observe a real compilation (build-mode: manual), so
+# this job runs in the same Fedora image as .github/workflows/ci.yml and
+# repeats the meson/ninja build from ci/jobs/build-test.sh.  The
+# configure step hard-requires libxo (meson.build: dependency('libxo',
+# required: true)), which is not packaged for Debian/Ubuntu — that is
+# why the Fedora container is used instead of the ubuntu-latest host.
+#
+# Not analyzed: the zig component under src.safestr/ (a separate
+# zig-build system, not part of the meson build) and the libFuzzer
+# harnesses under fuzz/ (they need -fsanitize=fuzzer; corpus replay
+# already runs them under sanitizers in CI).
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: '23 4 * * 2'
+
+# security-events: write is what lets the analyze step upload results to
+# the code-scanning dashboard; for pull requests from forks the token is
+# downgraded to read-only and the upload is skipped with a warning.
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: c-cpp
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    steps:
+      # Same dependency set as the glibc job in ci.yml, minus the clang
+      # toolchain (one compiler is enough for the scan; gcc is the
+      # matrix's default), plus ca-certificates/tar for the CodeQL
+      # bundle download.
+      - name: dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            gcc gcc-c++ meson ninja-build \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel binutils file diffutils git which \
+            curl ca-certificates tar gzip
+
+      - uses: actions/checkout@v4
+
+      - name: initialize codeql
+        uses: github/codeql-action/init@v3
+        with:
+          languages: c-cpp
+          build-mode: manual
+
+      # The same configure/build commands as ci/jobs/build-test.sh
+      # (CC=gcc); its warnings rebuild and the functional suite are
+      # skipped — CodeQL only needs to trace the compiler invocations.
+      - name: build
+        env:
+          CC: gcc
+          CXX: g++
+          BUILD_DIR: build-ci-codeql
+        run: |
+          rm -rf "$BUILD_DIR"
+          meson setup "$BUILD_DIR" -Dbuildtype=debugoptimized
+          ninja -C "$BUILD_DIR"
+
+      - name: analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:c-cpp"
