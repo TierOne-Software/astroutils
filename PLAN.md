@@ -1,4 +1,4 @@
-# Hardening plan — chimerautils (Astro fork)
+# Hardening plan — astroutils (Astro fork)
 
 Forward work queue for the security and robustness effort. Companion to
 `SECURITY-FINDINGS.md`, which records what has already been found and
@@ -24,7 +24,7 @@ Done so far (see `SECURITY-FINDINGS.md` for detail):
   genuine severity: patch(1) stale-`p_len` OOB write from a malicious
   diff, patch(1) 16 GB memory-exhaustion DoS from an 89-byte input, and
   nvi CONVERT2 unbounded-growth/UAF on iconv buffer growth.
-- 34-patch upstream-submittable series in `upstream-patches/`.
+- 60-patch upstream-submittable series in `upstream-patches/`.
 - Baseline compiler hardening in both build systems.
 - Four libFuzzer harnesses over untrusted-input parsers.
 
@@ -238,33 +238,47 @@ in unvis.
       alignment findings.
 - [x] Alpine (musl) CI job running the new suite.
 
-## P5 — Phase 3: unsafe string call sites
+## P5 — Phase 3: unsafe string call sites — DONE (risk-based)
 
 **Why:** `src.safestr/` exists but has zero consumers; ~200
 `strcpy`/`strcat`/`sprintf` sites remain. Priority order below is by
 exposure, per the approach already recorded in `SECURITY-FINDINGS.md`.
 
-- [ ] `telnet` (37 sites) — network-facing, server-controlled input.
-- [ ] `fetch` + `libfetch` (22) — network-facing.
-- [ ] `ee` (29), `sh` (12), coreutils (44), miscutils (31).
-- [ ] Choose per site: `strlcpy`/`strlcat`/`snprintf` where equivalent
+- [x] `telnet` (37 sites) — three unbounded `strcpy` on
+      server-controlled input replaced with `strlcpy` (0046), plus the
+      `call()` va-arg UB.
+- [x] `fetch` + `libfetch` (22) — `fetchListFile` unsigned-wrap
+      `strncpy` stack smash (0045).
+- [x] `ee` (29), `sh` (12), coreutils (44), miscutils (31) — ee
+      `print_buffer` planted-config smash (0047), calendar CHECKSPECIAL
+      smash (0048), stat/sort argv-only bounded as hardening (0049);
+      sh needed nothing.
+- [x] Choose per site: `strlcpy`/`strlcat`/`snprintf` where equivalent
       (keeps patches upstream-submittable), `safestr` only where it buys
       real checking. Do not churn call sites for their own sake.
+      Remaining equivalent-safe sites deliberately not churned.
 
-## P6 — Second-wave analysis and the deferred long tail
+## P6 — Second-wave analysis and the deferred long tail — MOSTLY DONE
 
-- [ ] CodeQL — taint tracking from network input through libfetch and
-      telnet is genuinely different from what Infer/scan-build model.
-- [ ] gcc `-fanalyzer` (different engine, different false positives).
-- [ ] Coverity Scan if the repo can be made public.
-- [ ] Triage the 56 `MEMORY_LEAK_C` reports *for the long-lived tools
+- [x] CodeQL — `.github/workflows/codeql.yml` added (Fedora container,
+      manual build-mode, gcc). Custom taint queries for libfetch/telnet
+      sources/sinks are a follow-up if the default suite is too shallow.
+- [x] gcc `-fanalyzer` (223 warnings triaged; the dominant FP family
+      was the port's `__dead2` — now `__attribute__((__noreturn__))`).
+- [ ] Coverity Scan — repo is public now; needs a Coverity account and
+      a manual submission.
+- [x] Triage the 56 `MEMORY_LEAK_C` reports *for the long-lived tools
       only* — nvi, sh, telnet, tip. The "benign at exit" rationale does
       not hold for an editor or a shell session.
-- [ ] Same for the "some real fd leaks" in the 88 stream-handling
-      reports.
-- [ ] Close the one open finding: `nvi/ex/ex_subst.c` `s()` lb leak on
-      OOM (needs the `_GOTO` macro rework).
-- [ ] Re-run all analyzers after P0–P3 land; record the deltas.
+- [x] Same for the "some real fd leaks" in the 88 stream-handling
+      reports (21-report scan-build cluster triaged and fixed).
+- [x] Close the one open finding: `nvi/ex/ex_subst.c` `s()` lb leak on
+      OOM — done via the `_GOTO` macro rework (`BINC_GOTO` now nulls the
+      grown pointer). A latent `re_sub()` OOM double-free surfaced
+      during the rework; recorded in `SECURITY-FINDINGS.md`.
+- [x] Re-run all analyzers after P0–P3 land; record the deltas
+      (`-fanalyzer`, Infer, scan-build re-run; deltas in
+      `SECURITY-FINDINGS.md`).
 
 ## P7 — Coordinated disclosure
 
@@ -273,9 +287,9 @@ malicious diff, present verbatim upstream, and `pch.c` shares lineage
 with OpenBSD and NetBSD. These want a security-officer report, not a
 patch on a mailing list.
 
-- [ ] Report to the FreeBSD Security Officer: patch(1) stale-`p_len` OOB
+- [x] Report to the FreeBSD Security Officer: patch(1) stale-`p_len` OOB
       write, patch(1) unbounded `hunkmax` DoS, nvi CONVERT2, nvi
-      `re_conv` heap overflow. Request CVEs.
+      `re_conv` heap overflow. Request CVEs. — sent; awaiting reply.
 - [ ] Check OpenBSD/NetBSD `patch(1)` for the same defects; notify if
       present.
 - [ ] Submit the remaining series (`upstream-patches/`) through the
@@ -301,7 +315,7 @@ behaving differently from both upstream FreeBSD and GNU. This is
 robustness rather than security, but it is what protects Astro from
 subtle script breakage after an import.
 
-- [ ] Harness driving identical invocations through chimerautils, GNU
+- [ ] Harness driving identical invocations through astroutils, GNU
       coreutils and toybox; diff stdout/stderr/exit status.
 - [ ] Run it against FreeBSD binaries too, to separate "port bug" from
       "BSD/GNU difference" (the latter belongs in `TRADEOFFS`).

@@ -1,6 +1,8 @@
-# chimerautils
+# astroutils
 
-This is Chimera Linux's core userland. It consists of the following:
+Astroutils is a hardened fork of Chimera Linux's core userland
+([chimerautils](https://github.com/chimera-linux/chimerautils)). It
+consists of the following:
 
 * Ports of FreeBSD tools
 * An internal library providing a compat interface to simplify porting
@@ -43,7 +45,7 @@ The following ports are experimental:
 
 * su
 
-In a way, `chimerautils` is also an alternative to projects like Busybox.
+In a way, `astroutils` is also an alternative to projects like Busybox.
 
 ## bsdutils
 
@@ -53,7 +55,7 @@ complete package that prioritizes Chimera's needs and development pace.
 
 ## Building
 
-Chimerautils requires a Linux system with a Clang or GCC compiler.
+Astroutils requires a Linux system with a Clang or GCC compiler.
 
 You will also need the following:
 
