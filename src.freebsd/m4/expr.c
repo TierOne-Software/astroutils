@@ -25,7 +25,9 @@ int32_t end_result;
 static const char *copy_toeval;
 int yyerror(const char *msg);
 
-extern void yy_scan_string(const char *);
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+extern YY_BUFFER_STATE yy_scan_string(const char *);
+extern void yy_delete_buffer(YY_BUFFER_STATE);
 extern int yyparse(void);
 
 int
@@ -38,8 +40,11 @@ yyerror(const char *msg)
 int
 expr(const char *toeval)
 {
+	YY_BUFFER_STATE buf;
+
 	copy_toeval = toeval;
-	yy_scan_string(toeval);
+	buf = yy_scan_string(toeval);
 	yyparse();
+	yy_delete_buffer(buf);
 	return end_result;
 }
