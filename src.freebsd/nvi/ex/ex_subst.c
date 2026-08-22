@@ -306,6 +306,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
 		    sp->newl_len * sizeof(size_t));			\
 		if (sp->newl == NULL) {					\
 			sp->newl_len = 0;				\
+			sp->newl_cnt = 0;				\
 			return (1);					\
 		}							\
 	}								\
@@ -317,7 +318,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
 		REALLOC(sp, lb, CHAR_T *, lblen * sizeof(CHAR_T));	\
 		if (lb == NULL) {					\
 			lbclen = 0;					\
-			return (1);					\
+			goto err;					\
 		}							\
 	}								\
 	if (len != 0) {							\
@@ -332,7 +333,7 @@ ex_subtilde(SCR *sp, EXCMD *cmdp)
 		REALLOC(sp, lb, CHAR_T *, lblen * sizeof(CHAR_T));	\
 		if (lb == NULL) {					\
 			lbclen = 0;					\
-			return (1);					\
+			goto alloc_err;					\
 		}							\
 		pnt = lb + lbclen;					\
 	}								\
@@ -1454,4 +1455,14 @@ subzero:			if (match[no].rm_so == -1 ||
 	*lbclenp = lbclen;
 	*lblenp = lblen;
 	return (0);
+
+	/*
+	 * !!!
+	 * Allocation failure: REALLOC freed the build buffer; clear the
+	 * caller's copies so it can't be freed a second time.
+	 */
+alloc_err:
+	*lbp = NULL;
+	*lbclenp = *lblenp = 0;
+	return (1);
 }
