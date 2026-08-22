@@ -193,6 +193,7 @@ getremcap(char *host)
 		CL = 0;
 	if (cgetnum(bp, "et", &ET) == -1)
 		ET = 10;
+	free(bp);
 }
 
 char *
