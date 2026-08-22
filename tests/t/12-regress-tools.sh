@@ -1,6 +1,7 @@
 #!/bin/sh
 # Regression tests for the per-tool fixes in SECURITY-FINDINGS.md that are
-# not patch(1) or nvi: coreutils, grep, ed, awk, hexdump, xargs, mcookie.
+# not patch(1) or nvi: coreutils, grep, ed, awk, hexdump, xargs, mcookie,
+# compress.
 
 . "$CU_LIB/lib.sh"
 
@@ -205,6 +206,29 @@ if require "sed" sed; then
     # g/G must treat it as empty, matching what x already special-cased.
     assert_out "sed g with untouched hold space" "" sh -c "echo a | $(tool sed) 'g'"
     assert_out "sed G with untouched hold space" "a" sh -c "echo a | $(tool sed) 'G'"
+fi
+
+group "compress: -c to stdout on Linux (/dev/stdout magic cookie)"
+
+# On Linux /dev/stdout is a symlink into /proc/self/fd, not a device node
+# as on FreeBSD: stat() saw the redirected output file as S_ISREG and
+# compress silently declined to "overwrite" it (empty output, status 0),
+# and opening it by name failed with ENXIO for socket stdout.
+if require "compress" compress; then
+    printf 'hello hello hello\n' > c.txt
+    assert_out "compress -c to a redirected file round-trips" \
+        "$(cat c.txt)" sh -c \
+        "$(tool compress) -c c.txt > c1.Z && $(tool compress) -dc c1.Z"
+    assert_out "compress -c through pipes round-trips" \
+        "$(cat c.txt)" sh -c \
+        "cat c.txt | $(tool compress) -c | $(tool compress) -dc"
+    assert_out "stdin/stdout filter round-trips" \
+        "$(cat c.txt)" sh -c \
+        "$(tool compress) < c.txt > c2.Z && $(tool compress) -d < c2.Z"
+    # The regular-output post-processing must not run for -c: with the
+    # output mis-detected as S_ISREG it would unlink the input file.
+    assert_ok "compress -cf keeps the input file" sh -c \
+        "$(tool compress) -cf c.txt > c3.Z && [ -f c.txt ]"
 fi
 
 cu_finish

@@ -52,6 +52,7 @@ static void	cwarnx(const char *, ...) __printflike(1, 2);
 static void	decompress(const char *, const char *, int);
 static int	permission(const char *);
 static void	setfile(const char *, struct stat *);
+static FILE	*stdopen(const char *, const char *);
 static void	usage(int);
 
 static int eval, force, verbose;
@@ -190,13 +191,25 @@ compress(const char *in, const char *out, int bits)
 	int exists, isreg, oreg;
 	u_char buf[1024];
 
-	exists = !stat(out, &sb);
-	if (!force && exists && S_ISREG(sb.st_mode) && !permission(out))
-		return;
-	isreg = oreg = !exists || S_ISREG(sb.st_mode);
+	/*
+	 * POSIX says "/dev/stdout" is a 'magic cookie', not a special
+	 * file.  On Linux it is a symlink into /proc/self/fd, so stat()
+	 * describes the file behind the descriptor instead of a device
+	 * node as on FreeBSD; never prompt to overwrite it, and never
+	 * manage it as a regular output file.
+	 */
+	if (strcmp(out, "/dev/stdout") == 0) {
+		isreg = oreg = 0;
+	} else {
+		exists = !stat(out, &sb);
+		if (!force && exists && S_ISREG(sb.st_mode) &&
+		    !permission(out))
+			return;
+		isreg = oreg = !exists || S_ISREG(sb.st_mode);
+	}
 
 	ifp = ofp = NULL;
-	if ((ifp = fopen(in, "r")) == NULL) {
+	if ((ifp = stdopen(in, "r")) == NULL) {
 		cwarn("%s", in);
 		return;
 	}
@@ -286,10 +299,22 @@ decompress(const char *in, const char *out, int bits)
 	int exists, isreg, oreg;
 	u_char buf[1024];
 
-	exists = !stat(out, &sb);
-	if (!force && exists && S_ISREG(sb.st_mode) && !permission(out))
-		return;
-	isreg = oreg = !exists || S_ISREG(sb.st_mode);
+	/*
+	 * POSIX says "/dev/stdout" is a 'magic cookie', not a special
+	 * file.  On Linux it is a symlink into /proc/self/fd, so stat()
+	 * describes the file behind the descriptor instead of a device
+	 * node as on FreeBSD; never prompt to overwrite it, and never
+	 * manage it as a regular output file.
+	 */
+	if (strcmp(out, "/dev/stdout") == 0) {
+		isreg = oreg = 0;
+	} else {
+		exists = !stat(out, &sb);
+		if (!force && exists && S_ISREG(sb.st_mode) &&
+		    !permission(out))
+			return;
+		isreg = oreg = !exists || S_ISREG(sb.st_mode);
+	}
 
 	ifp = ofp = NULL;
 	if ((ifp = zopen(in, "r", bits)) == NULL) {
@@ -312,7 +337,7 @@ decompress(const char *in, const char *out, int bits)
 		(void)fclose(ifp);
 		return;
 	}
-	if ((ofp = fopen(out, "w")) == NULL ||
+	if ((ofp = stdopen(out, "w")) == NULL ||
 	    (nr != 0 && fwrite(buf, 1, nr, ofp) != nr)) {
 		cwarn("%s", out);
 		if (ofp)
@@ -359,6 +384,30 @@ err:	if (ofp) {
 	}
 	if (ifp)
 		(void)fclose(ifp);
+}
+
+static FILE *
+stdopen(const char *fname, const char *mode)
+{
+	int fd;
+
+	/*
+	 * POSIX says "/dev/stdout" and "/dev/stdin" are 'magic cookies',
+	 * not special files.  On Linux they are symlinks into
+	 * /proc/self/fd; opening them by name reopens the file behind
+	 * the descriptor, losing its flags and offset and failing with
+	 * ENXIO for sockets.  Open a duplicate of the descriptor itself
+	 * instead, matching FreeBSD's fdescfs semantics.
+	 */
+	if (strcmp(fname, "/dev/stdout") == 0)
+		fd = STDOUT_FILENO;
+	else if (strcmp(fname, "/dev/stdin") == 0)
+		fd = STDIN_FILENO;
+	else
+		return (fopen(fname, mode));
+	if ((fd = dup(fd)) == -1)
+		return (NULL);
+	return (fdopen(fd, mode));
 }
 
 static void

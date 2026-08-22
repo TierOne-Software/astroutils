@@ -724,8 +724,21 @@ zopen(const char *fname, const char *mode, int bits)
 	/*
 	 * Layering compress on top of stdio in order to provide buffering,
 	 * and ensure that reads and write work with the data specified.
+	 *
+	 * POSIX says "/dev/stdout" and "/dev/stdin" are 'magic cookies',
+	 * not special files.  On Linux they are symlinks into
+	 * /proc/self/fd; opening them by name reopens the file behind
+	 * the descriptor, losing its flags and offset and failing with
+	 * ENXIO for sockets.  Open a duplicate of the descriptor itself
+	 * instead, matching FreeBSD's fdescfs semantics.
 	 */
-	if ((fp = fopen(fname, mode)) == NULL) {
+	if (strcmp(fname, "/dev/stdout") == 0)
+		fp = fdopen(dup(STDOUT_FILENO), mode);
+	else if (strcmp(fname, "/dev/stdin") == 0)
+		fp = fdopen(dup(STDIN_FILENO), mode);
+	else
+		fp = fopen(fname, mode);
+	if (fp == NULL) {
 		free(zs);
 		return (NULL);
 	}
