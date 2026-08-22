@@ -536,6 +536,7 @@ static hdr_t
 http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
 {
 	unsigned int i, len;
+	char *tmp;
 
 	/*
 	 * Have to do the stripping here because of the first line. So
@@ -547,8 +548,9 @@ http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
 
 	/* Copy the line to the headerbuf */
 	if (hbuf->bufsize < conn->buflen + 1) {
-		if ((hbuf->buf = realloc(hbuf->buf, conn->buflen + 1)) == NULL)
+		if ((tmp = realloc(hbuf->buf, conn->buflen + 1)) == NULL)
 			return (hdr_syserror);
+		hbuf->buf = tmp;
 		hbuf->bufsize = conn->buflen + 1;
 	}
 	strcpy(hbuf->buf, conn->buf);
@@ -576,8 +578,9 @@ http_next_header(conn_t *conn, http_headerbuf_t *hbuf, const char **p)
 		len = hbuf->buflen + conn->buflen;
 		if (hbuf->bufsize < len + 1) {
 			len *= 2;
-			if ((hbuf->buf = realloc(hbuf->buf, len + 1)) == NULL)
+			if ((tmp = realloc(hbuf->buf, len + 1)) == NULL)
 				return (hdr_syserror);
+			hbuf->buf = tmp;
 			hbuf->bufsize = len + 1;
 		}
 		strcpy(hbuf->buf + hbuf->buflen, conn->buf);
