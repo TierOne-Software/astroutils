@@ -505,9 +505,9 @@ noargs:	if (F_ISSET(sp, SC_VI) && sp->c_suffix && (lflag || nflag || pflag)) {
 		 */
 		if (sp->c_suffix) {
 			if (bp == NULL) {
-				GET_SPACE_RETW(sp, bp, blen, llen);
+				GET_SPACE_GOTOW(sp, bp, blen, llen);
 			} else
-				ADD_SPACE_RETW(sp, bp, blen, llen);
+				ADD_SPACE_GOTOW(sp, bp, blen, llen);
 			if (llen != 0) {
 				MEMCPY(bp, s, llen);
 				s = bp;
@@ -745,7 +745,7 @@ skip:		offset += match[0].rm_eo;
 				goto err;
 			if (db_get(sp, lno, DBG_FATAL, &s, &llen))
 				goto err;
-			ADD_SPACE_RETW(sp, bp, blen, llen);
+			ADD_SPACE_GOTOW(sp, bp, blen, llen);
 			MEMCPY(bp, s, llen);
 			s = bp;
 			len = llen - offset;
@@ -875,6 +875,16 @@ err:		rval = 1;
 		FREE_SPACEW(sp, bp, blen);
 	free(lb);
 	return (rval);
+
+	/*
+	 * !!!
+	 * Allocation failure: binc() has already released the buffer it was
+	 * growing (bp, or the global temporary buffer) and nulled the pointer,
+	 * so bp must not be touched here; only lb is still ours to free.
+	 */
+alloc_err:
+	free(lb);
+	return (1);
 }
 
 /*

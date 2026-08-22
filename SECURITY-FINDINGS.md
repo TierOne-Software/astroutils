@@ -1,4 +1,4 @@
-# Security findings — chimerautils
+# Security findings — astroutils
 
 Work queue for the hardening effort. Sources:
 
@@ -272,11 +272,13 @@ Fixed:
   asprintf/free/msgq between vfork and execl, plus freeing `cmd` in
   the parent's heap on the execl-failure path). Verified
   behavior-identical.
-
-Still open:
-- `nvi/ex/ex_subst.c` `s()` lb leak on OOM (`ADD_SPACE_RETW` returns
-  without freeing `lb`): real, low value, needs the `_GOTO` macro
-  rework (BINC_GOTO leaves `bp` dangling, so not a minimal swap).
+- `nvi/ex/ex_subst.c` `s()` `lb` leak on OOM (`ADD_SPACE_RETW` returned
+  without freeing the partially built line buffer) — fixed by
+  converting the three `GET_SPACE_RETW`/`ADD_SPACE_RETW` calls in `s()`
+  to the `_GOTOW` variants with an `alloc_err` label that frees `lb`.
+  Required the `_GOTO` macro rework: `BINC_GOTO` (nvi/common/mem.h) now
+  nulls the grown pointer on failure, mirroring `BINC_RET`, so `bp` and
+  `gp->tmp_bp` are never left dangling after `binc()` frees them.
 
 (Also fixed in the same pass: `nvi/common/line.c` `db_get()`/`db_last()`
 did `MEMCPY(ep->c_lp, wp, 0)` with `ep->c_lp == NULL` when caching an
@@ -285,6 +287,12 @@ empty line — trapped on loading an all-empty-lines file; and
 including the NUL, planting `'\0'` in templates and causing a 1-byte
 global over-read on the EEXIST carry path — ASan-verified, fixed with
 `% (sizeof(padchar) - 1)` matching upstream libc.)
+
+Still open:
+- `nvi/ex/ex_subst.c` `re_sub()` grows its own copy of the build buffer
+  via `NEEDSP`; on OOM that frees the buffer while the caller's `lb`
+  still points at it, so `s()`'s error path would double-free. An
+  upstream nvi pattern; latent, found during the `_GOTO` rework.
 
 ### Cross-analyzer agreement — RESOLVED
 The clusters reported by BOTH infer and scan-build are all closed:
@@ -767,7 +775,7 @@ verbatim in freebsd-src main unless noted):
   consumer (nvi uses recno, tip uses hash) — latent library code.
   upstream-patches/0059 (cherry-pick).
 - tsort hash chunk/element callocs unchecked → NULL deref on OOM
-  (chimerautils-local hash; local fix, not upstreamable).
+  (astroutils-local hash; local fix, not upstreamable).
 
 FIXED — leaks and OOM hygiene (long-lived tools prioritized; all
 still upstream unless noted): nvi error-path leaks (msgq_status,
