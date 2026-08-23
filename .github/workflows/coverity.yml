@@ -1,0 +1,162 @@
+name: Coverity Scan
+
+# Builds the tree under Coverity's cov-build and submits the resulting
+# cov-int tarball to scan.coverity.com for analysis.
+#
+# Like the CodeQL workflow, this runs in the same Fedora image as
+# .github/workflows/ci.yml because meson.build hard-requires libxo
+# (dependency('libxo', required: true)), which is not packaged for
+# Debian/Ubuntu.
+#
+# Coverity enforces per-project submission rate limits (at most 1-4
+# builds/day and 7-28 builds/week depending on code size, see
+# https://scan.coverity.com/faq#frequency), so this runs weekly plus
+# on manual dispatch — never on push or pull_request (a PR run would
+# also risk leaking the project token).
+#
+# Setup: add two repository secrets under
+# Settings > Secrets and variables > Actions:
+#   COVERITY_SCAN_TOKEN  project token from the scan.coverity.com
+#                        "Project Settings" tab
+#   COVERITY_SCAN_EMAIL  notification address Coverity mails results to
+# Without the token the job skips itself with a notice (green, not red);
+# without the email the cov-int tarball is still built and uploaded as a
+# workflow artifact for manual submission via the project's
+# "Submit build" page on scan.coverity.com.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Thursday 05:37 UTC — off the round hour, and clear of ci.yml's
+    # Sunday 04:00 and codeql.yml's Tuesday 04:23 slots.
+    - cron: '37 5 * * 4'
+
+# Submission goes over HTTPS to scan.coverity.com; nothing is uploaded
+# to GitHub code scanning, so read-only is enough.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverity:
+    name: cov-build and submit
+    runs-on: ubuntu-latest
+    # The analysis tool download is 1GB+ and cov-build roughly doubles
+    # compile time; matches the CodeQL budget.
+    timeout-minutes: 60
+    container:
+      image: registry.fedoraproject.org/fedora:latest
+    steps:
+      # The secrets context is not usable in a job-level `if:`, so probe
+      # the secrets here via env vars and gate every later step on the
+      # outputs.  A missing token skips the job green with a notice
+      # instead of failing red while the secret is not yet configured.
+      - name: check for Coverity credentials
+        id: creds
+        env:
+          COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+          COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
+        run: |
+          if [ -z "$COVERITY_SCAN_TOKEN" ]; then
+            echo "::notice::COVERITY_SCAN_TOKEN secret is not configured; skipping Coverity scan. See the header of .github/workflows/coverity.yml for setup."
+            echo "token=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "token=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -n "$COVERITY_SCAN_EMAIL" ]; then
+            echo "email=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "email=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Same dependency set as the glibc job in ci.yml, minus clang
+      # (gcc only), plus curl/ca-certificates/tar for the tool download
+      # — mirroring the CodeQL workflow's package list.
+      - name: dependencies
+        if: steps.creds.outputs.token == 'true'
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            gcc gcc-c++ meson ninja-build \
+            pkgconf-pkg-config flex byacc bison libxo-devel \
+            ncurses-devel libedit-devel openssl-devel zlib-devel \
+            bzip2-devel xz-devel libzstd-devel libacl-devel \
+            libselinux-devel binutils file diffutils git which \
+            curl ca-certificates tar gzip
+
+      - uses: actions/checkout@v4
+        if: steps.creds.outputs.token == 'true'
+
+      # The per-project download endpoint needs the token and the
+      # project name exactly as registered on scan.coverity.com
+      # (case-sensitive), URL-encoded (/ -> %2F).
+      - name: download Coverity analysis tool
+        if: steps.creds.outputs.token == 'true'
+        env:
+          COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+        run: |
+          set -eu
+          PROJECT=$(printf '%s' '${{ github.repository }}' | sed -e 's:/:%2F:g' -e 's/ /%20/g')
+          echo "PROJECT=$PROJECT" >> "$GITHUB_ENV"
+          curl -fsSL \
+            --data "token=${COVERITY_SCAN_TOKEN}&project=${PROJECT}" \
+            -o coverity_tool.tgz \
+            https://scan.coverity.com/download/cxx/linux64
+          # The tarball holds a versioned cov-analysis-linux64-* dir;
+          # strip it so the tools land in cov-analysis/bin.
+          mkdir cov-analysis
+          tar -xzf coverity_tool.tgz --strip-components=1 -C cov-analysis
+          rm coverity_tool.tgz
+
+      # Configure first, then wrap only the compile step in cov-build.
+      # No explicit cov-configure: current cov-analysis releases
+      # auto-configure the gcc compiler spec on first use.
+      - name: build under cov-build
+        if: steps.creds.outputs.token == 'true'
+        env:
+          CC: gcc
+          CXX: g++
+          BUILD_DIR: build-ci-coverity
+        run: |
+          rm -rf "$BUILD_DIR"
+          meson setup "$BUILD_DIR" -Dbuildtype=debugoptimized
+          export PATH="$PWD/cov-analysis/bin:$PATH"
+          cov-build --dir cov-int ninja -C "$BUILD_DIR"
+
+      - name: package cov-int
+        if: steps.creds.outputs.token == 'true'
+        run: tar -czvf cov-int.tgz cov-int
+
+      # Always keep the tarball, even when the submission below fails or
+      # is skipped, so it can be submitted by hand from scan.coverity.com.
+      - name: upload cov-int artifact
+        if: always() && steps.creds.outputs.token == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cov-int
+          path: cov-int.tgz
+          if-no-files-found: ignore
+
+      - name: submission skipped notice
+        if: steps.creds.outputs.token == 'true' && steps.creds.outputs.email != 'true'
+        run: |
+          echo "::notice::COVERITY_SCAN_EMAIL secret is not configured; not submitting. Download the cov-int artifact and submit it manually from the project's Submit build page on scan.coverity.com."
+
+      # Multipart POST to the submit-build endpoint; field names token,
+      # email, file, version, description are the ones the Coverity Scan
+      # "Submit build" page documents.
+      - name: submit to Coverity Scan
+        if: steps.creds.outputs.token == 'true' && steps.creds.outputs.email == 'true'
+        env:
+          COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+          COVERITY_SCAN_EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
+        run: |
+          curl -fsSL \
+            --form token="$COVERITY_SCAN_TOKEN" \
+            --form email="$COVERITY_SCAN_EMAIL" \
+            --form file=@cov-int.tgz \
+            --form version="$(git rev-parse --short HEAD)" \
+            --form description="${{ github.event_name }} run ${{ github.run_number }} (https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" \
+            "https://scan.coverity.com/builds?project=${PROJECT}"
