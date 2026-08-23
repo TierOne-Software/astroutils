@@ -49,6 +49,6 @@ ex_equal(SCR *sp, EXCMD *cmdp)
 	} else
 		lno = cmdp->addr1.lno;
 
-	(void)ex_printf(sp, "%ld\n", lno);
+	(void)ex_printf(sp, "%lu\n", (u_long)lno);
 	return (0);
 }
