@@ -188,6 +188,24 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   type/dev/ino and sizes the mmap from the opened fd (in-tree hang or
   SIGBUS; cross-boundary read needs a privileged invoker). Route with
   the other patch(1) material per the SO thread. (CodeQL first scan.)
+- 0068 xinstall: install()'s compare/tempfile/post-rename opens and
+  by-name utimensat were swappable in a shared destdir, feeding root
+  fchown/fchmod on a swapped-in file (setuid-root primitive) —
+  O_NOFOLLOW + fstat dev/ino identity checks, futimens on the pinned
+  fd. (CodeQL first scan.)
+- 0069 fetch: -r resume appended remote content through a planted
+  output symlink (now O_NOFOLLOW), and the replaced-file metadata
+  clone copied a symlink target's uid/gid/set-id mode onto server
+  content (now fchown/fchmod on the open fd, skipped for symlinked
+  output paths). (CodeQL first scan.)
+- 0070 ee: dump_ee_conf() followed a planted .init.ee symlink —
+  backup-copy read the target (root file disclosure) and the save
+  truncated/wrote through it. lstat+S_ISREG, O_NOFOLLOW opens, fstat
+  dev/ino backup check. (CodeQL first scan.)
+- 0071 nvi: ex_equal passed uint32_t recno_t to %ld (varargs UB) —
+  %lu/(u_long).
+- 0072 ncal: size_t expression passed as the int `*` field width —
+  (int) cast.
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

@@ -1,0 +1,86 @@
+From f6163187d758ef2dedee7b7162b22d82dab2f044 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 22:20:13 -0400
+Subject: [PATCH] ee: refuse symlinked .init.ee in dump_ee_conf
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CodeQL TOCTOU at ee.c:4299, and like the nvi :w! fix no race is
+needed: a pre-planted .init.ee symlink in a shared directory made the
+backup-copy loop read the link target as the invoking user — as root,
+disclosing arbitrary files into the world-readable new config — and
+redirected the save's truncate/write. The backup branch now requires
+lstat+S_ISREG, reads via O_RDONLY|O_NOFOLLOW with an fstat dev/ino
+check, and writes via O_NOFOLLOW+fdopen. Symlinked .init.ee fails
+cleanly with the existing error message (the old code's unlink
+destroyed such symlinks on every save anyway, so nothing legitimate
+is lost). Verbatim upstream contrib/ee.
+---
+ src.freebsd/ee/ee.c | 31 +++++++++++++++++++++++++++----
+ 1 file changed, 27 insertions(+), 4 deletions(-)
+
+diff --git a/src.freebsd/ee/ee.c b/src.freebsd/ee/ee.c
+index debfc51a..c947bc58 100644
+--- a/src.freebsd/ee/ee.c
++++ b/src.freebsd/ee/ee.c
+@@ -4264,9 +4264,11 @@ dump_ee_conf(void)
+ 	char *home_dir =  "~/.init.ee";
+ 	char buffer[512];
+ 	struct stat buf;
++	struct stat open_buf;
+ 	char *string;
+ 	int length;
+ 	int option = 0;
++	int fd;
+ 
+ 	if (restrict_mode())
+ 	{
+@@ -4288,19 +4290,40 @@ dump_ee_conf(void)
+ 		file_name = resolve_name(home_dir);
+ 
+ 	/*
+-	 |	If a .init.ee file exists, move it to .init.ee.old.
++	 |	If a regular .init.ee file exists, move it to .init.ee.old.
++	 |	Refuse symlinks throughout: in a shared directory a planted
++	 |	(or swapped-in) .init.ee must not redirect the backup read
++	 |	or the write to a different file.
+ 	 */
+ 
+-	if (stat(file_name, &buf) != -1)
++	if (lstat(file_name, &buf) != -1 && S_ISREG(buf.st_mode))
+ 	{
+ 		snprintf(buffer, sizeof(buffer), "%s.old", file_name);
+ 		unlink(buffer);
+ 		link(file_name, buffer);
+ 		unlink(file_name);
+-		old_init_file = fopen(buffer, "r");
++		fd = open(buffer, O_RDONLY | O_NOFOLLOW);
++		if (fd != -1)
++		{
++			/*
++			 |	Verify the backup is the file just renamed.
++			 */
++			if (fstat(fd, &open_buf) != -1 &&
++			    open_buf.st_dev == buf.st_dev &&
++			    open_buf.st_ino == buf.st_ino)
++				old_init_file = fdopen(fd, "r");
++			if (old_init_file == NULL)
++				close(fd);
++		}
+ 	}
+ 
+-	init_file = fopen(file_name, "w");
++	fd = open(file_name, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0666);
++	if (fd != -1)
++	{
++		init_file = fdopen(fd, "w");
++		if (init_file == NULL)
++			close(fd);
++	}
+ 	if (init_file == NULL)
+ 	{
+ 		if (old_init_file != NULL)
+-- 
+2.43.0
+

@@ -1,0 +1,103 @@
+From a0a1b90aed03c8aeb25a8074f192722f562e0726 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 22:20:12 -0400
+Subject: [PATCH] fetch: stop symlink redirection of resume and metadata clone
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Two true positives, no race required for either: fetch -r with a
+symlinked output path appended remote content to the link target
+(stat and fopen both followed the link, defeating the dev/ino
+recheck) — resume now opens O_NOFOLLOW. And the replaced-file metadata
+clone stat'd the output path and chown/chmod'd the temp by name: a
+planted symlink cloned any target's uid/gid/set-id bits onto
+server-controlled content, and the temp could be swapped pre-chmod —
+now fchown/fchmod on the open fd, skipped when the path is a symlink
+(rename onto a symlink replaces the name, never follows). Seven
+regression tests. Verbatim upstream. The -R failure-path rename alert
+is accepted (rename never writes through a destination symlink); the
+plain create-through-dangling-symlink primitive is documented as a
+deliberate non-fix (upstream/curl/wget-identical, and O_NOFOLLOW there
+breaks -o /dev/stdout).
+---
+ src.freebsd/fetch/fetch.c | 35 ++++++++++++++++++++++++++++-------
+ 1 file changed, 28 insertions(+), 7 deletions(-)
+
+diff --git a/src.freebsd/fetch/fetch.c b/src.freebsd/fetch/fetch.c
+index 91ec61e5..92817c5f 100644
+--- a/src.freebsd/fetch/fetch.c
++++ b/src.freebsd/fetch/fetch.c
+@@ -38,6 +38,7 @@
+ #include <ctype.h>
+ #include <err.h>
+ #include <errno.h>
++#include <fcntl.h>
+ #include <getopt.h>
+ #include <signal.h>
+ #include <stdint.h>
+@@ -434,7 +435,7 @@ fetch(char *URL, const char *path, int *is_http)
+ {
+ 	struct url *url;
+ 	struct url_stat us;
+-	struct stat sb, nsb;
++	struct stat sb, nsb, lsb;
+ 	struct xferstat xs;
+ 	FILE *f, *of;
+ 	size_t size, readcnt, wr;
+@@ -442,7 +443,7 @@ fetch(char *URL, const char *path, int *is_http)
+ 	char flags[8];
+ 	const char *slash;
+ 	char *tmppath;
+-	int r, tries = 0;
++	int fd, r, tries = 0;
+ 
+ 	/* fetchXGet may fail before filling us; keep the mirror-mode
+ 	 * check below from comparing against an uninitialized struct */
+@@ -674,9 +675,14 @@ again:
+ 				    (intmax_t)sb.st_size, (intmax_t)us.size);
+ 				goto failure;
+ 			}
+-			/* we got it, open local file */
+-			if ((of = fopen(path, "r+")) == NULL) {
+-				warn("%s: fopen()", path);
++			/* we got it, open local file (refuse symlinks) */
++			if ((fd = open(path, O_RDWR | O_NOFOLLOW)) == -1) {
++				warn("%s: open()", path);
++				goto failure;
++			}
++			if ((of = fdopen(fd, "r+")) == NULL) {
++				warn("%s: fdopen()", path);
++				close(fd);
+ 				goto failure;
+ 			}
+ 			/* check that it didn't move under our feet */
+@@ -746,8 +752,23 @@ again:
+ 					goto failure;
+ 				}
+ 				of = fopen(tmppath, "w");
+-				chown(tmppath, sb.st_uid, sb.st_gid);
+-				chmod(tmppath, sb.st_mode & ALLPERMS);
++				if (of != NULL) {
++					/*
++					 * Operate on the fd, not the path: the
++					 * temp file could be swapped under us.
++					 * Never clone ownership/mode through a
++					 * symlink at path: the replacement
++					 * would inherit the link target's
++					 * owner and (set-id) mode bits.
++					 */
++					if (lstat(path, &lsb) == 0 &&
++					    S_ISREG(lsb.st_mode)) {
++						fchown(fileno(of), lsb.st_uid,
++						    lsb.st_gid);
++						fchmod(fileno(of),
++						    lsb.st_mode & ALLPERMS);
++					}
++				}
+ 			}
+ 		}
+ 		if (of == NULL)
+-- 
+2.43.0
+

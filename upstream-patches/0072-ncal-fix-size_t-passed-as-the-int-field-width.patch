@@ -1,0 +1,33 @@
+From c6986b87cfe722acb1d2e275437d6fec694d9046 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 22:20:14 -0400
+Subject: [PATCH] ncal: fix size_t passed as the int * field width
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+mw - wcslen(...) - 1 promotes to size_t but the * directive consumes
+an int — same varargs UB class (benign on LP64 LE, wrong on
+big-endian). Cast to (int), matching the file's own wcenter/center
+precedent. Verbatim upstream.
+---
+ src.freebsd/miscutils/ncal/ncal.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/miscutils/ncal/ncal.c b/src.freebsd/miscutils/ncal/ncal.c
+index e6279e1ba..d24c50144 100644
+--- a/src.freebsd/miscutils/ncal/ncal.c
++++ b/src.freebsd/miscutils/ncal/ncal.c
+@@ -743,7 +743,8 @@ monthranger(int y, int m, int jd_flag, int before, int after)
+ 				wprintf(L"%-*ls", mw, year[i].name);
+ 			else
+ 				wprintf(L"%-ls %-*d", year[i].name,
+-				    mw - wcslen(year[i].name) - 1, M2Y(m + i));
++				    (int)(mw - wcslen(year[i].name) - 1),
++				    M2Y(m + i));
+ 		wprintf(L"\n");
+ 
+ 		/* And the days of the month. */
+-- 
+2.43.0
+

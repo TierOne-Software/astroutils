@@ -1,0 +1,28 @@
+From eb95badea4f192089ba2dbf07a5aa12074ce37f5 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 22:20:14 -0400
+Subject: [PATCH] nvi: fix ex_equal %ld/recno_t varargs mismatch
+
+lno is recno_t (uint32_t) but was passed to %ld; ex_printf forwards
+the va_list to vsnprintf, so this is a real size/signedness mismatch
+(UB, benign on LP64 little-endian, wrong on big-endian). Use nvi's
+house idiom %lu/(u_long). Verbatim upstream.
+---
+ src.freebsd/nvi/ex/ex_equal.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src.freebsd/nvi/ex/ex_equal.c b/src.freebsd/nvi/ex/ex_equal.c
+index d9ceaf95e..0760f05be 100644
+--- a/src.freebsd/nvi/ex/ex_equal.c
++++ b/src.freebsd/nvi/ex/ex_equal.c
+@@ -49,6 +49,6 @@ ex_equal(SCR *sp, EXCMD *cmdp)
+ 	} else
+ 		lno = cmdp->addr1.lno;
+ 
+-	(void)ex_printf(sp, "%ld\n", lno);
++	(void)ex_printf(sp, "%lu\n", (u_long)lno);
+ 	return (0);
+ }
+-- 
+2.43.0
+
