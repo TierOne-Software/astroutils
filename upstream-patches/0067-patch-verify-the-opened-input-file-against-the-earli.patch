@@ -1,0 +1,66 @@
+From 3bcfa6e9836bfb5a54399241f49eecf94d372978 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 21:32:29 -0400
+Subject: [PATCH] patch: verify the opened input file against the earlier stat
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CodeQL TOCTOU triage, the one true positive of the four patch(1)
+alerts: plan_a() stat()'d the input (S_ISREG, size) and then open()'d
+the same name — a swapped-in non-regular or truncated file slipped
+past both checks (hang on a FIFO, or mmap sized from the stale stat ->
+SIGBUS past EOF). fstat-after-open now verifies type/dev/ino against
+the earlier stat and the mapping is sized from the opened fd. The
+other three patch TOCTOU alerts (stat->unlink/rename) gain an attacker
+nothing — unlink/rename never follow symlinks and the Landlock sandbox
+confines the tool to the target tree; recorded as accepted in
+SECURITY-FINDINGS.md. Verbatim upstream code; SO-routed with the rest
+of the patch(1) material.
+---
+ src.freebsd/patch/inp.c | 22 +++++++++++++++++++++-
+ 1 file changed, 21 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/patch/inp.c b/src.freebsd/patch/inp.c
+index 670cbcf47..05ec82136 100644
+--- a/src.freebsd/patch/inp.c
++++ b/src.freebsd/patch/inp.c
+@@ -139,7 +139,7 @@ plan_a(const char *filename)
+ {
+ 	int		ifd, statfailed;
+ 	char		*p, *s;
+-	struct stat	filestat;
++	struct stat	filestat, openstat;
+ 	ptrdiff_t	sz;
+ 	size_t		i;
+ 	size_t		iline, lines_allocated;
+@@ -186,6 +186,26 @@ plan_a(const char *filename)
+ 	if ((ifd = open(filename, O_RDONLY)) < 0)
+ 		pfatal("can't open file %s", filename);
+ 
++	/*
++	 * stat() above and this open() looked the name up twice; make
++	 * sure we opened the file we checked, and size the mapping from
++	 * the opened file rather than the earlier stat, so a swapped-in
++	 * file can neither slip past the S_ISREG check nor make us mmap
++	 * past its EOF.
++	 */
++	if (fstat(ifd, &openstat) != 0)
++		pfatal("can't fstat file %s", filename);
++	if (!S_ISREG(openstat.st_mode) ||
++	    openstat.st_dev != filestat.st_dev ||
++	    openstat.st_ino != filestat.st_ino)
++		fatal("%s changed while being opened\n", filename);
++	if ((uint64_t)openstat.st_size > SIZE_MAX) {
++		say("block too large to mmap\n");
++		close(ifd);
++		return false;
++	}
++	i_size = (size_t)openstat.st_size;
++
+ 	if (i_size) {
+ 		i_womp = mmap(NULL, i_size, PROT_READ, MAP_PRIVATE, ifd, 0);
+ 		if (i_womp == MAP_FAILED) {
+-- 
+2.43.0
+

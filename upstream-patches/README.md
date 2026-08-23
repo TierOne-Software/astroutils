@@ -179,6 +179,15 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 - 0065 libfetch: http_next_header() realloc OOM-leaks at both header
   growth sites — tmp-then-assign per the file's own http_growbuf
   idiom. The same pattern is still present verbatim upstream.
+- 0066 nvi: file_write() `:w!` on an unwritable file followed a
+  pre-planted symlink — chmod'd the target writable, truncated it, and
+  wrote the buffer into any same-uid file lacking S_IWUSR. Now lstat +
+  S_ISREG, O_NOFOLLOW, and an fstat dev/ino identity check. (CodeQL
+  first scan.)
+- 0067 patch: plan_a() stat→open race — fstat-after-open verifies
+  type/dev/ino and sizes the mmap from the opened fd (in-tree hang or
+  SIGBUS; cross-boundary read needs a privileged invoker). Route with
+  the other patch(1) material per the SO thread. (CodeQL first scan.)
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

@@ -1,0 +1,69 @@
+From cb9ad0090482484b18531a6bc7c1d84a72cf1e47 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 21:32:30 -0400
+Subject: [PATCH] nvi: stop :w! from chmod/truncating through planted symlinks
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CodeQL flagged a TOCTOU in file_write()'s EACCES/FS_FORCE path
+(stat->chmod->open); the reality is worse — no race needed. A symlink
+pre-planted in a shared directory made :w! on an unwritable file chmod
+the target writable, truncate it, and write the buffer into any
+same-uid file lacking S_IWUSR (keys, git objects, read-only configs).
+The force-write path now requires a regular file (lstat), re-opens
+with O_NOFOLLOW, and fstat-verifies dev/ino against the lstat before
+writing — nvi's own lurker-avoidance idiom from file_backup().
+Behavior change: force-writing *through* a symlink to a non-writable
+file now fails with EACCES; writable symlink targets are unaffected.
+Verbatim upstream bug.
+---
+ src.freebsd/nvi/common/exf.c | 19 ++++++++++++++++---
+ 1 file changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/src.freebsd/nvi/common/exf.c b/src.freebsd/nvi/common/exf.c
+index 0fda0b44..3e568a18 100644
+--- a/src.freebsd/nvi/common/exf.c
++++ b/src.freebsd/nvi/common/exf.c
+@@ -844,11 +844,17 @@ file_write(SCR *sp, MARK *fm, MARK *tm, char *name, int flags)
+ 			 * have write permission on it, grant it
+ 			 * automatically for the duration of the
+ 			 * opening of the file, if possible.
++			 *
++			 * Refuse anything but a regular file, and verify
++			 * after the open that we got the file we chmod'd:
++			 * a symlink planted (or swapped in) by another
++			 * user of a shared directory must not redirect
++			 * the chmod/write to a different file.
+ 			 */
+-			struct stat sb;
++			struct stat sb, open_sb;
+ 			mode_t fmode;
+ 
+-			if (stat(name, &sb) != 0)
++			if (lstat(name, &sb) != 0 || !S_ISREG(sb.st_mode))
+ 				goto fail_open;
+ 			fmode = sb.st_mode;
+ 			if (!(sb.st_mode & S_IWUSR) && sb.st_uid == getuid())
+@@ -857,10 +863,17 @@ file_write(SCR *sp, MARK *fm, MARK *tm, char *name, int flags)
+ 				goto fail_open;
+ 			if (chmod(name, fmode) != 0)
+ 				goto fail_open;
+-			fd = open(name, oflags, S_IRUSR | S_IWUSR |
++			fd = open(name, oflags | O_NOFOLLOW,
++			    S_IRUSR | S_IWUSR |
+ 			    S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+ 			if (fd == -1)
+ 				goto fail_open;
++			if (fstat(fd, &open_sb) != 0 ||
++			    open_sb.st_dev != sb.st_dev ||
++			    open_sb.st_ino != sb.st_ino) {
++				(void)close(fd);
++				goto fail_open;
++			}
+ 			(void)fchmod(fd, sb.st_mode);
+ 			goto success_open;
+ 		fail_open:
+-- 
+2.43.0
+
