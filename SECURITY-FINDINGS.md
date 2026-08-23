@@ -825,10 +825,85 @@ allocations leaked to zero. upstream-patches/0063.
 Open P6 items: Coverity Scan — project registered;
 `.github/workflows/coverity.yml` generates and (once the
 COVERITY_SCAN_TOKEN/COVERITY_SCAN_EMAIL secrets are set) auto-submits
-the cov-int tarball weekly. CodeQL workflow added
-(`.github/workflows/codeql.yml`); custom taint queries for
-libfetch/telnet are a possible follow-up once the default suite's
-results are in.
+the cov-int tarball weekly. CodeQL's first scan is triaged (section
+below; two real bugs fixed, 0066/0067); custom libfetch/telnet taint
+queries remain a possible follow-up.
+
+### CodeQL first-scan triage (P6)
+
+First scan (default `c-cpp` suite, push-triggered) produced 59 alerts;
+the 25 Critical/High shared from the alert list were each triaged to a
+verdict. Two real bugs, both fixed; the rest documented below.
+(Alerts #3–#34 — Medium/Low — not yet triaged.)
+
+FIXED:
+
+- patch `plan_a()` stat→open race (`inp.c:186`): a swapped-in
+  non-regular or truncated input file bypassed the `S_ISREG`/size
+  checks — in-tree hang or mmap-past-EOF SIGBUS even with the sandbox
+  on; a cross-boundary read only with `ASTROUTILS_SANDBOX=NONE` plus a
+  privileged invoker. Fixed with an fstat-after-open dev/ino/type
+  check; the mapping is sized from the opened fd. Verbatim upstream.
+  upstream-patches/0067 (SO-routed with the other patch(1) material).
+- nvi `file_write()` `:w!` on an unwritable file (`exf.c:858/860`):
+  stat→chmod→open let a pre-planted symlink redirect the chmod and the
+  truncate/write to any same-uid victim file lacking `S_IWUSR` — a
+  cross-directory integrity primitive needing no race at all. Fixed
+  with lstat + `S_ISREG`, `O_NOFOLLOW` on the re-open, and an fstat
+  dev/ino identity check before the buffer is written. Behavior change:
+  force-writing *through* a symlink to a non-writable file now fails.
+  upstream-patches/0066.
+
+FALSE POSITIVE:
+
+- printf `PF(f, val/uval)` (`printf.c:414/416`): the "uncontrolled"
+  format is tool-synthesized by `mknum()` from a whitelist grammar
+  (flags, digits/`*`, `.`, `j`, one of `diouxX`); `%n` unreachable,
+  arg types exact. Re-emitting a validated format is printf(1)'s core
+  mechanism. Verbatim upstream.
+- whereis `popen` (`whereis.c:495/605`): argv interpolated unquoted
+  into `man -w`/`locate` commands, but the data is only ever the
+  invoking non-setuid user's own arguments — no trust boundary.
+  Verbatim upstream.
+- nvi `cl_rename` (`cl_funcs.c:626`): `popen("xprop -id $WINDOWID …")`
+  uses the terminal-supplied env var, gated behind the off-by-default
+  `windowname` option; env control implies code execution already.
+- telnet `process_rings` UAF (`sys_bsd.c:895`, both alerts): the
+  flagged path requires `err(3)` to return after a failed malloc;
+  `err` is noreturn, CodeQL didn't model it. Identical to upstream.
+- sh `redir.c:189`: stat→open under noclobber, but the open is
+  `O_CREAT|O_EXCL` and fails atomically — no exploitable window.
+- gzip `check_outfile` (`gzip.c:1159/1170`): stat→unlink; unlink never
+  follows symlinks and the output open is `O_CREAT|O_EXCL` — no
+  clobber/substitution gain.
+- mesg (`mesg.c:83/87`) and nvi `cl_omesg` (`cl_term.c:332/339`):
+  stat→chmod on the caller's own `/dev/pts` node; devpts entries are
+  kernel-managed and cannot be swapped by an attacker; not setuid.
+- nvi `ex_cscope.c:328`: stat only sizes a malloc for a read-only open
+  of a user-designated cscope file; no security decision or write.
+
+BY-DESIGN / legacy protocol:
+
+- libtelnet DES (`enc_des.c:204`, `pk.c:129`): DES is the algorithm
+  mandated by the RFC 2946 telnet ENCRYPT option and the legacy SRA
+  auth type. `enc_des.c`/`pk.c` ARE compiled (the kerberos sources are
+  not), reachable only when a server negotiates SRA/ENCRYPT — long
+  obsolete. Matches upstream; no fix that preserves the protocol.
+
+LOW / ACCEPTED (race exists, no boundary crossed):
+
+- patch `util.c:110` (stat→unlink) and `util.c:153` (stat→rename),
+  `patch.c:456` (stat→unlink): unlink/rename act on the directory
+  entry itself, never follow symlinks, and the Landlock sandbox
+  confines the tool to the target tree; a won race gains the attacker
+  nothing beyond their own writable tree. Verbatim upstream.
+- sh `redir.c:192`: the adjacent fstat re-check already rejects
+  regular-file swaps; the residual non-regular→non-regular window is
+  what noclobber deliberately permits.
+- nvi `recover.c:141`: mkdir→chmod on the recovery dir is blocked by
+  the sticky bit on the default `/var/tmp` parent, and the dir is
+  normally installer-created; recovery files themselves use
+  mkstemp+fchmod(0700).
 
 ## Hardening status
 
