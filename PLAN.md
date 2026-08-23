@@ -265,8 +265,11 @@ exposure, per the approach already recorded in `SECURITY-FINDINGS.md`.
       sources/sinks are a follow-up if the default suite is too shallow.
 - [x] gcc `-fanalyzer` (223 warnings triaged; the dominant FP family
       was the port's `__dead2` — now `__attribute__((__noreturn__))`).
-- [ ] Coverity Scan — repo is public now; needs a Coverity account and
-      a manual submission.
+- [ ] Coverity Scan — `.github/workflows/coverity.yml` added (weekly
+      Thursday + manual dispatch; produces the `cov-int` tarball as an
+      artifact and auto-submits once the `COVERITY_SCAN_TOKEN` and
+      `COVERITY_SCAN_EMAIL` secrets are set). Project registered;
+      awaiting secrets + first run.
 - [x] Triage the 56 `MEMORY_LEAK_C` reports *for the long-lived tools
       only* — nvi, sh, telnet, tip. The "benign at exit" rationale does
       not hold for an editor or a shell session.

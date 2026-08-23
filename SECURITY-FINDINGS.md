@@ -822,8 +822,10 @@ leak is fixed: `expr()` never deleted the `yy_scan_string()` buffer
 ASan on a 2000-iteration eval loop went from 146,893 bytes in 4,000
 allocations leaked to zero. upstream-patches/0063.
 
-Open P6 items: Coverity Scan (repo is public; needs a Coverity account
-and manual submission). CodeQL workflow added
+Open P6 items: Coverity Scan — project registered;
+`.github/workflows/coverity.yml` generates and (once the
+COVERITY_SCAN_TOKEN/COVERITY_SCAN_EMAIL secrets are set) auto-submits
+the cov-int tarball weekly. CodeQL workflow added
 (`.github/workflows/codeql.yml`); custom taint queries for
 libfetch/telnet are a possible follow-up once the default suite's
 results are in.
