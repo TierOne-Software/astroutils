@@ -832,9 +832,9 @@ queries remain a possible follow-up.
 ### CodeQL first-scan triage (P6)
 
 First scan (default `c-cpp` suite, push-triggered) produced 59 alerts;
-the 25 Critical/High shared from the alert list were each triaged to a
-verdict. Two real bugs, both fixed; the rest documented below.
-(Alerts #3–#34 — Medium/Low — not yet triaged.)
+the 50 Critical/High shared from the alert list were each triaged to a
+verdict. Eight real bugs, all fixed; the rest documented below.
+(Alerts #3–#9 — Medium — not yet triaged.)
 
 FIXED:
 
@@ -845,6 +845,56 @@ FIXED:
   privileged invoker. Fixed with an fstat-after-open dev/ino/type
   check; the mapping is sized from the opened fd. Verbatim upstream.
   upstream-patches/0067 (SO-routed with the other patch(1) material).
+- xinstall `install()` lstat→open races (`xinstall.c:906/958`, plus
+  unflagged siblings :946/:1042 and two by-name `utimensat`): in a
+  shared destdir, a swapped symlink/hardlink redirected the compare
+  open or the post-rename open into root's `fchown`/`fchmod` — a
+  setuid-root primitive on the default, `-C`, and `-s` paths. Fixed
+  with `O_NOFOLLOW` + fstat dev/ino identity checks against the
+  lstat/mkstemp identity, and `futimens` on the pinned fd. Verbatim
+  upstream. Residual, documented-not-fixed: `install -C -o root -m
+  4xxx` into an attacker-writable dir is exploitable with no race
+  (pre-planted content-identical decoy) — intrinsic to `-C` semantics,
+  same upstream. upstream-patches/0068.
+- fetch output handling: (a) `fetch -r` with a symlinked output path
+  appended remote content to the link target — stat and fopen both
+  followed the link, so the dev/ino recheck couldn't tell; resume now
+  opens with `O_NOFOLLOW` (`fetch.c:678`). (b) The mode/owner clone
+  (`fetch.c:749/750`) stat'd the replaced file and chown/chmod'd the
+  temp by path — a planted symlink cloned any target's uid/gid/set-id
+  mode onto server content and the temp could be swapped pre-chmod;
+  now `fchown`/`fchmod` on the open fd, skipped when the output path
+  is a symlink. Verbatim upstream. Regression tests in
+  `tests/t/12-regress-tools.sh`. upstream-patches/0069. (Deliberately
+  left: the plain `fopen(path,"w")` create path still follows a
+  dangling symlink — upstream/curl/wget-identical behavior, and
+  O_NOFOLLOW there broke `-o /dev/stdout`; needs a deliberate
+  carve-out decision, not a drive-by.)
+- compress output/metadata hardening: `decompress()`'s output open
+  followed planted or dangling symlinks (truncate/create arbitrary
+  files as the invoking user), and `setfile()` did
+  `utimensat`/`chown`/`chmod` by name after `fclose` — a swap in that
+  window redirected them to any victim (as root: ownership handover).
+  Output opens now use `O_NOFOLLOW` (including the identical unflagged
+  `zopen(out,"w")` site in `compress()`); `setfile()` is fd-based
+  (`futimens`/`fchown`/`fchmod` on a dup of the output fd), the gzip
+  `copymodes()` idiom. `compress -f` onto an existing symlink now
+  fails with ELOOP. Port-local patch set (builds on the stdopen
+  rework); an upstream-adapted version is a follow-up.
+- ee `dump_ee_conf()` (`ee.c:4299`): a planted `.init.ee` symlink in a
+  shared dir made the backup-copy loop read the target as the invoking
+  user (as root: file disclosure into the world-readable new config)
+  or redirected the save's truncate/write — no race needed. Fixed with
+  lstat+S_ISREG, O_NOFOLLOW opens, and fstat dev/ino backup
+  verification. Verbatim upstream. upstream-patches/0070.
+- nvi `ex_equal` (`ex_equal.c:52`): uint32_t `recno_t` passed to `%ld`
+  through to vsnprintf — varargs size/signedness mismatch (UB, benign
+  on LP64 LE). Fixed to nvi idiom `%lu`/`(u_long)`. Verbatim upstream.
+  upstream-patches/0071.
+- ncal (`ncal.c:746`): a `size_t` expression passed as the `int` `*`
+  field width to wprintf — same UB class. Fixed with `(int)` cast per
+  the file's own center/wcenter style. Verbatim upstream.
+  upstream-patches/0072.
 - nvi `file_write()` `:w!` on an unwritable file (`exf.c:858/860`):
   stat→chmod→open let a pre-planted symlink redirect the chmod and the
   truncate/write to any same-uid victim file lacking `S_IWUSR` — a
@@ -881,6 +931,25 @@ FALSE POSITIVE:
   kernel-managed and cannot be swapped by an attacker; not setuid.
 - nvi `ex_cscope.c:328`: stat only sizes a malloc for a read-only open
   of a user-designated cscope file; no security decision or write.
+- rm (`rm.c:344/346`) and mv (`mv.c:409/414`): lstat→rmdir/unlink act
+  on the directory entry itself and never follow a swapped symlink;
+  the race cannot redirect the deletion. Logic identical to upstream.
+- xinstall `unlink(to_name)` error paths (`xinstall.c:1057/1081/1091`):
+  unlink never follows symlinks, and the triggers require fstat/fchown/
+  fchmod failure on a held fd — practically unreachable.
+- compress stat→unlink sites (compress.c:249/256/350/357 pre-fix
+  numbering): unlink removes the directory entry; no clobber
+  primitive. gzip `unlink_input` (`gzip.c:1192`) already re-stats and
+  dev/ino-compares before unlinking.
+- locate `search_mmap` (`locate.c:280`): stat→open only sizes the mmap
+  of a same-uid database; unprivileged tool, worst case is a
+  self-inflicted SIGBUS.
+- nvi `msgq` snprintf (`msg.c:152`): `REM == blen - mlen` is exactly
+  the space remaining (invariant `mp == bp + mlen`); truncation only
+  triggers a guarded retry-and-grow.
+- touch `stime_darg` (`touch.c:328`): the fraction accumulation is
+  bounded by construction (val ∈ {1e8..1,0}, digit ≤ 9, max product
+  9×10⁸ < INT_MAX).
 
 BY-DESIGN / legacy protocol:
 
@@ -904,6 +973,9 @@ LOW / ACCEPTED (race exists, no boundary crossed):
   the sticky bit on the default `/var/tmp` parent, and the dir is
   normally installer-created; recovery files themselves use
   mkstemp+fchmod(0700).
+- fetch `rename(tmppath, path)` on the `-R` failure path
+  (`fetch.c:884`): rename never writes through a destination symlink —
+  a planted link is atomically replaced, not followed.
 
 ## Hardening status
 
