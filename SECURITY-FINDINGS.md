@@ -832,9 +832,8 @@ queries remain a possible follow-up.
 ### CodeQL first-scan triage (P6)
 
 First scan (default `c-cpp` suite, push-triggered) produced 59 alerts;
-the 50 Critical/High shared from the alert list were each triaged to a
-verdict. Eight real bugs, all fixed; the rest documented below.
-(Alerts #3–#9 — Medium — not yet triaged.)
+58 were triaged to verdicts (alert #9 was never shared from the alert
+list). Eleven real bugs, all fixed; the rest documented below.
 
 FIXED:
 
@@ -895,6 +894,12 @@ FIXED:
   field width to wprintf — same UB class. Fixed with `(int)` cast per
   the file's own center/wcenter style. Verbatim upstream.
   upstream-patches/0072.
+- compat `strptime` `%Z` (`compat/strptime.c:551`): an uppercase run
+  in the *parsed string* controlled an in-loop `alloca` — cumulative,
+  unbounded stack growth (crashable via `date -f`; not setuid, so
+  self-DoS only in-tree). Fixed with malloc/free + failure check.
+  Still `alloca` in freebsd-src libc strptime — upstream-patches/0073
+  (needs path adaptation for libc/stdtime/strptime.c).
 - nvi `file_write()` `:w!` on an unwritable file (`exf.c:858/860`):
   stat→chmod→open let a pre-planted symlink redirect the chmod and the
   truncate/write to any same-uid victim file lacking `S_IWUSR` — a
@@ -950,6 +955,19 @@ FALSE POSITIVE:
 - touch `stime_darg` (`touch.c:328`): the fraction accumulation is
   bounded by construction (val ∈ {1e8..1,0}, digit ≤ 9, max product
   9×10⁸ < INT_MAX).
+- jot sscanf checks (`jot.c:154/163/172/183`): `!sscanf(...)` admits
+  EOF (whitespace-only argv), silently keeping the initialized default
+  while setting the HAVE_* bit; at 163/172 the 0-return is the
+  intentional character feature (`jot 5 a z`). Defined behavior,
+  argv-only, no uninitialized use. Verbatim upstream — LOW/ACCEPTED.
+- nl (`nl.c:292`): multiplication bounded by construction
+  (delimlen ≤ 2×MB_CUR_MAX, idx ≤ 2; max 96 ≪ INT_MAX); `-i`/`-v`/`-w`
+  never reach the site.
+- calendar `closecal` (`io.c:701/703`): writes the recipient's own
+  login name into that user's own reminder mail under `-a` — intended
+  flow, no disclosure or injection surface; same `-a` trust domain as
+  the documented privilege-drop open item, any redesign rides that
+  upstream follow-up.
 
 BY-DESIGN / legacy protocol:
 

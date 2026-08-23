@@ -261,10 +261,11 @@ exposure, per the approach already recorded in `SECURITY-FINDINGS.md`.
 ## P6 — Second-wave analysis and the deferred long tail — MOSTLY DONE
 
 - [x] CodeQL — `.github/workflows/codeql.yml` added (Fedora container,
-      manual build-mode, gcc). First scan triaged (50 of 59 alerts):
-      8 real bugs fixed (0066–0072 + port-local compress hardening),
-      verdicts recorded in SECURITY-FINDINGS.md. Custom taint queries
-      for libfetch/telnet sources/sinks remain a possible follow-up.
+      manual build-mode, gcc). First scan triaged (58 of 59 alerts;
+      #9 never surfaced): 11 real bugs fixed (0066–0073 + port-local
+      compress hardening), verdicts recorded in SECURITY-FINDINGS.md.
+      Custom taint queries for libfetch/telnet remain a possible
+      follow-up.
 - [x] gcc `-fanalyzer` (223 warnings triaged; the dominant FP family
       was the port's `__dead2` — now `__attribute__((__noreturn__))`).
 - [ ] Coverity Scan — `.github/workflows/coverity.yml` added (weekly
