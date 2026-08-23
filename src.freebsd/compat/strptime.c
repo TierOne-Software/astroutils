@@ -548,7 +548,9 @@ label:
 			     isupper((unsigned char)*cp); ++cp) {
 				/*empty*/}
 			if (cp - buf) {
-				zonestr = alloca(cp - buf + 1);
+				zonestr = malloc(cp - buf + 1);
+				if (zonestr == NULL)
+					return (NULL);
 				strncpy(zonestr, buf, cp - buf);
 				zonestr[cp - buf] = '\0';
 				tzset();
@@ -561,8 +563,10 @@ label:
 				} else if (0 == strcmp(zonestr, tzname[1])) {
 				    tm->tm_isdst = 1;
 				} else {
+				    free(zonestr);
 				    return (NULL);
 				}
+				free(zonestr);
 				buf += cp - buf;
 			}
 			}
