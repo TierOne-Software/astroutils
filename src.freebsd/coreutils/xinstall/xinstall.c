@@ -853,7 +853,7 @@ makelink(const char *from_name, const char *to_name,
 static void
 install(const char *from_name, const char *to_name, u_long fset __unused, u_int flags)
 {
-	struct stat from_sb, temp_sb, to_sb;
+	struct stat from_sb, open_sb, temp_sb, to_sb;
 	struct timespec tsb[2];
 	int devnull, files_match, from_fd, serrno, stripped, target;
 	int temp_fd, to_fd;
@@ -903,8 +903,19 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 
 	/* If we don't strip, we can compare first. */
 	if (docompare && !dostrip && target && S_ISREG(to_sb.st_mode)) {
-		if ((to_fd = open(to_name, O_RDONLY, 0)) < 0)
+		if ((to_fd = open(to_name, O_RDONLY | O_NOFOLLOW, 0)) < 0)
 			err(EX_OSERR, "%s", to_name);
+		/*
+		 * Verify that we opened the file we lstat'd: a link swapped
+		 * in by another user of the target directory must not
+		 * redirect the compare, or the fchown/fchmod below, to a
+		 * different file.
+		 */
+		if (fstat(to_fd, &open_sb) == -1 ||
+		    open_sb.st_dev != to_sb.st_dev ||
+		    open_sb.st_ino != to_sb.st_ino)
+			errx(EX_CANTCREAT, "%s: changed during install",
+			    to_name);
 		if (devnull)
 			files_match = to_sb.st_size == 0;
 		else
@@ -922,6 +933,14 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 		    sizeof(tempfile));
 		if (to_fd < 0)
 			err(EX_OSERR, "%s", dirname(tempfile));
+		/*
+		 * Remember the temporary file's identity so that later
+		 * re-opens of it (and of to_name after the rename) can be
+		 * verified against links swapped in by another user of the
+		 * target directory.
+		 */
+		if (fstat(to_fd, &temp_sb) == -1)
+			err(EX_OSERR, "%s", tempfile);
 		if (!devnull) {
 			if (dostrip) {
 				stripped = strip(tempfile, to_fd, from_name,
@@ -943,9 +962,14 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 		 * we did not strip in-place.
 		 */
 		close(to_fd);
-		to_fd = open(tempfile, O_RDONLY, 0);
+		to_fd = open(tempfile, O_RDONLY | O_NOFOLLOW, 0);
 		if (to_fd < 0)
 			err(EX_OSERR, "stripping %s", to_name);
+		if (fstat(to_fd, &open_sb) == -1 ||
+		    open_sb.st_dev != temp_sb.st_dev ||
+		    open_sb.st_ino != temp_sb.st_ino)
+			errx(EX_CANTCREAT, "%s: changed during install",
+			    tempfile);
 	}
 
 	/*
@@ -955,8 +979,13 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 		temp_fd = to_fd;
 
 		/* Re-open to_fd using the real target name. */
-		if ((to_fd = open(to_name, O_RDONLY, 0)) < 0)
+		if ((to_fd = open(to_name, O_RDONLY | O_NOFOLLOW, 0)) < 0)
 			err(EX_OSERR, "%s", to_name);
+		if (fstat(to_fd, &open_sb) == -1 ||
+		    open_sb.st_dev != to_sb.st_dev ||
+		    open_sb.st_ino != to_sb.st_ino)
+			errx(EX_CANTCREAT, "%s: changed during install",
+			    to_name);
 
 		if (fstat(temp_fd, &temp_sb)) {
 			serrno = errno;
@@ -976,7 +1005,7 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 			if (to_sb.st_nlink != 1) {
 				tsb[0] = to_sb.st_atim;
 				tsb[1] = to_sb.st_mtim;
-				(void)utimensat(AT_FDCWD, tempfile, tsb, 0);
+				(void)futimens(temp_fd, tsb);
 			} else {
 				files_match = 1;
 				(void)unlink(tempfile);
@@ -1037,10 +1066,19 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 			    tempfile, to_name);
 		}
 
-		/* Re-open to_fd so we aren't hosed by the rename(2). */
+		/*
+		 * Re-open to_fd so we aren't hosed by the rename(2); it
+		 * must resolve to the temporary file we just renamed into
+		 * place, not a link swapped in behind our back.
+		 */
 		(void) close(to_fd);
-		if ((to_fd = open(to_name, O_RDONLY, 0)) < 0)
+		if ((to_fd = open(to_name, O_RDONLY | O_NOFOLLOW, 0)) < 0)
 			err(EX_OSERR, "%s", to_name);
+		if (fstat(to_fd, &open_sb) == -1 ||
+		    open_sb.st_dev != temp_sb.st_dev ||
+		    open_sb.st_ino != temp_sb.st_ino)
+			errx(EX_CANTCREAT, "%s: changed during install",
+			    to_name);
 	}
 
 	/*
@@ -1049,7 +1087,7 @@ install(const char *from_name, const char *to_name, u_long fset __unused, u_int 
 	if (dopreserve && !files_match && !devnull) {
 		tsb[0] = from_sb.st_atim;
 		tsb[1] = from_sb.st_mtim;
-		(void)utimensat(AT_FDCWD, to_name, tsb, 0);
+		(void)futimens(to_fd, tsb);
 	}
 
 	if (fstat(to_fd, &to_sb) == -1) {
