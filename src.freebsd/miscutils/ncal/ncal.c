@@ -743,7 +743,8 @@ monthranger(int y, int m, int jd_flag, int before, int after)
 				wprintf(L"%-*ls", mw, year[i].name);
 			else
 				wprintf(L"%-ls %-*d", year[i].name,
-				    mw - wcslen(year[i].name) - 1, M2Y(m + i));
+				    (int)(mw - wcslen(year[i].name) - 1),
+				    M2Y(m + i));
 		wprintf(L"\n");
 
 		/* And the days of the month. */
