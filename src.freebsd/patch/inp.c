@@ -139,7 +139,7 @@ plan_a(const char *filename)
 {
 	int		ifd, statfailed;
 	char		*p, *s;
-	struct stat	filestat;
+	struct stat	filestat, openstat;
 	ptrdiff_t	sz;
 	size_t		i;
 	size_t		iline, lines_allocated;
@@ -185,6 +185,26 @@ plan_a(const char *filename)
 	}
 	if ((ifd = open(filename, O_RDONLY)) < 0)
 		pfatal("can't open file %s", filename);
+
+	/*
+	 * stat() above and this open() looked the name up twice; make
+	 * sure we opened the file we checked, and size the mapping from
+	 * the opened file rather than the earlier stat, so a swapped-in
+	 * file can neither slip past the S_ISREG check nor make us mmap
+	 * past its EOF.
+	 */
+	if (fstat(ifd, &openstat) != 0)
+		pfatal("can't fstat file %s", filename);
+	if (!S_ISREG(openstat.st_mode) ||
+	    openstat.st_dev != filestat.st_dev ||
+	    openstat.st_ino != filestat.st_ino)
+		fatal("%s changed while being opened\n", filename);
+	if ((uint64_t)openstat.st_size > SIZE_MAX) {
+		say("block too large to mmap\n");
+		close(ifd);
+		return false;
+	}
+	i_size = (size_t)openstat.st_size;
 
 	if (i_size) {
 		i_womp = mmap(NULL, i_size, PROT_READ, MAP_PRIVATE, ifd, 0);
