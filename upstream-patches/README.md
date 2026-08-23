@@ -206,6 +206,10 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
   %lu/(u_long).
 - 0072 ncal: size_t expression passed as the int `*` field width —
   (int) cast.
+- 0073 compat strptime: %Z copied an input-length-controlled uppercase
+  run into an in-loop alloca (cumulative stack growth) — malloc/free
+  instead. The patch context is our compat shim; for upstream apply
+  against libc/stdtime/strptime.c (same one-hunk change).
 
 - 0035 patch: three apply-path memory-safety bugs — NULL pattern line
   dereferenced in patch_match (46 corpus inputs segfault), heap

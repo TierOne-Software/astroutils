@@ -1,0 +1,48 @@
+From 03a83ae2df8a493677e1b003a36e12fd11467cb6 Mon Sep 17 00:00:00 2001
+From: Michael John <mj@tierone.software>
+Date: Sat, 22 Aug 2026 22:36:32 -0400
+Subject: [PATCH] compat/strptime: replace the in-loop %Z alloca with malloc
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+CodeQL 'alloca in a loop': the %Z case copied an uppercase run from
+the *parsed string* into an alloca with no length cap, once per %Z
+directive — cumulative stack growth across the format loop (in-tree
+reachable only via date -f, not setuid: self-DoS). malloc/free with a
+failure check; semantics unchanged for long zone names. The identical
+alloca is still in freebsd-src libc strptime; the upstream patch needs
+path adaptation (noted in the series README).
+---
+ src.freebsd/compat/strptime.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src.freebsd/compat/strptime.c b/src.freebsd/compat/strptime.c
+index 50f14f6ca..4d2069012 100644
+--- a/src.freebsd/compat/strptime.c
++++ b/src.freebsd/compat/strptime.c
+@@ -548,7 +548,9 @@ label:
+ 			     isupper((unsigned char)*cp); ++cp) {
+ 				/*empty*/}
+ 			if (cp - buf) {
+-				zonestr = alloca(cp - buf + 1);
++				zonestr = malloc(cp - buf + 1);
++				if (zonestr == NULL)
++					return (NULL);
+ 				strncpy(zonestr, buf, cp - buf);
+ 				zonestr[cp - buf] = '\0';
+ 				tzset();
+@@ -561,8 +563,10 @@ label:
+ 				} else if (0 == strcmp(zonestr, tzname[1])) {
+ 				    tm->tm_isdst = 1;
+ 				} else {
++				    free(zonestr);
+ 				    return (NULL);
+ 				}
++				free(zonestr);
+ 				buf += cp - buf;
+ 			}
+ 			}
+-- 
+2.43.0
+
