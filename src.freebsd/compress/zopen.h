@@ -29,6 +29,12 @@
 #ifndef _ZOPEN_H_
 #define _ZOPEN_H_
 
-FILE  *zopen(const char *, const char *, int);
+/*
+ * If fdp is not NULL and a named file is opened for writing, *fdp is set
+ * to a duplicate of the output file descriptor (closed by the caller), so
+ * the caller can fstat()/fchmod()/etc. the written inode after the stream
+ * is closed.  Otherwise *fdp is set to -1.
+ */
+FILE  *zopen(const char *, const char *, int, int *);
 
 #endif /* _ZOPEN_H_ */

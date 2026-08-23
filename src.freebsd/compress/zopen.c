@@ -49,12 +49,17 @@
  * Cleaned up and converted to library returning I/O streams by
  * Diomidis Spinellis <dds@doc.ic.ac.uk>.
  *
- * zopen(filename, mode, bits)
+ * zopen(filename, mode, bits, fdp)
  *	Returns a FILE * that can be used for read or write.  The modes
  *	supported are only "r" and "w".  Seeking is not allowed.  On
  *	reading the file is decompressed, on writing it is compressed.
  *	The output is compatible with compress(1) with 16 bit tables.
  *	Any file produced by compress(1) can be read.
+ *
+ *	If fdp is not NULL and a named file is opened for writing, *fdp
+ *	is set to a duplicate of the underlying file descriptor, so the
+ *	caller can fstat()/fchmod()/etc. the written inode after the
+ *	stream is closed.  Otherwise *fdp is set to -1.
  */
 
 #include <sys/param.h>
@@ -63,6 +68,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -693,11 +699,14 @@ cl_hash(struct s_zstate *zs, count_int cl_hsize)	/* Reset code table. */
 }
 
 FILE *
-zopen(const char *fname, const char *mode, int bits)
+zopen(const char *fname, const char *mode, int bits, int *fdp)
 {
 	struct s_zstate *zs;
 	cookie_io_functions_t zfuncs;
+	int fd;
 
+	if (fdp != NULL)
+		*fdp = -1;
 	if ((mode[0] != 'r' && mode[0] != 'w') || mode[1] != '\0' ||
 	    bits < 0 || bits > BITS) {
 		errno = EINVAL;
@@ -736,7 +745,21 @@ zopen(const char *fname, const char *mode, int bits)
 		fp = fdopen(dup(STDOUT_FILENO), mode);
 	else if (strcmp(fname, "/dev/stdin") == 0)
 		fp = fdopen(dup(STDIN_FILENO), mode);
-	else
+	else if (*mode == 'w') {
+		/*
+		 * Do not follow symlinks when opening the output:
+		 * compress(1) stat()ed the path before calling us, and
+		 * following a symlink swapped in since then would
+		 * truncate an unrelated file.
+		 */
+		if ((fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC |
+		    O_NOFOLLOW, 0666)) == -1)
+			fp = NULL;
+		else if ((fp = fdopen(fd, mode)) == NULL)
+			(void)close(fd);
+		else if (fdp != NULL)
+			*fdp = dup(fd);
+	} else
 		fp = fopen(fname, mode);
 	if (fp == NULL) {
 		free(zs);

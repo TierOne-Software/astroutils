@@ -51,7 +51,7 @@ static void	cwarn(const char *, ...) __printflike(1, 2);
 static void	cwarnx(const char *, ...) __printflike(1, 2);
 static void	decompress(const char *, const char *, int);
 static int	permission(const char *);
-static void	setfile(const char *, struct stat *);
+static void	setfile(int, const char *, const struct stat *);
 static FILE	*stdopen(const char *, const char *);
 static void	usage(int);
 
@@ -188,7 +188,7 @@ compress(const char *in, const char *out, int bits)
 	size_t nr;
 	struct stat isb, sb;
 	FILE *ifp, *ofp;
-	int exists, isreg, oreg;
+	int exists, isreg, ofd, oreg;
 	u_char buf[1024];
 
 	/*
@@ -209,6 +209,7 @@ compress(const char *in, const char *out, int bits)
 	}
 
 	ifp = ofp = NULL;
+	ofd = -1;
 	if ((ifp = stdopen(in, "r")) == NULL) {
 		cwarn("%s", in);
 		return;
@@ -220,7 +221,7 @@ compress(const char *in, const char *out, int bits)
 	if (!S_ISREG(isb.st_mode))
 		isreg = 0;
 
-	if ((ofp = zopen(out, "w", bits)) == NULL) {
+	if ((ofp = zopen(out, "w", bits, &ofd)) == NULL) {
 		cwarn("%s", out);
 		goto err;
 	}
@@ -249,7 +250,7 @@ compress(const char *in, const char *out, int bits)
 	ofp = NULL;
 
 	if (isreg) {
-		if (stat(out, &sb)) {
+		if (ofd >= 0 ? fstat(ofd, &sb) : stat(out, &sb)) {
 			cwarn("%s", out);
 			goto err;
 		}
@@ -264,7 +265,11 @@ compress(const char *in, const char *out, int bits)
 			goto err;
 		}
 
-		setfile(out, &isb);
+		if (ofd >= 0) {
+			setfile(ofd, out, &isb);
+			(void)close(ofd);
+			ofd = -1;
+		}
 
 		if (unlink(in))
 			cwarn("%s", in);
@@ -279,6 +284,8 @@ compress(const char *in, const char *out, int bits)
 				    ((float)isb.st_size / sb.st_size) * 100.0);
 		}
 	}
+	if (ofd >= 0)
+		(void)close(ofd);
 	return;
 
 err:	if (ofp) {
@@ -286,6 +293,8 @@ err:	if (ofp) {
 			(void)unlink(out);
 		(void)fclose(ofp);
 	}
+	if (ofd >= 0)
+		(void)close(ofd);
 	if (ifp)
 		(void)fclose(ifp);
 }
@@ -296,7 +305,7 @@ decompress(const char *in, const char *out, int bits)
 	size_t nr;
 	struct stat sb;
 	FILE *ifp, *ofp;
-	int exists, isreg, oreg;
+	int exists, isreg, ofd, oreg;
 	u_char buf[1024];
 
 	/*
@@ -317,7 +326,8 @@ decompress(const char *in, const char *out, int bits)
 	}
 
 	ifp = ofp = NULL;
-	if ((ifp = zopen(in, "r", bits)) == NULL) {
+	ofd = -1;
+	if ((ifp = zopen(in, "r", bits, NULL)) == NULL) {
 		cwarn("%s", in);
 		return;
 	}
@@ -346,6 +356,9 @@ decompress(const char *in, const char *out, int bits)
 		return;
 	}
 
+	/* Pin the output inode; setfile() runs after fclose(). */
+	ofd = isreg ? dup(fileno(ofp)) : -1;
+
 	while ((nr = fread(buf, 1, sizeof(buf), ifp)) != 0)
 		if (fwrite(buf, 1, nr, ofp) != nr) {
 			cwarn("%s", out);
@@ -370,7 +383,11 @@ decompress(const char *in, const char *out, int bits)
 	}
 
 	if (isreg) {
-		setfile(out, &sb);
+		if (ofd >= 0) {
+			setfile(ofd, out, &sb);
+			(void)close(ofd);
+			ofd = -1;
+		}
 
 		if (unlink(in))
 			cwarn("%s", in);
@@ -382,6 +399,8 @@ err:	if (ofp) {
 			(void)unlink(out);
 		(void)fclose(ofp);
 	}
+	if (ofd >= 0)
+		(void)close(ofd);
 	if (ifp)
 		(void)fclose(ifp);
 }
@@ -389,6 +408,7 @@ err:	if (ofp) {
 static FILE *
 stdopen(const char *fname, const char *mode)
 {
+	FILE *fp;
 	int fd;
 
 	/*
@@ -403,24 +423,45 @@ stdopen(const char *fname, const char *mode)
 		fd = STDOUT_FILENO;
 	else if (strcmp(fname, "/dev/stdin") == 0)
 		fd = STDIN_FILENO;
-	else
+	else if (*mode == 'w') {
+		/*
+		 * Do not follow symlinks when opening the output: the
+		 * path was checked with stat() above, and following a
+		 * symlink swapped in since then would truncate an
+		 * unrelated file.
+		 */
+		if ((fd = open(fname, O_WRONLY | O_CREAT | O_TRUNC |
+		    O_NOFOLLOW, 0666)) == -1)
+			return (NULL);
+		if ((fp = fdopen(fd, mode)) == NULL)
+			(void)close(fd);
+		return (fp);
+	} else
 		return (fopen(fname, mode));
 	if ((fd = dup(fd)) == -1)
 		return (NULL);
 	return (fdopen(fd, mode));
 }
 
+/*
+ * Copy timestamps, ownership and mode from fs to the output.  The fd
+ * refers to the file we just wrote, so a symlink or rename swapped in
+ * at the path cannot redirect the metadata updates to another file;
+ * name is only used in warning messages.
+ */
 static void
-setfile(const char *name, struct stat *fs)
+setfile(int fd, const char *name, const struct stat *fs)
 {
+	struct stat sb;
 	static struct timespec tspec[2];
 
-	fs->st_mode &= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
+	sb = *fs;
+	sb.st_mode &= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
 
-	tspec[0] = fs->st_atim;
-	tspec[1] = fs->st_mtim;
-	if (utimensat(AT_FDCWD, name, tspec, 0))
-		cwarn("utimensat: %s", name);
+	tspec[0] = sb.st_atim;
+	tspec[1] = sb.st_mtim;
+	if (futimens(fd, tspec))
+		cwarn("futimens: %s", name);
 
 	/*
 	 * Changing the ownership probably won't succeed, unless we're root
@@ -428,13 +469,13 @@ setfile(const char *name, struct stat *fs)
 	 * the mode; current BSD behavior is to remove all setuid bits on
 	 * chown.  If chown fails, lose setuid/setgid bits.
 	 */
-	if (chown(name, fs->st_uid, fs->st_gid)) {
+	if (fchown(fd, sb.st_uid, sb.st_gid)) {
 		if (errno != EPERM)
-			cwarn("chown: %s", name);
-		fs->st_mode &= ~(S_ISUID|S_ISGID);
+			cwarn("fchown: %s", name);
+		sb.st_mode &= ~(S_ISUID|S_ISGID);
 	}
-	if (chmod(name, fs->st_mode) && errno != EOPNOTSUPP)
-		cwarn("chmod: %s", name);
+	if (fchmod(fd, sb.st_mode))
+		cwarn("fchmod: %s", name);
 }
 
 static int
