@@ -38,6 +38,7 @@
 #include <ctype.h>
 #include <err.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <getopt.h>
 #include <signal.h>
 #include <stdint.h>
@@ -434,7 +435,7 @@ fetch(char *URL, const char *path, int *is_http)
 {
 	struct url *url;
 	struct url_stat us;
-	struct stat sb, nsb;
+	struct stat sb, nsb, lsb;
 	struct xferstat xs;
 	FILE *f, *of;
 	size_t size, readcnt, wr;
@@ -442,7 +443,7 @@ fetch(char *URL, const char *path, int *is_http)
 	char flags[8];
 	const char *slash;
 	char *tmppath;
-	int r, tries = 0;
+	int fd, r, tries = 0;
 
 	/* fetchXGet may fail before filling us; keep the mirror-mode
 	 * check below from comparing against an uninitialized struct */
@@ -674,9 +675,14 @@ again:
 				    (intmax_t)sb.st_size, (intmax_t)us.size);
 				goto failure;
 			}
-			/* we got it, open local file */
-			if ((of = fopen(path, "r+")) == NULL) {
-				warn("%s: fopen()", path);
+			/* we got it, open local file (refuse symlinks) */
+			if ((fd = open(path, O_RDWR | O_NOFOLLOW)) == -1) {
+				warn("%s: open()", path);
+				goto failure;
+			}
+			if ((of = fdopen(fd, "r+")) == NULL) {
+				warn("%s: fdopen()", path);
+				close(fd);
 				goto failure;
 			}
 			/* check that it didn't move under our feet */
@@ -746,8 +752,23 @@ again:
 					goto failure;
 				}
 				of = fopen(tmppath, "w");
-				chown(tmppath, sb.st_uid, sb.st_gid);
-				chmod(tmppath, sb.st_mode & ALLPERMS);
+				if (of != NULL) {
+					/*
+					 * Operate on the fd, not the path: the
+					 * temp file could be swapped under us.
+					 * Never clone ownership/mode through a
+					 * symlink at path: the replacement
+					 * would inherit the link target's
+					 * owner and (set-id) mode bits.
+					 */
+					if (lstat(path, &lsb) == 0 &&
+					    S_ISREG(lsb.st_mode)) {
+						fchown(fileno(of), lsb.st_uid,
+						    lsb.st_gid);
+						fchmod(fileno(of),
+						    lsb.st_mode & ALLPERMS);
+					}
+				}
 			}
 		}
 		if (of == NULL)

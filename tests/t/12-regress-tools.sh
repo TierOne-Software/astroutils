@@ -231,4 +231,42 @@ if require "compress" compress; then
         "$(tool compress) -cf c.txt > c3.Z && [ -f c.txt ]"
 fi
 
+group "fetch: pre-planted symlinks at the output path (TOCTOU)"
+
+# A fetch run as root whose output path is a planted symlink used to
+# append remote content to the link target in resume mode, and cloned
+# the link target's owner/(set-id) mode onto the replacement file via
+# stat()+chown()/chmod().  The resume open now uses O_NOFOLLOW and the
+# temp file's metadata is set with fchown()/fchmod() on the open fd,
+# only when the output path itself is a regular file.
+if require "fetch" fetch; then
+    printf 'REMOTE-CONTROLLED-CONTENT\n' > fsrc.txt
+
+    # resume mode appended remote bytes to the symlink target
+    printf 'OLD\n' > fvic.txt
+    touch -r fsrc.txt fvic.txt
+    ln -s fvic.txt fres
+    assert_status "fetch -r refuses a symlinked output" 1 \
+        "$(tool fetch)" -q -r -o fres "file://$CU_WORK/fsrc.txt"
+    assert_out "resume target left intact" "OLD" cat fvic.txt
+
+    # refetch over a real file still preserves its mode
+    printf 'stale\n' > fkeep.txt
+    chmod 0640 fkeep.txt
+    assert_ok "refetch over a real file" \
+        "$(tool fetch)" -q -o fkeep.txt "file://$CU_WORK/fsrc.txt"
+    assert_out "mode preserved on real-file refetch" "640" \
+        stat -c '%a' fkeep.txt
+
+    # refetch over a symlink must not clone the target's mode
+    printf 'target\n' > ftgt.txt
+    chmod 4755 ftgt.txt
+    ln -s ftgt.txt fout
+    assert_ok "refetch over a symlink" \
+        "$(tool fetch)" -q -o fout "file://$CU_WORK/fsrc.txt"
+    assert_out "no mode clone through symlink" "600" \
+        stat -c '%a' fout
+    assert_out "symlink target left intact" "target" cat ftgt.txt
+fi
+
 cu_finish
