@@ -4264,9 +4264,11 @@ dump_ee_conf(void)
 	char *home_dir =  "~/.init.ee";
 	char buffer[512];
 	struct stat buf;
+	struct stat open_buf;
 	char *string;
 	int length;
 	int option = 0;
+	int fd;
 
 	if (restrict_mode())
 	{
@@ -4288,19 +4290,40 @@ dump_ee_conf(void)
 		file_name = resolve_name(home_dir);
 
 	/*
-	 |	If a .init.ee file exists, move it to .init.ee.old.
+	 |	If a regular .init.ee file exists, move it to .init.ee.old.
+	 |	Refuse symlinks throughout: in a shared directory a planted
+	 |	(or swapped-in) .init.ee must not redirect the backup read
+	 |	or the write to a different file.
 	 */
 
-	if (stat(file_name, &buf) != -1)
+	if (lstat(file_name, &buf) != -1 && S_ISREG(buf.st_mode))
 	{
 		snprintf(buffer, sizeof(buffer), "%s.old", file_name);
 		unlink(buffer);
 		link(file_name, buffer);
 		unlink(file_name);
-		old_init_file = fopen(buffer, "r");
+		fd = open(buffer, O_RDONLY | O_NOFOLLOW);
+		if (fd != -1)
+		{
+			/*
+			 |	Verify the backup is the file just renamed.
+			 */
+			if (fstat(fd, &open_buf) != -1 &&
+			    open_buf.st_dev == buf.st_dev &&
+			    open_buf.st_ino == buf.st_ino)
+				old_init_file = fdopen(fd, "r");
+			if (old_init_file == NULL)
+				close(fd);
+		}
 	}
 
-	init_file = fopen(file_name, "w");
+	fd = open(file_name, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0666);
+	if (fd != -1)
+	{
+		init_file = fdopen(fd, "w");
+		if (init_file == NULL)
+			close(fd);
+	}
 	if (init_file == NULL)
 	{
 		if (old_init_file != NULL)
