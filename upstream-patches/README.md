@@ -226,12 +226,13 @@ Bug fixes found during the static-analysis/fuzzing hardening pass
 Notes for upstream:
 - 0001 introduces __cu_counted_by in include/sys/cdefs.h; 0036 corrects
   its feature test. Squash them if 0001 has not been applied yet.
-- 0035 should go to the Security Officer rather than through normal
-  review, together with the earlier patch(1) findings in 0013: the
-  combination is remotely triggerable memory corruption from an
-  untrusted diff. Note that upstream is *more* exposed than this tree on
-  the first bug — 0013 had already switched p_line to calloc, so the
-  unfilled slot reads as NULL here but as uninitialized heap upstream.
+- 0035 was reported to the Security Officer together with the earlier
+  patch(1) findings in 0013 — the combination is remotely triggerable
+  memory corruption from an untrusted diff. No reply was received, so
+  it submits through normal review with the rest of the series. Note
+  that upstream is *more* exposed than this tree on the first bug —
+  0013 had already switched p_line to calloc, so the unfilled slot
+  reads as NULL here but as uninitialized heap upstream.
 - 0035 was found by replaying fuzz corpora through the real binary
   rather than the parse-only harness; the harness cannot reach any of
   the three sites. The replay driver is tests/t/20-fuzz-corpus.sh.

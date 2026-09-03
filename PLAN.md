@@ -295,7 +295,10 @@ patch on a mailing list.
 
 - [x] Report to the FreeBSD Security Officer: patch(1) stale-`p_len` OOB
       write, patch(1) unbounded `hunkmax` DoS, nvi CONVERT2, nvi
-      `re_conv` heap overflow. Request CVEs. — sent; awaiting reply.
+      `re_conv` heap overflow. Request CVEs. — sent 2026-08; no reply
+      after repeated waits, thread closed 2026-09. The findings and
+      fixes are public in this repo, so the remaining items below
+      proceed through normal public channels when scheduled.
 - [ ] Check OpenBSD/NetBSD `patch(1)` for the same defects; notify if
       present.
 - [ ] Submit the remaining series (`upstream-patches/`) through the
