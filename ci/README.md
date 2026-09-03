@@ -74,3 +74,42 @@ same thing.
   enable yet (PLAN.md P3). They are printed as TODO counts, and become
   hard failures under `HARDENING_STRICT=1` — which is how the gate gets
   switched on once those flags land.
+
+## Upstream watch
+
+`ci/upstream-check.sh` reports what changed upstream since the last
+check, so drift from our two parents gets noticed nightly instead of at
+the next painful rebase:
+
+- **chimera-linux/chimerautils** (master) — our fork parent; all commits
+  are reported, the repo is low-traffic (one API call).
+- **freebsd/freebsd-src** (main) — the paths our `src.freebsd/` tree was
+  imported from. The mapping lives in `ci/upstream-watch.list` and
+  follows chimera's own `import-src.sh`.
+
+```sh
+ci/upstream-check.sh                  # report since the last stamp
+ci/upstream-check.sh --since 2026-08-01T00:00:00Z   # ad-hoc look back
+ci/upstream-check.sh --update         # report, then stamp the state
+ci/upstream-check.sh --freebsd-mode api   # use the API, no local cache
+```
+
+The FreeBSD section does not use the API by default — ~135 watched
+paths would need ~135 requests against the unauthenticated 60/hour
+limit. Instead it keeps a blobless partial clone at
+`$XDG_CACHE_HOME/astroutils/freebsd-src.git` (default
+`~/.cache/astroutils/freebsd-src.git`, outside the repo): full
+commit/tree history, blobs on demand. The first run does a one-time
+clone of ~700 MB (progress on stderr); after that a nightly run is a
+tiny `git fetch` plus local `git log` queries — a couple of seconds,
+with no rate limits. `--freebsd-mode api` keeps the old behavior for
+machines without the cache; export `GITHUB_TOKEN` there.
+
+The state is two ISO dates in `ci/.upstream-sync.state` (gitignored);
+without it the window defaults to the last 7 days. `--update` only
+stamps a clean full run, so a failed night is retried rather than
+silently skipped.
+
+The script only reports. A reviewing agent triages the output against
+our local patches (`upstream-patches/`, `patches/`) and recommends what
+to import; nothing is pulled in automatically.

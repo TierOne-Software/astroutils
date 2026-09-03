@@ -14,3 +14,4 @@ build-ci-*/
 build-asan/
 
 fuzz/obj-sh/
+ci/.upstream-sync.state

@@ -1,0 +1,209 @@
+# upstream-watch.list — what ci/upstream-check.sh monitors upstream.
+#
+# Two sections:
+#   [CHIMERA]  chimera-linux/chimerautils (our fork parent), branch master
+#   [FREEBSD]  freebsd/freebsd-src, branch main — one watched path per line
+#
+# Inside [FREEBSD], every non-comment non-blank line is passed to the
+# GitHub commits API as path=<line>.  Everything else is documentation.
+#
+# The mappings follow chimera's own import-src.sh, which copies files out
+# of a FreeBSD release tarball (currently 15.1-RELEASE, see upstream.conf
+# in their repo).  We watch main rather than the release branch because
+# it gives the earliest signal; anything relevant lands in the next
+# release chimera rebases onto.  Every mapped path below was verified to
+# exist in freebsd-src (2026-08, via the git trees and commits APIs).
+#
+# src.freebsd/ dirs that have no direct freebsd-src equivalent are listed
+# at the end with a '# local:' comment; they are not queried.
+
+[CHIMERA]
+
+# chimera-linux/chimerautils is low-traffic, so all commits on master are
+# reported without a path filter.  The areas that matter to us:
+#   src.freebsd/   their FreeBSD import (same layout as ours)
+#   src.custom/    their custom tools
+#   include/       public headers
+#   meson.build    build system
+#   patches/       patches they apply to src.freebsd after import
+#   import-src.sh / upstream.conf   FreeBSD release rebase tooling
+
+[FREEBSD]
+
+# src.freebsd/coreutils (chimera CMDS_CORE)
+bin/cat
+bin/chmod
+bin/cp
+bin/date
+bin/dd
+bin/df
+bin/echo
+bin/expr
+bin/hostname
+bin/ln
+bin/ls
+bin/mkdir
+bin/mv
+bin/nproc
+bin/pwd
+bin/realpath
+bin/rm
+bin/rmdir
+bin/sleep
+bin/stty
+bin/sync
+bin/test
+bin/timeout
+sbin/md5
+sbin/mknod
+usr.bin/basename
+usr.bin/cksum
+usr.bin/comm
+usr.bin/cut
+usr.bin/csplit
+usr.bin/dirname
+usr.bin/du
+usr.bin/env
+usr.bin/expand
+usr.bin/factor
+usr.bin/false
+usr.bin/fmt
+usr.bin/fold
+usr.bin/head
+usr.bin/id
+usr.bin/join
+usr.bin/logname
+usr.bin/mktemp
+usr.bin/mkfifo
+usr.bin/nice
+usr.bin/nl
+usr.bin/nohup
+usr.bin/paste
+usr.bin/pathchk
+usr.bin/pr
+usr.bin/printenv
+usr.bin/printf
+usr.bin/seq
+usr.bin/sort
+usr.bin/split
+usr.bin/stat
+usr.bin/stdbuf
+usr.bin/tail
+usr.bin/tee
+usr.bin/touch
+usr.bin/tr
+usr.bin/true
+usr.bin/truncate
+usr.bin/tsort
+usr.bin/tty
+usr.bin/uname
+usr.bin/unexpand
+usr.bin/uniq
+usr.bin/users
+usr.bin/wc
+usr.bin/who
+usr.bin/yes
+usr.bin/xinstall
+usr.sbin/chown
+usr.sbin/chroot
+# coreutils/factor also pulls primes.h and pr_tbl.c from usr.bin/primes
+usr.bin/primes
+
+# src.freebsd/diffutils
+usr.bin/cmp
+usr.bin/diff
+usr.bin/diff3
+usr.bin/sdiff
+
+# src.freebsd/findutils (locate is usr.bin/locate/{bigram,code,locate})
+usr.bin/find
+usr.bin/xargs
+usr.bin/locate
+
+# src.freebsd/miscutils (chimera CMDS_MISC)
+bin/kill
+usr.bin/calendar
+usr.bin/col
+usr.bin/colrm
+usr.bin/column
+usr.bin/getopt
+usr.bin/hexdump
+usr.bin/indent
+usr.bin/logger
+usr.bin/look
+usr.bin/mesg
+usr.bin/ncal
+usr.bin/renice
+usr.bin/rev
+usr.bin/script
+usr.bin/time
+usr.bin/ul
+usr.bin/wall
+usr.bin/whereis
+usr.bin/write
+# miscutils/ncal also carries an internal copy of lib/libcalendar
+lib/libcalendar
+
+# src.freebsd standalone ports
+usr.bin/apply
+usr.bin/bintrans
+usr.bin/compress
+bin/ed
+usr.bin/fetch
+usr.bin/gencat
+usr.bin/grep
+usr.bin/gzip
+usr.bin/jot
+usr.bin/m4
+usr.bin/patch
+usr.bin/sed
+bin/sh
+usr.bin/su
+usr.bin/tip
+usr.bin/which
+
+# src.freebsd/awk is contrib/one-true-awk; usr.bin/awk supplies awk.1
+contrib/one-true-awk
+usr.bin/awk
+
+# src.freebsd ports of contrib/ projects
+contrib/ee
+contrib/netcat
+contrib/nvi
+contrib/unvis
+contrib/vis
+
+# src.freebsd/telnet is contrib/telnet (minus telnetd); lib/libtelnet is
+# the library build glue for the libtelnet/ copy inside it
+contrib/telnet
+lib/libtelnet
+
+# src.freebsd libraries
+lib/libfetch
+lib/libmp
+lib/libstdbuf
+
+# src.freebsd/tip/getcap.c is copied from libc (tip's cap parser)
+lib/libc/gen/getcap.c
+
+# src.freebsd/util (public lib with pieces missing from Linux libcs)
+lib/libc/gen/fts.c
+lib/libc/locale/rpmatch.c
+
+# --- not watched: dirs with no single freebsd-src equivalent ---
+
+# local: src.freebsd/compat — chimera's porting shim library; individual
+# files were cherry-picked from lib/libc (gen, stdlib, stdio, string,
+# stdtime), lib/libutil, lib/libopenbsd and contrib/libc-vis and are
+# maintained by hand (see import-src.sh in the chimera repo).
+
+# local: src.freebsd/dbcompat — Berkeley db 1.85 subset (imported from
+# lib/libc/db, but treated as part of the compat layer and patched
+# locally; upstream lib/libc/db is effectively frozen).
+
+# local: src.freebsd/dbinclude — db.h/mpool.h headers for dbcompat
+# (from include/db.h and include/mpool.h, same situation as dbcompat).
+
+# local: src.freebsd/include — port headers: fts.h (include/fts.h),
+# vis.h (contrib/libc-vis/vis.h), ohash.h (lib/libopenbsd/ohash.h),
+# stringlist.h (include/stringlist.h), rpmatch.h (chimera's own).
